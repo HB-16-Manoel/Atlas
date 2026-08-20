@@ -1,0 +1,5887 @@
+"use client";
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+
+import { flushSync } from "react-dom";
+
+import { calculateDailyScore } from "../lib/dailyScore";
+
+/* ============================================================
+ * TYPES
+ * ============================================================
+ */
+
+export type Task = {
+  id: number;
+  text: string;
+  completed: boolean;
+  date: string;
+  order: number;
+};
+
+export type Habit = {
+  id: number;
+  name: string;
+  order: number;
+  createdAt: string;
+  completedDates: string[];
+};
+
+type DragPhase = "dragging" | "settling";
+
+type DragState = {
+  id: number;
+
+  originalIndex: number;
+  targetIndex: number;
+
+  startY: number;
+  currentY: number;
+
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+
+  text: string;
+
+  phase: DragPhase;
+
+  originalIds: number[];
+  previewIds: number[];
+
+  slotCenters: number[];
+};
+
+type PendingDragState = {
+  task: Task;
+  index: number;
+
+  pointerId: number;
+
+  startX: number;
+  startY: number;
+};
+
+type HabitDragState = {
+  id: number;
+
+  originalIndex: number;
+  targetIndex: number;
+
+  startY: number;
+  currentY: number;
+
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+
+  name: string;
+
+  phase: DragPhase;
+
+  originalIds: number[];
+  previewIds: number[];
+
+  slotCenters: number[];
+};
+
+type PendingHabitDragState = {
+  habit: Habit;
+  index: number;
+
+  pointerId: number;
+
+  startX: number;
+  startY: number;
+};
+
+/* ============================================================
+ * DATE HELPERS
+ * ============================================================
+ */
+
+function formatDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function startOfDay(date: Date) {
+  const d = new Date(date);
+
+  d.setHours(0, 0, 0, 0);
+
+  return d;
+}
+
+function startOfWeek(date: Date) {
+  const d = startOfDay(date);
+
+  d.setDate(d.getDate() - d.getDay());
+
+  return d;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function isPast(date: Date) {
+  return startOfDay(date) < startOfDay(new Date());
+}
+
+/* ============================================================
+ * PLANNING
+ * ============================================================
+ */
+
+type PlanningProps = {
+  tasks: Task[];
+
+  setTasks: Dispatch<
+    SetStateAction<Task[]>
+  >;
+
+  habits: Habit[];
+
+  setHabits: Dispatch<
+    SetStateAction<Habit[]>
+  >;
+};
+
+export default function Planning({
+  tasks,
+  setTasks,
+  habits,
+  setHabits,
+}: PlanningProps) {
+  /* ============================================================
+   * TODAY
+   * ============================================================
+   */
+
+  const [
+    today,
+    setToday,
+  ] = useState(
+    startOfDay(new Date())
+  );
+
+  useEffect(() => {
+    let timeoutId: number;
+
+    const scheduleNextMidnight =
+      () => {
+        const now =
+          new Date();
+
+        const nextMidnight =
+          new Date(now);
+
+        nextMidnight.setHours(
+          24,
+          0,
+          0,
+          0
+        );
+
+        const delay =
+          nextMidnight.getTime() -
+          now.getTime();
+
+        timeoutId =
+          window.setTimeout(
+            () => {
+              setToday(
+                startOfDay(
+                  new Date()
+                )
+              );
+
+              scheduleNextMidnight();
+            },
+            delay
+          );
+      };
+
+    scheduleNextMidnight();
+
+    return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+    };
+  }, []);
+
+  /* ============================================================
+   * PLANNING STATE
+   * ============================================================
+   */
+
+  const [
+    selectedDate,
+    setSelectedDate,
+  ] = useState(
+    new Date(today)
+  );
+
+  const [
+    weekStart,
+    setWeekStart,
+  ] = useState(
+    startOfWeek(today)
+  );
+
+  const [
+    weekDirection,
+    setWeekDirection,
+  ] = useState<
+    "left" | "right"
+  >("right");
+
+  const [
+    addingTask,
+    setAddingTask,
+  ] = useState(false);
+
+  const [
+    newTask,
+    setNewTask,
+  ] = useState("");
+
+  /* ============================================================
+   * HABIT STATE
+   * ============================================================
+   */
+
+  const [
+    addingHabit,
+    setAddingHabit,
+  ] = useState(false);
+
+  const [
+    newHabit,
+    setNewHabit,
+  ] = useState("");
+
+  const [
+    editingHabitId,
+    setEditingHabitId,
+  ] = useState<
+    number | null
+  >(null);
+
+  const [
+    editHabitName,
+    setEditHabitName,
+  ] = useState("");
+
+  const habitEditCancelledRef =
+    useRef(false);
+
+  const [
+    deletingHabits,
+    setDeletingHabits,
+  ] = useState<number[]>(
+    []
+  );
+
+  const [
+    confirmDeleteHabitId,
+    setConfirmDeleteHabitId,
+  ] = useState<
+    number | null
+  >(null);
+
+  const [
+    habitReorderMode,
+    setHabitReorderMode,
+  ] = useState(false);
+
+  /* ============================================================
+   * TASK EDITING
+   * ============================================================
+   */
+
+  const [
+    editingTaskId,
+    setEditingTaskId,
+  ] = useState<
+    number | null
+  >(null);
+
+  const [
+    editTaskText,
+    setEditTaskText,
+  ] = useState("");
+
+  const editCancelledRef =
+    useRef(false);
+
+  /* ============================================================
+   * TASK ANIMATION STATE
+   * ============================================================
+   */
+
+  const [
+    deletingTasks,
+    setDeletingTasks,
+  ] = useState<number[]>(
+    []
+  );
+
+  const [
+    visualCompleted,
+    setVisualCompleted,
+  ] = useState<number[]>(
+    []
+  );
+
+  /* ============================================================
+   * TASK DRAG
+   * ============================================================
+   */
+
+  const [
+    drag,
+    setDrag,
+  ] = useState<
+    DragState | null
+  >(null);
+
+  const pendingDragRef =
+    useRef<
+      PendingDragState | null
+    >(null);
+
+  const suppressDoubleClickUntilRef =
+    useRef(0);
+
+  const taskRefs =
+    useRef<
+      Map<
+        number,
+        HTMLDivElement
+      >
+    >(
+      new Map()
+    );
+
+  const dragOverlayRef =
+    useRef<
+      HTMLDivElement | null
+    >(null);
+
+  const dragRef =
+    useRef<
+      DragState | null
+    >(null);
+
+  const animationFrameRef =
+    useRef<
+      number | null
+    >(null);
+
+  const rowAnimationsRef =
+    useRef<
+      Map<
+        number,
+        Animation
+      >
+    >(
+      new Map()
+    );
+
+  /* ============================================================
+   * HABIT DRAG
+   * ============================================================
+   */
+
+  const [
+    habitDrag,
+    setHabitDrag,
+  ] = useState<
+    HabitDragState | null
+  >(null);
+
+  const habitDragRef =
+    useRef<
+      HabitDragState | null
+    >(null);
+
+  const pendingHabitDragRef =
+    useRef<
+      PendingHabitDragState | null
+    >(null);
+
+  const habitRefs =
+    useRef<
+      Map<
+        number,
+        HTMLDivElement
+      >
+    >(
+      new Map()
+    );
+
+  const habitDragOverlayRef =
+    useRef<
+      HTMLDivElement | null
+    >(null);
+
+  const habitAnimationFrameRef =
+    useRef<
+      number | null
+    >(null);
+
+  const habitRowAnimationsRef =
+    useRef<
+      Map<
+        number,
+        Animation
+      >
+    >(
+      new Map()
+    );
+
+  /* ============================================================
+   * TIMERS
+   * ============================================================
+   */
+
+  const completionTimersRef =
+    useRef<
+      Map<
+        number,
+        {
+          completeTimer?: number;
+          cleanupTimer?: number;
+        }
+      >
+    >(
+      new Map()
+    );
+
+  const deleteTimersRef =
+    useRef<
+      Map<
+        number,
+        number
+      >
+    >(
+      new Map()
+    );
+
+  const habitDeleteTimersRef =
+    useRef<
+      Map<
+        number,
+        number
+      >
+    >(
+      new Map()
+    );
+
+  /* ============================================================
+   * DATES
+   * ============================================================
+   */
+
+  const weekDays =
+    Array.from(
+      {
+        length: 7,
+      },
+      (
+        _,
+        index
+      ) => {
+        const date =
+          new Date(
+            weekStart
+          );
+
+        date.setDate(
+          weekStart.getDate() +
+            index
+        );
+
+        return date;
+      }
+    );
+
+  const selectedDateKey =
+    formatDateKey(
+      selectedDate
+    );
+
+  const selectedDateIsPast =
+    isPast(
+      selectedDate
+    );
+
+  /* ============================================================
+   * TASK LIST
+   * ============================================================
+   */
+
+  const selectedTasks =
+    tasks
+      .filter(
+        (
+          task
+        ) =>
+          task.date ===
+            selectedDateKey &&
+          !deletingTasks.includes(
+            task.id
+          )
+      )
+      .sort(
+        (
+          a,
+          b
+        ) => {
+          if (
+            a.completed !==
+            b.completed
+          ) {
+            return a.completed
+              ? 1
+              : -1;
+          }
+
+          return (
+            a.order -
+            b.order
+          );
+        }
+      );
+
+  const unfinishedTasks =
+    selectedTasks.filter(
+      (
+        task
+      ) =>
+        !task.completed
+    );
+
+  const completedTasks =
+    selectedTasks.filter(
+      (
+        task
+      ) =>
+        task.completed
+    );
+
+  const unfinishedById =
+    new Map(
+      unfinishedTasks.map(
+        (
+          task
+        ) =>
+          [
+            task.id,
+            task,
+          ] as const
+      )
+    );
+
+  const displayedUnfinishedTasks =
+    drag
+      ? drag.previewIds
+          .map(
+            (
+              id
+            ) =>
+              unfinishedById.get(
+                id
+              )
+          )
+          .filter(
+            (
+              task
+            ): task is Task =>
+              Boolean(task)
+          )
+      : unfinishedTasks;
+
+  const displayedTasks = [
+    ...displayedUnfinishedTasks,
+    ...completedTasks,
+  ];
+
+  const visualTaskCompletedCount =
+    selectedTasks.filter(
+      (
+        task
+      ) =>
+        task.completed ||
+        visualCompleted.includes(
+          task.id
+        )
+    ).length;
+
+  const allTasksComplete =
+    selectedTasks.length >
+      0 &&
+    visualTaskCompletedCount ===
+      selectedTasks.length;
+
+  /* ============================================================
+   * HABIT LIST
+   * ============================================================
+   */
+
+  const selectedHabits =
+    habits
+      .filter(
+        (
+          habit
+        ) =>
+          habit.createdAt <=
+            selectedDateKey &&
+          !deletingHabits.includes(
+            habit.id
+          )
+      )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          a.order -
+          b.order
+      );
+
+  const habitById =
+    new Map(
+      selectedHabits.map(
+        (
+          habit
+        ) =>
+          [
+            habit.id,
+            habit,
+          ] as const
+      )
+    );
+
+  const displayedHabits =
+    habitDrag
+      ? habitDrag.previewIds
+          .map(
+            (
+              id
+            ) =>
+              habitById.get(
+                id
+              )
+          )
+          .filter(
+            (
+              habit
+            ): habit is Habit =>
+              Boolean(habit)
+          )
+      : selectedHabits;
+
+  const completedHabitsCount =
+    selectedHabits.filter(
+      (
+        habit
+      ) =>
+        habit.completedDates.includes(
+          selectedDateKey
+        )
+    ).length;
+
+  const dailyScore =
+    selectedDate > today
+      ? null
+      : calculateDailyScore(
+          visualTaskCompletedCount,
+          selectedTasks.length,
+          completedHabitsCount,
+          selectedHabits.length
+        );
+
+  const allHabitsComplete =
+    selectedHabits.length >
+      0 &&
+    completedHabitsCount ===
+      selectedHabits.length;
+
+  /* ============================================================
+   * UP NEXT
+   * ============================================================
+   */
+
+  const upcomingTasks =
+    tasks
+      .filter(
+        (
+          task
+        ) =>
+          !task.completed &&
+          task.date >
+            selectedDateKey
+      )
+      .sort(
+        (
+          a,
+          b
+        ) => {
+          if (
+            a.date !==
+            b.date
+          ) {
+            return a.date.localeCompare(
+              b.date
+            );
+          }
+
+          return (
+            a.order -
+            b.order
+          );
+        }
+      )
+      .slice(
+        0,
+        3
+      );
+
+  const upcomingTasksByDate =
+    upcomingTasks.reduce<
+      Record<
+        string,
+        Task[]
+      >
+    >(
+      (
+        groups,
+        task
+      ) => {
+        if (
+          !groups[
+            task.date
+          ]
+        ) {
+          groups[
+            task.date
+          ] = [];
+        }
+
+        groups[
+          task.date
+        ].push(
+          task
+        );
+
+        return groups;
+      },
+      {}
+    );
+
+  /* ============================================================
+   * EDIT HELPERS
+   * ============================================================
+   */
+
+  const closeEditing =
+    () => {
+      editCancelledRef.current =
+        true;
+
+      setEditingTaskId(
+        null
+      );
+
+      setEditTaskText(
+        ""
+      );
+    };
+
+  const closeHabitEditing =
+    () => {
+      habitEditCancelledRef.current =
+        true;
+
+      setEditingHabitId(
+        null
+      );
+
+      setEditHabitName(
+        ""
+      );
+    };
+
+  const closeHabitControls =
+    () => {
+      closeHabitEditing();
+
+      setConfirmDeleteHabitId(
+        null
+      );
+    };
+
+  /* ============================================================
+   * WEEK NAVIGATION
+   * ============================================================
+   */
+
+  const moveWeek = (
+    amount: number
+  ) => {
+    closeEditing();
+    closeHabitControls();
+
+    setHabitReorderMode(
+      false
+    );
+
+    setWeekDirection(
+      amount >
+        0
+        ? "right"
+        : "left"
+    );
+
+    const nextWeek =
+      new Date(
+        weekStart
+      );
+
+    nextWeek.setDate(
+      weekStart.getDate() +
+        amount *
+          7
+    );
+
+    setWeekStart(
+      nextWeek
+    );
+
+    if (
+      isSameDay(
+        startOfWeek(
+          nextWeek
+        ),
+        startOfWeek(
+          today
+        )
+      )
+    ) {
+      setSelectedDate(
+        new Date(
+          today
+        )
+      );
+    } else {
+      setSelectedDate(
+        new Date(
+          nextWeek
+        )
+      );
+    }
+
+    setAddingTask(
+      false
+    );
+
+    setNewTask(
+      ""
+    );
+
+    setAddingHabit(
+      false
+    );
+
+    setNewHabit(
+      ""
+    );
+
+    setVisualCompleted(
+      []
+    );
+  };
+
+  const goToToday =
+    () => {
+      closeEditing();
+      closeHabitControls();
+
+      setHabitReorderMode(
+        false
+      );
+
+      setWeekDirection(
+        "right"
+      );
+
+      setWeekStart(
+        startOfWeek(
+          today
+        )
+      );
+
+      setSelectedDate(
+        new Date(
+          today
+        )
+      );
+
+      setAddingTask(
+        false
+      );
+
+      setNewTask(
+        ""
+      );
+
+      setAddingHabit(
+        false
+      );
+
+      setNewHabit(
+        ""
+      );
+
+      setVisualCompleted(
+        []
+      );
+    };
+
+  const selectDate = (
+    date: Date
+  ) => {
+    closeEditing();
+    closeHabitControls();
+
+    setHabitReorderMode(
+      false
+    );
+
+    setSelectedDate(
+      new Date(
+        date
+      )
+    );
+
+    setAddingTask(
+      false
+    );
+
+    setNewTask(
+      ""
+    );
+
+    setAddingHabit(
+      false
+    );
+
+    setNewHabit(
+      ""
+    );
+
+    setVisualCompleted(
+      []
+    );
+  };
+
+  /* ============================================================
+   * ADD TASK
+   * ============================================================
+   */
+
+  const addTask =
+    () => {
+      if (
+        selectedDateIsPast
+      ) {
+        return;
+      }
+
+      const text =
+        newTask.trim();
+
+      if (
+        !text
+      ) {
+        return;
+      }
+
+      const unfinished =
+        tasks.filter(
+          (
+            task
+          ) =>
+            task.date ===
+              selectedDateKey &&
+            !task.completed
+        );
+
+      const highestOrder =
+        unfinished.length >
+        0
+          ? Math.max(
+              ...unfinished.map(
+                (
+                  task
+                ) =>
+                  task.order
+              )
+            )
+          : -1;
+
+      const task: Task =
+        {
+          id:
+            Date.now(),
+
+          text,
+
+          completed:
+            false,
+
+          date:
+            selectedDateKey,
+
+          order:
+            highestOrder +
+            1,
+        };
+
+      setTasks(
+        (
+          current
+        ) => [
+          ...current,
+          task,
+        ]
+      );
+
+      setNewTask(
+        ""
+      );
+
+      setAddingTask(
+        false
+      );
+    };
+
+  /* ============================================================
+   * ADD HABIT
+   * ============================================================
+   */
+
+  const addHabit =
+    () => {
+      if (
+        selectedDateIsPast
+      ) {
+        return;
+      }
+
+      const name =
+        newHabit.trim();
+
+      if (
+        !name
+      ) {
+        return;
+      }
+
+      const highestOrder =
+        habits.length >
+        0
+          ? Math.max(
+              ...habits.map(
+                (
+                  habit
+                ) =>
+                  habit.order
+              )
+            )
+          : -1;
+
+      const habit: Habit =
+        {
+          id:
+            Date.now(),
+
+          name,
+
+          order:
+            highestOrder +
+            1,
+
+          createdAt:
+            selectedDateKey,
+
+          completedDates:
+            [],
+        };
+
+      setHabits(
+        (
+          current
+        ) => [
+          ...current,
+          habit,
+        ]
+      );
+
+      setNewHabit(
+        ""
+      );
+
+      setAddingHabit(
+        false
+      );
+    };
+
+  /* ============================================================
+   * TOGGLE HABIT
+   * ============================================================
+   */
+
+  const toggleHabit =
+    (
+      id: number
+    ) => {
+      if (
+        selectedDateIsPast ||
+        habitReorderMode
+      ) {
+        return;
+      }
+
+      setHabits(
+        (
+          current
+        ) =>
+          current.map(
+            (
+              habit
+            ) => {
+              if (
+                habit.id !==
+                id
+              ) {
+                return habit;
+              }
+
+              const completed =
+                habit.completedDates.includes(
+                  selectedDateKey
+                );
+
+              return {
+                ...habit,
+
+                completedDates:
+                  completed
+                    ? habit.completedDates.filter(
+                        (
+                          date
+                        ) =>
+                          date !==
+                          selectedDateKey
+                      )
+                    : [
+                        ...habit.completedDates,
+                        selectedDateKey,
+                      ],
+              };
+            }
+          )
+      );
+    };
+
+  /* ============================================================
+   * EDIT HABIT
+   * ============================================================
+   */
+
+  const startEditingHabit =
+    (
+      habit: Habit
+    ) => {
+      if (
+        selectedDateIsPast ||
+        habitReorderMode ||
+        deletingHabits.includes(
+          habit.id
+        )
+      ) {
+        return;
+      }
+
+      setConfirmDeleteHabitId(
+        null
+      );
+
+      habitEditCancelledRef.current =
+        false;
+
+      setEditingHabitId(
+        habit.id
+      );
+
+      setEditHabitName(
+        habit.name
+      );
+    };
+
+  const saveEditingHabit =
+    () => {
+      if (
+        editingHabitId ===
+        null
+      ) {
+        return;
+      }
+
+      const trimmed =
+        editHabitName.trim();
+
+      if (
+        trimmed
+      ) {
+        setHabits(
+          (
+            current
+          ) =>
+            current.map(
+              (
+                habit
+              ) =>
+                habit.id ===
+                editingHabitId
+                  ? {
+                      ...habit,
+
+                      name:
+                        trimmed,
+                    }
+                  : habit
+            )
+        );
+      }
+
+      setEditingHabitId(
+        null
+      );
+
+      setEditHabitName(
+        ""
+      );
+    };
+
+  const cancelEditingHabit =
+    () => {
+      habitEditCancelledRef.current =
+        true;
+
+      setEditingHabitId(
+        null
+      );
+
+      setEditHabitName(
+        ""
+      );
+    };
+
+  /* ============================================================
+   * DELETE HABIT CONFIRMATION
+   * ============================================================
+   */
+
+  const askToDeleteHabit =
+    (
+      id: number
+    ) => {
+      if (
+        selectedDateIsPast ||
+        habitReorderMode
+      ) {
+        return;
+      }
+
+      if (
+        editingHabitId !==
+        null
+      ) {
+        closeHabitEditing();
+      }
+
+      setConfirmDeleteHabitId(
+        id
+      );
+    };
+
+  const cancelDeleteHabit =
+    () => {
+      setConfirmDeleteHabitId(
+        null
+      );
+    };
+
+  const deleteHabit =
+    (
+      id: number
+    ) => {
+      setConfirmDeleteHabitId(
+        null
+      );
+
+      const existingTimer =
+        habitDeleteTimersRef.current.get(
+          id
+        );
+
+      if (
+        existingTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          existingTimer
+        );
+      }
+
+      setDeletingHabits(
+        (
+          current
+        ) =>
+          current.includes(
+            id
+          )
+            ? current
+            : [
+                ...current,
+                id,
+              ]
+      );
+
+      const timer =
+        window.setTimeout(
+          () => {
+            setHabits(
+              (
+                current
+              ) =>
+                current.filter(
+                  (
+                    habit
+                  ) =>
+                    habit.id !==
+                    id
+                )
+            );
+
+            setDeletingHabits(
+              (
+                current
+              ) =>
+                current.filter(
+                  (
+                    habitId
+                  ) =>
+                    habitId !==
+                    id
+                )
+            );
+
+            habitDeleteTimersRef.current.delete(
+              id
+            );
+          },
+          330
+        );
+
+      habitDeleteTimersRef.current.set(
+        id,
+        timer
+      );
+    };
+
+  /* ============================================================
+   * HABIT REORDER MODE
+   * ============================================================
+   */
+
+  const toggleHabitReorderMode =
+    () => {
+      if (
+        selectedDateIsPast ||
+        selectedHabits.length <
+          2
+      ) {
+        return;
+      }
+
+      closeHabitControls();
+
+      setAddingHabit(
+        false
+      );
+
+      setNewHabit(
+        ""
+      );
+
+      setHabitReorderMode(
+        (
+          current
+        ) =>
+          !current
+      );
+    };
+
+  /* ============================================================
+   * GENERIC TASK LIST FLIP
+   * ============================================================
+   */
+
+  const animateListChange = (
+    update: () => void,
+    duration: number
+  ) => {
+    const first =
+      new Map<
+        number,
+        DOMRect
+      >();
+
+    taskRefs.current.forEach(
+      (
+        element,
+        id
+      ) => {
+        first.set(
+          id,
+          element.getBoundingClientRect()
+        );
+      }
+    );
+
+    update();
+
+    requestAnimationFrame(
+      () => {
+        taskRefs.current.forEach(
+          (
+            element,
+            id
+          ) => {
+            const firstRect =
+              first.get(
+                id
+              );
+
+            if (
+              !firstRect
+            ) {
+              return;
+            }
+
+            const lastRect =
+              element.getBoundingClientRect();
+
+            const dx =
+              firstRect.left -
+              lastRect.left;
+
+            const dy =
+              firstRect.top -
+              lastRect.top;
+
+            if (
+              Math.abs(
+                dx
+              ) <
+                1 &&
+              Math.abs(
+                dy
+              ) <
+                1
+            ) {
+              return;
+            }
+
+            element.animate(
+              [
+                {
+                  transform:
+                    `translate3d(${dx}px, ${dy}px, 0)`,
+                },
+
+                {
+                  transform:
+                    "translate3d(0, 0, 0)",
+                },
+              ],
+              {
+                duration,
+
+                easing:
+                  "cubic-bezier(0.22, 0.8, 0.25, 1)",
+
+                fill:
+                  "both",
+              }
+            );
+          }
+        );
+      }
+    );
+  };
+
+  /* ============================================================
+   * COMPLETE / UNCOMPLETE TASK
+   * ============================================================
+   */
+
+  const toggleTask = (
+    id: number
+  ) => {
+    const task =
+      tasks.find(
+        (
+          item
+        ) =>
+          item.id ===
+          id
+      );
+
+    if (
+      !task
+    ) {
+      return;
+    }
+
+    if (
+      editingTaskId ===
+      id
+    ) {
+      closeEditing();
+    }
+
+    const existingTimers =
+      completionTimersRef.current.get(
+        id
+      );
+
+    if (
+      existingTimers
+    ) {
+      if (
+        existingTimers.completeTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          existingTimers.completeTimer
+        );
+      }
+
+      if (
+        existingTimers.cleanupTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          existingTimers.cleanupTimer
+        );
+      }
+
+      completionTimersRef.current.delete(
+        id
+      );
+    }
+
+    if (
+      !task.completed
+    ) {
+      setVisualCompleted(
+        (
+          current
+        ) =>
+          current.includes(
+            id
+          )
+            ? current
+            : [
+                ...current,
+                id,
+              ]
+      );
+
+      const completeTimer =
+        window.setTimeout(
+          () => {
+            animateListChange(
+              () => {
+                setTasks(
+                  (
+                    current
+                  ) =>
+                    current.map(
+                      (
+                        item
+                      ) =>
+                        item.id ===
+                        id
+                          ? {
+                              ...item,
+
+                              completed:
+                                true,
+                            }
+                          : item
+                    )
+                );
+              },
+              1050
+            );
+          },
+          420
+        );
+
+      const cleanupTimer =
+        window.setTimeout(
+          () => {
+            setVisualCompleted(
+              (
+                current
+              ) =>
+                current.filter(
+                  (
+                    taskId
+                  ) =>
+                    taskId !==
+                    id
+                )
+            );
+
+            completionTimersRef.current.delete(
+              id
+            );
+          },
+          1250
+        );
+
+      completionTimersRef.current.set(
+        id,
+        {
+          completeTimer,
+          cleanupTimer,
+        }
+      );
+
+      return;
+    }
+
+    setVisualCompleted(
+      (
+        current
+      ) =>
+        current.filter(
+          (
+            taskId
+          ) =>
+            taskId !==
+            id
+        )
+    );
+
+    animateListChange(
+      () => {
+        setTasks(
+          (
+            current
+          ) => {
+            const unfinished =
+              current.filter(
+                (
+                  item
+                ) =>
+                  item.date ===
+                    selectedDateKey &&
+                  !item.completed
+              );
+
+            const smallestOrder =
+              unfinished.length >
+              0
+                ? Math.min(
+                    ...unfinished.map(
+                      (
+                        item
+                      ) =>
+                        item.order
+                    )
+                  )
+                : 0;
+
+            return current.map(
+              (
+                item
+              ) =>
+                item.id ===
+                id
+                  ? {
+                      ...item,
+
+                      completed:
+                        false,
+
+                      order:
+                        smallestOrder -
+                        1,
+                    }
+                  : item
+            );
+          }
+        );
+      },
+      850
+    );
+  };
+
+  /* ============================================================
+   * EDIT TASK
+   * ============================================================
+   */
+
+  const startEditingTask = (
+    task: Task
+  ) => {
+    if (
+      selectedDateIsPast ||
+      deletingTasks.includes(
+        task.id
+      ) ||
+      dragRef.current
+    ) {
+      return;
+    }
+
+    editCancelledRef.current =
+      false;
+
+    setEditingTaskId(
+      task.id
+    );
+
+    setEditTaskText(
+      task.text
+    );
+  };
+
+  const saveEditingTask =
+    () => {
+      if (
+        editingTaskId ===
+        null
+      ) {
+        return;
+      }
+
+      const trimmed =
+        editTaskText.trim();
+
+      if (
+        trimmed
+      ) {
+        setTasks(
+          (
+            current
+          ) =>
+            current.map(
+              (
+                task
+              ) =>
+                task.id ===
+                editingTaskId
+                  ? {
+                      ...task,
+
+                      text:
+                        trimmed,
+                    }
+                  : task
+            )
+        );
+      }
+
+      setEditingTaskId(
+        null
+      );
+
+      setEditTaskText(
+        ""
+      );
+    };
+
+  const cancelEditingTask =
+    () => {
+      editCancelledRef.current =
+        true;
+
+      setEditingTaskId(
+        null
+      );
+
+      setEditTaskText(
+        ""
+      );
+    };
+
+  /* ============================================================
+   * DELETE TASK
+   * ============================================================
+   */
+
+  const deleteTask = (
+    id: number
+  ) => {
+    if (
+      editingTaskId ===
+      id
+    ) {
+      cancelEditingTask();
+    }
+
+    const existingDeleteTimer =
+      deleteTimersRef.current.get(
+        id
+      );
+
+    if (
+      existingDeleteTimer !==
+      undefined
+    ) {
+      window.clearTimeout(
+        existingDeleteTimer
+      );
+    }
+
+    const completionTimers =
+      completionTimersRef.current.get(
+        id
+      );
+
+    if (
+      completionTimers
+    ) {
+      if (
+        completionTimers.completeTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          completionTimers.completeTimer
+        );
+      }
+
+      if (
+        completionTimers.cleanupTimer !==
+        undefined
+      ) {
+        window.clearTimeout(
+          completionTimers.cleanupTimer
+        );
+      }
+
+      completionTimersRef.current.delete(
+        id
+      );
+    }
+
+    setVisualCompleted(
+      (
+        current
+      ) =>
+        current.filter(
+          (
+            taskId
+          ) =>
+            taskId !==
+            id
+        )
+    );
+
+    setDeletingTasks(
+      (
+        current
+      ) =>
+        current.includes(
+          id
+        )
+          ? current
+          : [
+              ...current,
+              id,
+            ]
+    );
+
+    const deleteTimer =
+      window.setTimeout(
+        () => {
+          setTasks(
+            (
+              current
+            ) =>
+              current.filter(
+                (
+                  task
+                ) =>
+                  task.id !==
+                  id
+              )
+          );
+
+          setDeletingTasks(
+            (
+              current
+            ) =>
+              current.filter(
+                (
+                  taskId
+                ) =>
+                  taskId !==
+                  id
+              )
+          );
+
+          deleteTimersRef.current.delete(
+            id
+          );
+        },
+        330
+      );
+
+    deleteTimersRef.current.set(
+      id,
+      deleteTimer
+    );
+  };
+
+  /* ============================================================
+   * TASK DRAG HELPERS
+   * ============================================================
+   */
+
+  const cancelRowAnimations =
+    () => {
+      rowAnimationsRef.current.forEach(
+        (
+          animation
+        ) =>
+          animation.cancel()
+      );
+
+      rowAnimationsRef.current.clear();
+    };
+
+  const buildPreviewIds = (
+    current: DragState,
+    targetIndex: number
+  ) => {
+    const next =
+      current.originalIds.filter(
+        (
+          id
+        ) =>
+          id !==
+          current.id
+      );
+
+    const safeIndex =
+      Math.max(
+        0,
+        Math.min(
+          targetIndex,
+          next.length
+        )
+      );
+
+    next.splice(
+      safeIndex,
+      0,
+      current.id
+    );
+
+    return next;
+  };
+
+  const animatePreviewChange = (
+    current: DragState,
+    targetIndex: number
+  ) => {
+    const nextPreviewIds =
+      buildPreviewIds(
+        current,
+        targetIndex
+      );
+
+    const firstRects =
+      new Map<
+        number,
+        DOMRect
+      >();
+
+    current.previewIds.forEach(
+      (
+        id
+      ) => {
+        if (
+          id ===
+          current.id
+        ) {
+          return;
+        }
+
+        const element =
+          taskRefs.current.get(
+            id
+          );
+
+        if (
+          element
+        ) {
+          firstRects.set(
+            id,
+            element.getBoundingClientRect()
+          );
+        }
+      }
+    );
+
+    cancelRowAnimations();
+
+    const next: DragState = {
+      ...current,
+
+      targetIndex,
+
+      previewIds:
+        nextPreviewIds,
+    };
+
+    dragRef.current =
+      next;
+
+    flushSync(
+      () => {
+        setDrag(
+          next
+        );
+      }
+    );
+
+    nextPreviewIds.forEach(
+      (
+        id
+      ) => {
+        if (
+          id ===
+          current.id
+        ) {
+          return;
+        }
+
+        const element =
+          taskRefs.current.get(
+            id
+          );
+
+        const firstRect =
+          firstRects.get(
+            id
+          );
+
+        if (
+          !element ||
+          !firstRect
+        ) {
+          return;
+        }
+
+        const lastRect =
+          element.getBoundingClientRect();
+
+        const dx =
+          firstRect.left -
+          lastRect.left;
+
+        const dy =
+          firstRect.top -
+          lastRect.top;
+
+        if (
+          Math.abs(
+            dx
+          ) <
+            0.5 &&
+          Math.abs(
+            dy
+          ) <
+            0.5
+        ) {
+          return;
+        }
+
+        const animation =
+          element.animate(
+            [
+              {
+                transform:
+                  `translate3d(${dx}px, ${dy}px, 0)`,
+              },
+
+              {
+                transform:
+                  "translate3d(0, 0, 0)",
+              },
+            ],
+            {
+              duration:
+                260,
+
+              easing:
+                "cubic-bezier(0.22, 0.8, 0.25, 1)",
+
+              fill:
+                "both",
+            }
+          );
+
+        rowAnimationsRef.current.set(
+          id,
+          animation
+        );
+
+        animation.onfinish =
+          () => {
+            if (
+              rowAnimationsRef.current.get(
+                id
+              ) ===
+              animation
+            ) {
+              rowAnimationsRef.current.delete(
+                id
+              );
+            }
+          };
+
+        animation.oncancel =
+          () => {
+            if (
+              rowAnimationsRef.current.get(
+                id
+              ) ===
+              animation
+            ) {
+              rowAnimationsRef.current.delete(
+                id
+              );
+            }
+          };
+      }
+    );
+  };
+
+  const updateDragTarget = (
+    clientY: number
+  ) => {
+    const current =
+      dragRef.current;
+
+    if (
+      !current ||
+      current.phase !==
+        "dragging"
+    ) {
+      return;
+    }
+
+    current.currentY =
+      clientY;
+
+    const offset =
+      clientY -
+      current.startY;
+
+    const draggedCenter =
+      current.top +
+      offset +
+      current.height /
+        2;
+
+    let bestIndex =
+      current.originalIndex;
+
+    let bestDistance =
+      Infinity;
+
+    current.slotCenters.forEach(
+      (
+        center,
+        index
+      ) => {
+        const distance =
+          Math.abs(
+            draggedCenter -
+              center
+          );
+
+        if (
+          distance <
+          bestDistance
+        ) {
+          bestDistance =
+            distance;
+
+          bestIndex =
+            index;
+        }
+      }
+    );
+
+    if (
+      bestIndex ===
+      current.targetIndex
+    ) {
+      return;
+    }
+
+    animatePreviewChange(
+      current,
+      bestIndex
+    );
+  };
+
+  const handlePointerMove = (
+    event: PointerEvent
+  ) => {
+    const current =
+      dragRef.current;
+
+    if (
+      !current ||
+      current.phase !==
+        "dragging"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    current.currentY =
+      event.clientY;
+
+    const offset =
+      event.clientY -
+      current.startY;
+
+    if (
+      dragOverlayRef.current
+    ) {
+      dragOverlayRef.current.style.transition =
+        "none";
+
+      dragOverlayRef.current.style.transform =
+        `translate3d(0, ${offset}px, 0) scale(1.012)`;
+    }
+
+    if (
+      animationFrameRef.current !==
+      null
+    ) {
+      return;
+    }
+
+    animationFrameRef.current =
+      requestAnimationFrame(
+        () => {
+          animationFrameRef.current =
+            null;
+
+          const latest =
+            dragRef.current;
+
+          if (
+            !latest ||
+            latest.phase !==
+              "dragging"
+          ) {
+            return;
+          }
+
+          updateDragTarget(
+            latest.currentY
+          );
+        }
+      );
+  };
+
+  const commitPreviewOrder = (
+    previewIds: number[]
+  ) => {
+    const orderMap =
+      new Map<
+        number,
+        number
+      >();
+
+    previewIds.forEach(
+      (
+        id,
+        index
+      ) => {
+        orderMap.set(
+          id,
+          index
+        );
+      }
+    );
+
+    setTasks(
+      (
+        existing
+      ) =>
+        existing.map(
+          (
+            task
+          ) => {
+            if (
+              task.date !==
+                selectedDateKey ||
+              task.completed
+            ) {
+              return task;
+            }
+
+            const order =
+              orderMap.get(
+                task.id
+              );
+
+            if (
+              order ===
+              undefined
+            ) {
+              return task;
+            }
+
+            return {
+              ...task,
+              order,
+            };
+          }
+        )
+    );
+  };
+
+  const finishDrag =
+    () => {
+      const current =
+        dragRef.current;
+
+      if (
+        !current
+      ) {
+        return;
+      }
+
+      if (
+        animationFrameRef.current !==
+        null
+      ) {
+        cancelAnimationFrame(
+          animationFrameRef.current
+        );
+
+        animationFrameRef.current =
+          null;
+      }
+
+      const overlay =
+        dragOverlayRef.current;
+
+      const destinationElement =
+        taskRefs.current.get(
+          current.id
+        );
+
+      if (
+        !overlay ||
+        !destinationElement
+      ) {
+        cancelRowAnimations();
+
+        dragRef.current =
+          null;
+
+        setDrag(
+          null
+        );
+
+        return;
+      }
+
+      const destinationRect =
+        destinationElement.getBoundingClientRect();
+
+      const finalOffset =
+        destinationRect.top -
+        current.top;
+
+      const currentOffset =
+        current.currentY -
+        current.startY;
+
+      const distanceLeft =
+        Math.abs(
+          finalOffset -
+            currentOffset
+        );
+
+      const settleDuration =
+        Math.max(
+          240,
+          Math.min(
+            340,
+            210 +
+              distanceLeft *
+                0.65
+          )
+        );
+
+      const settling: DragState = {
+        ...current,
+
+        phase:
+          "settling",
+      };
+
+      dragRef.current =
+        settling;
+
+      setDrag(
+        settling
+      );
+
+      overlay.style.transition =
+        `transform ${settleDuration}ms cubic-bezier(0.22, 0.8, 0.25, 1)`;
+
+      overlay.style.transform =
+        `translate3d(0, ${finalOffset}px, 0) scale(1)`;
+
+      window.setTimeout(
+        () => {
+          const latest =
+            dragRef.current;
+
+          if (
+            !latest
+          ) {
+            return;
+          }
+
+          flushSync(
+            () => {
+              commitPreviewOrder(
+                latest.previewIds
+              );
+            }
+          );
+
+          requestAnimationFrame(
+            () => {
+              dragRef.current =
+                null;
+
+              setDrag(
+                null
+              );
+            }
+          );
+        },
+        settleDuration
+      );
+    };
+
+  const handlePointerUp =
+    () => {
+      window.removeEventListener(
+        "pointermove",
+        handlePointerMove
+      );
+
+      window.removeEventListener(
+        "pointerup",
+        handlePointerUp
+      );
+
+      window.removeEventListener(
+        "pointercancel",
+        handlePointerUp
+      );
+
+      finishDrag();
+    };
+
+  const beginActualDrag = (
+    pending: PendingDragState,
+    currentClientY: number
+  ) => {
+    const {
+      task,
+      index,
+      startY,
+    } = pending;
+
+    const element =
+      taskRefs.current.get(
+        task.id
+      );
+
+    if (
+      !element
+    ) {
+      return;
+    }
+
+    cancelRowAnimations();
+
+    suppressDoubleClickUntilRef.current =
+      performance.now() +
+      500;
+
+    const rect =
+      element.getBoundingClientRect();
+
+    const originalIds =
+      unfinishedTasks.map(
+        (
+          item
+        ) =>
+          item.id
+      );
+
+    const slotCenters =
+      unfinishedTasks.map(
+        (
+          item
+        ) => {
+          const row =
+            taskRefs.current.get(
+              item.id
+            );
+
+          if (
+            !row
+          ) {
+            return (
+              rect.top +
+              rect.height /
+                2
+            );
+          }
+
+          const rowRect =
+            row.getBoundingClientRect();
+
+          return (
+            rowRect.top +
+            rowRect.height /
+              2
+          );
+        }
+      );
+
+    const initial: DragState = {
+      id:
+        task.id,
+
+      originalIndex:
+        index,
+
+      targetIndex:
+        index,
+
+      startY,
+
+      currentY:
+        currentClientY,
+
+      top:
+        rect.top,
+
+      left:
+        rect.left,
+
+      width:
+        rect.width,
+
+      height:
+        rect.height,
+
+      text:
+        task.text,
+
+      phase:
+        "dragging",
+
+      originalIds,
+
+      previewIds: [
+        ...originalIds,
+      ],
+
+      slotCenters,
+    };
+
+    dragRef.current =
+      initial;
+
+    flushSync(
+      () => {
+        setDrag(
+          initial
+        );
+      }
+    );
+
+    const initialOffset =
+      currentClientY -
+      startY;
+
+    if (
+      dragOverlayRef.current
+    ) {
+      dragOverlayRef.current.style.transition =
+        "none";
+
+      dragOverlayRef.current.style.transform =
+        `translate3d(0, ${initialOffset}px, 0) scale(1.012)`;
+    }
+
+    window.addEventListener(
+      "pointermove",
+      handlePointerMove,
+      {
+        passive:
+          false,
+      }
+    );
+
+    window.addEventListener(
+      "pointerup",
+      handlePointerUp
+    );
+
+    window.addEventListener(
+      "pointercancel",
+      handlePointerUp
+    );
+  };
+
+  const handleTaskPointerDown = (
+    event:
+      ReactPointerEvent<HTMLDivElement>,
+    task:
+      Task,
+    index:
+      number
+  ) => {
+    const target =
+      event.target as HTMLElement;
+
+    if (
+      target.closest(
+        "button"
+      ) ||
+      target.closest(
+        "input"
+      )
+    ) {
+      return;
+    }
+
+    if (
+      editingTaskId !==
+      null
+    ) {
+      return;
+    }
+
+    if (
+      task.completed ||
+      selectedDateIsPast ||
+      index <
+        0
+    ) {
+      return;
+    }
+
+    pendingDragRef.current =
+      {
+        task,
+        index,
+
+        pointerId:
+          event.pointerId,
+
+        startX:
+          event.clientX,
+
+        startY:
+          event.clientY,
+      };
+
+    try {
+      event.currentTarget.setPointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+  };
+
+  const handleTaskPointerMove = (
+    event:
+      ReactPointerEvent<HTMLDivElement>,
+    task:
+      Task
+  ) => {
+    const pending =
+      pendingDragRef.current;
+
+    if (
+      !pending ||
+      pending.pointerId !==
+        event.pointerId ||
+      pending.task.id !==
+        task.id
+    ) {
+      return;
+    }
+
+    const dx =
+      event.clientX -
+      pending.startX;
+
+    const dy =
+      event.clientY -
+      pending.startY;
+
+    const distance =
+      Math.hypot(
+        dx,
+        dy
+      );
+
+    if (
+      distance <
+      6
+    ) {
+      return;
+    }
+
+    pendingDragRef.current =
+      null;
+
+    try {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    beginActualDrag(
+      pending,
+      event.clientY
+    );
+  };
+
+  const handleTaskPointerUp = (
+    event:
+      ReactPointerEvent<HTMLDivElement>,
+    task:
+      Task
+  ) => {
+    const pending =
+      pendingDragRef.current;
+
+    if (
+      !pending ||
+      pending.pointerId !==
+        event.pointerId ||
+      pending.task.id !==
+        task.id
+    ) {
+      return;
+    }
+
+    pendingDragRef.current =
+      null;
+
+    try {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+  };
+
+  const handleTaskDoubleClick = (
+    event:
+      ReactMouseEvent<HTMLDivElement>,
+    task:
+      Task
+  ) => {
+    const target =
+      event.target as HTMLElement;
+
+    if (
+      target.closest(
+        "button"
+      ) ||
+      target.closest(
+        "input"
+      )
+    ) {
+      return;
+    }
+
+    if (
+      performance.now() <
+      suppressDoubleClickUntilRef.current
+    ) {
+      return;
+    }
+
+    if (
+      selectedDateIsPast ||
+      dragRef.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    pendingDragRef.current =
+      null;
+
+    startEditingTask(
+      task
+    );
+  };
+
+  /* ============================================================
+   * HABIT DRAG HELPERS
+   * ============================================================
+   */
+
+  const cancelHabitRowAnimations =
+    () => {
+      habitRowAnimationsRef.current.forEach(
+        (
+          animation
+        ) =>
+          animation.cancel()
+      );
+
+      habitRowAnimationsRef.current.clear();
+    };
+
+  const buildHabitPreviewIds = (
+    current:
+      HabitDragState,
+    targetIndex:
+      number
+  ) => {
+    const next =
+      current.originalIds.filter(
+        (
+          id
+        ) =>
+          id !==
+          current.id
+      );
+
+    const safeIndex =
+      Math.max(
+        0,
+        Math.min(
+          targetIndex,
+          next.length
+        )
+      );
+
+    next.splice(
+      safeIndex,
+      0,
+      current.id
+    );
+
+    return next;
+  };
+
+  const animateHabitPreviewChange = (
+    current:
+      HabitDragState,
+    targetIndex:
+      number
+  ) => {
+    const nextPreviewIds =
+      buildHabitPreviewIds(
+        current,
+        targetIndex
+      );
+
+    const firstRects =
+      new Map<
+        number,
+        DOMRect
+      >();
+
+    current.previewIds.forEach(
+      (
+        id
+      ) => {
+        if (
+          id ===
+          current.id
+        ) {
+          return;
+        }
+
+        const element =
+          habitRefs.current.get(
+            id
+          );
+
+        if (
+          element
+        ) {
+          firstRects.set(
+            id,
+            element.getBoundingClientRect()
+          );
+        }
+      }
+    );
+
+    cancelHabitRowAnimations();
+
+    const next:
+      HabitDragState =
+        {
+          ...current,
+
+          targetIndex,
+
+          previewIds:
+            nextPreviewIds,
+        };
+
+    habitDragRef.current =
+      next;
+
+    flushSync(
+      () => {
+        setHabitDrag(
+          next
+        );
+      }
+    );
+
+    nextPreviewIds.forEach(
+      (
+        id
+      ) => {
+        if (
+          id ===
+          current.id
+        ) {
+          return;
+        }
+
+        const element =
+          habitRefs.current.get(
+            id
+          );
+
+        const firstRect =
+          firstRects.get(
+            id
+          );
+
+        if (
+          !element ||
+          !firstRect
+        ) {
+          return;
+        }
+
+        const lastRect =
+          element.getBoundingClientRect();
+
+        const dx =
+          firstRect.left -
+          lastRect.left;
+
+        const dy =
+          firstRect.top -
+          lastRect.top;
+
+        if (
+          Math.abs(
+            dx
+          ) <
+            0.5 &&
+          Math.abs(
+            dy
+          ) <
+            0.5
+        ) {
+          return;
+        }
+
+        const animation =
+          element.animate(
+            [
+              {
+                transform:
+                  `translate3d(${dx}px, ${dy}px, 0)`,
+              },
+
+              {
+                transform:
+                  "translate3d(0, 0, 0)",
+              },
+            ],
+            {
+              duration:
+                260,
+
+              easing:
+                "cubic-bezier(0.22, 0.8, 0.25, 1)",
+
+              fill:
+                "both",
+            }
+          );
+
+        habitRowAnimationsRef.current.set(
+          id,
+          animation
+        );
+
+        animation.onfinish =
+          () => {
+            if (
+              habitRowAnimationsRef.current.get(
+                id
+              ) ===
+              animation
+            ) {
+              habitRowAnimationsRef.current.delete(
+                id
+              );
+            }
+          };
+
+        animation.oncancel =
+          () => {
+            if (
+              habitRowAnimationsRef.current.get(
+                id
+              ) ===
+              animation
+            ) {
+              habitRowAnimationsRef.current.delete(
+                id
+              );
+            }
+          };
+      }
+    );
+  };
+
+  const updateHabitDragTarget =
+    (
+      clientY:
+        number
+    ) => {
+      const current =
+        habitDragRef.current;
+
+      if (
+        !current ||
+        current.phase !==
+          "dragging"
+      ) {
+        return;
+      }
+
+      current.currentY =
+        clientY;
+
+      const offset =
+        clientY -
+        current.startY;
+
+      const draggedCenter =
+        current.top +
+        offset +
+        current.height /
+          2;
+
+      let bestIndex =
+        current.originalIndex;
+
+      let bestDistance =
+        Infinity;
+
+      current.slotCenters.forEach(
+        (
+          center,
+          index
+        ) => {
+          const distance =
+            Math.abs(
+              draggedCenter -
+                center
+            );
+
+          if (
+            distance <
+            bestDistance
+          ) {
+            bestDistance =
+              distance;
+
+            bestIndex =
+              index;
+          }
+        }
+      );
+
+      if (
+        bestIndex ===
+        current.targetIndex
+      ) {
+        return;
+      }
+
+      animateHabitPreviewChange(
+        current,
+        bestIndex
+      );
+    };
+
+  const handleHabitWindowPointerMove =
+    (
+      event:
+        PointerEvent
+    ) => {
+      const current =
+        habitDragRef.current;
+
+      if (
+        !current ||
+        current.phase !==
+          "dragging"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      current.currentY =
+        event.clientY;
+
+      const offset =
+        event.clientY -
+        current.startY;
+
+      if (
+        habitDragOverlayRef.current
+      ) {
+        habitDragOverlayRef.current.style.transition =
+          "none";
+
+        habitDragOverlayRef.current.style.transform =
+          `translate3d(0, ${offset}px, 0) scale(1.012)`;
+      }
+
+      if (
+        habitAnimationFrameRef.current !==
+        null
+      ) {
+        return;
+      }
+
+      habitAnimationFrameRef.current =
+        requestAnimationFrame(
+          () => {
+            habitAnimationFrameRef.current =
+              null;
+
+            const latest =
+              habitDragRef.current;
+
+            if (
+              !latest ||
+              latest.phase !==
+                "dragging"
+            ) {
+              return;
+            }
+
+            updateHabitDragTarget(
+              latest.currentY
+            );
+          }
+        );
+    };
+
+  const commitHabitPreviewOrder =
+    (
+      previewIds:
+        number[]
+    ) => {
+      const orderMap =
+        new Map<
+          number,
+          number
+        >();
+
+      previewIds.forEach(
+        (
+          id,
+          index
+        ) => {
+          orderMap.set(
+            id,
+            index
+          );
+        }
+      );
+
+      setHabits(
+        (
+          existing
+        ) =>
+          existing.map(
+            (
+              habit
+            ) => {
+              const order =
+                orderMap.get(
+                  habit.id
+                );
+
+              if (
+                order ===
+                undefined
+              ) {
+                return habit;
+              }
+
+              return {
+                ...habit,
+                order,
+              };
+            }
+          )
+      );
+    };
+
+  const finishHabitDrag =
+    () => {
+      const current =
+        habitDragRef.current;
+
+      if (
+        !current
+      ) {
+        return;
+      }
+
+      if (
+        habitAnimationFrameRef.current !==
+        null
+      ) {
+        cancelAnimationFrame(
+          habitAnimationFrameRef.current
+        );
+
+        habitAnimationFrameRef.current =
+          null;
+      }
+
+      const overlay =
+        habitDragOverlayRef.current;
+
+      const destinationElement =
+        habitRefs.current.get(
+          current.id
+        );
+
+      if (
+        !overlay ||
+        !destinationElement
+      ) {
+        cancelHabitRowAnimations();
+
+        habitDragRef.current =
+          null;
+
+        setHabitDrag(
+          null
+        );
+
+        return;
+      }
+
+      const destinationRect =
+        destinationElement.getBoundingClientRect();
+
+      const finalOffset =
+        destinationRect.top -
+        current.top;
+
+      const currentOffset =
+        current.currentY -
+        current.startY;
+
+      const distanceLeft =
+        Math.abs(
+          finalOffset -
+            currentOffset
+        );
+
+      const settleDuration =
+        Math.max(
+          220,
+          Math.min(
+            330,
+            200 +
+              distanceLeft *
+                0.6
+          )
+        );
+
+      const settling:
+        HabitDragState =
+          {
+            ...current,
+
+            phase:
+              "settling",
+          };
+
+      habitDragRef.current =
+        settling;
+
+      setHabitDrag(
+        settling
+      );
+
+      overlay.style.transition =
+        `transform ${settleDuration}ms cubic-bezier(0.22, 0.8, 0.25, 1)`;
+
+      overlay.style.transform =
+        `translate3d(0, ${finalOffset}px, 0) scale(1)`;
+
+      window.setTimeout(
+        () => {
+          const latest =
+            habitDragRef.current;
+
+          if (
+            !latest
+          ) {
+            return;
+          }
+
+          flushSync(
+            () => {
+              commitHabitPreviewOrder(
+                latest.previewIds
+              );
+            }
+          );
+
+          requestAnimationFrame(
+            () => {
+              habitDragRef.current =
+                null;
+
+              setHabitDrag(
+                null
+              );
+            }
+          );
+        },
+        settleDuration
+      );
+    };
+
+  const handleHabitWindowPointerUp =
+    () => {
+      window.removeEventListener(
+        "pointermove",
+        handleHabitWindowPointerMove
+      );
+
+      window.removeEventListener(
+        "pointerup",
+        handleHabitWindowPointerUp
+      );
+
+      window.removeEventListener(
+        "pointercancel",
+        handleHabitWindowPointerUp
+      );
+
+      finishHabitDrag();
+    };
+
+  const beginActualHabitDrag =
+    (
+      pending:
+        PendingHabitDragState,
+      currentClientY:
+        number
+    ) => {
+      const {
+        habit,
+        index,
+        startY,
+      } =
+        pending;
+
+      const element =
+        habitRefs.current.get(
+          habit.id
+        );
+
+      if (
+        !element
+      ) {
+        return;
+      }
+
+      cancelHabitRowAnimations();
+
+      const rect =
+        element.getBoundingClientRect();
+
+      const originalIds =
+        selectedHabits.map(
+          (
+            item
+          ) =>
+            item.id
+        );
+
+      const slotCenters =
+        selectedHabits.map(
+          (
+            item
+          ) => {
+            const row =
+              habitRefs.current.get(
+                item.id
+              );
+
+            if (
+              !row
+            ) {
+              return (
+                rect.top +
+                rect.height /
+                  2
+              );
+            }
+
+            const rowRect =
+              row.getBoundingClientRect();
+
+            return (
+              rowRect.top +
+              rowRect.height /
+                2
+            );
+          }
+        );
+
+      const initial:
+        HabitDragState =
+          {
+            id:
+              habit.id,
+
+            originalIndex:
+              index,
+
+            targetIndex:
+              index,
+
+            startY,
+
+            currentY:
+              currentClientY,
+
+            top:
+              rect.top,
+
+            left:
+              rect.left,
+
+            width:
+              rect.width,
+
+            height:
+              rect.height,
+
+            name:
+              habit.name,
+
+            phase:
+              "dragging",
+
+            originalIds,
+
+            previewIds:
+              [
+                ...originalIds,
+              ],
+
+            slotCenters,
+          };
+
+      habitDragRef.current =
+        initial;
+
+      flushSync(
+        () => {
+          setHabitDrag(
+            initial
+          );
+        }
+      );
+
+      const initialOffset =
+        currentClientY -
+        startY;
+
+      if (
+        habitDragOverlayRef.current
+      ) {
+        habitDragOverlayRef.current.style.transition =
+          "none";
+
+        habitDragOverlayRef.current.style.transform =
+          `translate3d(0, ${initialOffset}px, 0) scale(1.012)`;
+      }
+
+      window.addEventListener(
+        "pointermove",
+        handleHabitWindowPointerMove,
+        {
+          passive:
+            false,
+        }
+      );
+
+      window.addEventListener(
+        "pointerup",
+        handleHabitWindowPointerUp
+      );
+
+      window.addEventListener(
+        "pointercancel",
+        handleHabitWindowPointerUp
+      );
+    };
+
+  const handleHabitPointerDown =
+    (
+      event:
+        ReactPointerEvent<HTMLDivElement>,
+      habit:
+        Habit,
+      index:
+        number
+    ) => {
+      if (
+        !habitReorderMode ||
+        selectedDateIsPast ||
+        index <
+          0
+      ) {
+        return;
+      }
+
+      const target =
+        event.target as HTMLElement;
+
+      if (
+        target.closest(
+          "button"
+        ) ||
+        target.closest(
+          "input"
+        )
+      ) {
+        return;
+      }
+
+      pendingHabitDragRef.current =
+        {
+          habit,
+          index,
+
+          pointerId:
+            event.pointerId,
+
+          startX:
+            event.clientX,
+
+          startY:
+            event.clientY,
+        };
+
+      try {
+        event.currentTarget.setPointerCapture(
+          event.pointerId
+        );
+      } catch {
+        // Safe fallback.
+      }
+    };
+
+  const handleHabitPointerMove =
+    (
+      event:
+        ReactPointerEvent<HTMLDivElement>,
+      habit:
+        Habit
+    ) => {
+      const pending =
+        pendingHabitDragRef.current;
+
+      if (
+        !pending ||
+        pending.pointerId !==
+          event.pointerId ||
+        pending.habit.id !==
+          habit.id
+      ) {
+        return;
+      }
+
+      const dx =
+        event.clientX -
+        pending.startX;
+
+      const dy =
+        event.clientY -
+        pending.startY;
+
+      const distance =
+        Math.hypot(
+          dx,
+          dy
+        );
+
+      if (
+        distance <
+        5
+      ) {
+        return;
+      }
+
+      pendingHabitDragRef.current =
+        null;
+
+      try {
+        event.currentTarget.releasePointerCapture(
+          event.pointerId
+        );
+      } catch {
+        // Safe fallback.
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      beginActualHabitDrag(
+        pending,
+        event.clientY
+      );
+    };
+
+  const handleHabitPointerUp =
+    (
+      event:
+        ReactPointerEvent<HTMLDivElement>,
+      habit:
+        Habit
+    ) => {
+      const pending =
+        pendingHabitDragRef.current;
+
+      if (
+        !pending ||
+        pending.pointerId !==
+          event.pointerId ||
+        pending.habit.id !==
+          habit.id
+      ) {
+        return;
+      }
+
+      pendingHabitDragRef.current =
+        null;
+
+      try {
+        event.currentTarget.releasePointerCapture(
+          event.pointerId
+        );
+      } catch {
+        // Safe fallback.
+      }
+    };
+
+  /* ============================================================
+   * CLEANUP
+   * ============================================================
+   */
+
+  useEffect(
+    () => {
+      return () => {
+        pendingDragRef.current =
+          null;
+
+        pendingHabitDragRef.current =
+          null;
+
+        window.removeEventListener(
+          "pointermove",
+          handlePointerMove
+        );
+
+        window.removeEventListener(
+          "pointerup",
+          handlePointerUp
+        );
+
+        window.removeEventListener(
+          "pointercancel",
+          handlePointerUp
+        );
+
+        window.removeEventListener(
+          "pointermove",
+          handleHabitWindowPointerMove
+        );
+
+        window.removeEventListener(
+          "pointerup",
+          handleHabitWindowPointerUp
+        );
+
+        window.removeEventListener(
+          "pointercancel",
+          handleHabitWindowPointerUp
+        );
+
+        if (
+          animationFrameRef.current !==
+          null
+        ) {
+          cancelAnimationFrame(
+            animationFrameRef.current
+          );
+        }
+
+        if (
+          habitAnimationFrameRef.current !==
+          null
+        ) {
+          cancelAnimationFrame(
+            habitAnimationFrameRef.current
+          );
+        }
+
+        rowAnimationsRef.current.forEach(
+          (
+            animation
+          ) =>
+            animation.cancel()
+        );
+
+        rowAnimationsRef.current.clear();
+
+        habitRowAnimationsRef.current.forEach(
+          (
+            animation
+          ) =>
+            animation.cancel()
+        );
+
+        habitRowAnimationsRef.current.clear();
+
+        completionTimersRef.current.forEach(
+          (
+            timers
+          ) => {
+            if (
+              timers.completeTimer !==
+              undefined
+            ) {
+              window.clearTimeout(
+                timers.completeTimer
+              );
+            }
+
+            if (
+              timers.cleanupTimer !==
+              undefined
+            ) {
+              window.clearTimeout(
+                timers.cleanupTimer
+              );
+            }
+          }
+        );
+
+        completionTimersRef.current.clear();
+
+        deleteTimersRef.current.forEach(
+          (
+            timer
+          ) => {
+            window.clearTimeout(
+              timer
+            );
+          }
+        );
+
+        deleteTimersRef.current.clear();
+
+        habitDeleteTimersRef.current.forEach(
+          (
+            timer
+          ) => {
+            window.clearTimeout(
+              timer
+            );
+          }
+        );
+
+        habitDeleteTimersRef.current.clear();
+      };
+    },
+    []
+  );
+
+  /* ============================================================
+   * UI
+   * ============================================================
+   */
+
+  return (
+    <div className="w-full">
+      <style jsx>{`
+        @keyframes weekRight {
+          from {
+            opacity: 0.96;
+            transform: translateX(7px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes weekLeft {
+          from {
+            opacity: 0.96;
+            transform: translateX(-7px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .week-right {
+          animation:
+            weekRight
+            600ms
+            cubic-bezier(
+              0.25,
+              0.8,
+              0.25,
+              1
+            );
+        }
+
+        .week-left {
+          animation:
+            weekLeft
+            600ms
+            cubic-bezier(
+              0.25,
+              0.8,
+              0.25,
+              1
+            );
+        }
+
+        @keyframes taskDelete {
+          from {
+            opacity: 1;
+            transform:
+              translate3d(
+                0,
+                0,
+                0
+              );
+          }
+
+          to {
+            opacity: 0;
+            transform:
+              translate3d(
+                8px,
+                0,
+                0
+              );
+          }
+        }
+
+        .task-delete {
+          animation:
+            taskDelete
+            330ms
+            cubic-bezier(
+              0.4,
+              0,
+              0.2,
+              1
+            )
+            forwards;
+        }
+
+        @keyframes habitDelete {
+          from {
+            opacity: 1;
+            transform:
+              translate3d(
+                0,
+                0,
+                0
+              );
+          }
+
+          to {
+            opacity: 0;
+            transform:
+              translate3d(
+                8px,
+                0,
+                0
+              );
+          }
+        }
+
+        .habit-delete {
+          animation:
+            habitDelete
+            330ms
+            cubic-bezier(
+              0.4,
+              0,
+              0.2,
+              1
+            )
+            forwards;
+        }
+
+        @keyframes completionGlow {
+          0% {
+            text-shadow:
+              0 0 0
+              rgba(
+                91,
+                124,
+                255,
+                0
+              );
+            transform:
+              scale(1);
+          }
+
+          35% {
+            text-shadow:
+              0 0 12px
+              rgba(
+                91,
+                124,
+                255,
+                0.75
+              );
+            transform:
+              scale(1.035);
+          }
+
+          70% {
+            text-shadow:
+              0 0 7px
+              rgba(
+                91,
+                124,
+                255,
+                0.38
+              );
+            transform:
+              scale(1.01);
+          }
+
+          100% {
+            text-shadow:
+              0 0 4px
+              rgba(
+                91,
+                124,
+                255,
+                0.18
+              );
+            transform:
+              scale(1);
+          }
+        }
+
+        .completion-glow {
+          animation:
+            completionGlow
+            850ms
+            cubic-bezier(
+              0.22,
+              0.8,
+              0.25,
+              1
+            );
+        }
+
+        @keyframes habitDotCelebrate {
+          0% {
+            transform:
+              scale(1);
+            box-shadow:
+              0 0 0
+              rgba(
+                91,
+                124,
+                255,
+                0
+              );
+          }
+
+          35% {
+            transform:
+              scale(2);
+            box-shadow:
+              0 0 10px
+              rgba(
+                91,
+                124,
+                255,
+                0.75
+              );
+          }
+
+          65% {
+            transform:
+              scale(0.85);
+          }
+
+          100% {
+            transform:
+              scale(1);
+            box-shadow:
+              0 0 3px
+              rgba(
+                91,
+                124,
+                255,
+                0.25
+              );
+          }
+        }
+
+        .habit-dot-complete {
+          animation:
+            habitDotCelebrate
+            700ms
+            cubic-bezier(
+              0.22,
+              0.8,
+              0.25,
+              1
+            )
+            both;
+        }
+
+        .up-next-clamp {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+      `}</style>
+
+      {/* ======================================================
+          FULL-WIDTH TOP AREA
+          ====================================================== */}
+
+      {/* HEADER */}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/40">
+            Planning
+          </p>
+
+          <h2 className="mt-1 text-3xl font-semibold">
+            {weekStart.toLocaleDateString(
+              "en-US",
+              {
+                month:
+                  "long",
+                year:
+                  "numeric",
+              }
+            )}
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!isSameDay(
+            selectedDate,
+            today
+          ) && (
+            <button
+              onClick={
+                goToToday
+              }
+              className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white"
+            >
+              Today
+            </button>
+          )}
+
+          <button
+            onClick={() =>
+              moveWeek(-1)
+            }
+            className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white"
+          >
+            ←
+          </button>
+
+          <button
+            onClick={() =>
+              moveWeek(1)
+            }
+            className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white"
+          >
+            →
+          </button>
+        </div>
+      </div>
+
+      {/* WEEK */}
+
+      <div
+        key={
+          weekStart.toISOString()
+        }
+        className={`mt-6 grid grid-cols-7 gap-2 ${
+          weekDirection ===
+          "right"
+            ? "week-right"
+            : "week-left"
+        }`}
+      >
+        {weekDays.map(
+          (
+            date
+          ) => {
+            const selected =
+              isSameDay(
+                date,
+                selectedDate
+              );
+
+            const current =
+              isSameDay(
+                date,
+                today
+              );
+
+            return (
+              <button
+                key={
+                  date.toISOString()
+                }
+                onClick={() =>
+                  selectDate(
+                    date
+                  )
+                }
+                className={`cursor-pointer rounded-2xl border p-4 text-center transition-all duration-300 ease-out ${
+                  selected
+                    ? "scale-105 border-[#5B7CFF] bg-[#5B7CFF]/15 shadow-lg shadow-[#5B7CFF]/10"
+                    : "border-white/10 bg-white/[0.03] hover:scale-[1.02] hover:bg-white/[0.06]"
+                }`}
+              >
+                <p className="text-xs text-white/40">
+                  {date.toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday:
+                        "short",
+                    }
+                  )}
+                </p>
+
+                <p
+                  className={`mt-2 text-2xl font-semibold transition-all duration-300 ${
+                    selected
+                      ? "text-[#5B7CFF]"
+                      : "text-white"
+                  }`}
+                >
+                  {date.getDate()}
+                </p>
+
+                {current && (
+                  <p
+                    className={`mt-1 text-xs ${
+                      selected
+                        ? "text-[#5B7CFF]"
+                        : "text-white/30"
+                    }`}
+                  >
+                    Today
+                  </p>
+                )}
+              </button>
+            );
+          }
+        )}
+      </div>
+
+      {/* ======================================================
+          TWO-COLUMN CONTENT AREA
+          ====================================================== */}
+
+      <div className="mt-10 grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,2.05fr)_minmax(280px,0.95fr)]">
+
+        {/* ====================================================
+            LEFT COLUMN
+            ==================================================== */}
+
+        <div className="min-w-0">
+
+          {/* DAY HEADER */}
+
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-sm text-white/40">
+                {formatDate(
+                  selectedDate
+                )}
+              </p>
+
+              <h3 className="mt-1 text-2xl font-semibold">
+                {isSameDay(
+                  selectedDate,
+                  today
+                )
+                  ? "Today"
+                  : selectedDate <
+                      today
+                    ? "Past day"
+                    : "Upcoming"}
+              </h3>
+            </div>
+
+            {!selectedDateIsPast &&
+              !addingTask && (
+                <button
+                  onClick={() =>
+                    setAddingTask(
+                      true
+                    )
+                  }
+                  className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 font-medium transition-all duration-200 hover:scale-[1.02] hover:opacity-90"
+                >
+                  + Add task
+                </button>
+              )}
+          </div>
+
+          {/* ADD TASK */}
+
+          {addingTask &&
+            !selectedDateIsPast && (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <input
+                  autoFocus
+                  value={
+                    newTask
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNewTask(
+                      event.target.value
+                    )
+                  }
+                  onKeyDown={(
+                    event
+                  ) => {
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+                      addTask();
+                    }
+
+                    if (
+                      event.key ===
+                      "Escape"
+                    ) {
+                      setAddingTask(
+                        false
+                      );
+
+                      setNewTask(
+                        ""
+                      );
+                    }
+                  }}
+                  placeholder="What needs to get done?"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-[#5B7CFF]/50"
+                />
+
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setAddingTask(
+                        false
+                      );
+
+                      setNewTask(
+                        ""
+                      );
+                    }}
+                    className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={
+                      addTask
+                    }
+                    className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+          {/* TASK LIST */}
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-white/60">
+                Tasks
+              </p>
+
+              {selectedTasks.length >
+                0 && (
+                <p
+                  className={`text-xs transition-all duration-500 ${
+                    allTasksComplete
+                      ? "completion-glow font-medium text-[#5B7CFF]"
+                      : "text-white/30"
+                  }`}
+                >
+                  {
+                    visualTaskCompletedCount
+                  }
+                  /
+                  {
+                    selectedTasks.length
+                  }{" "}
+                  complete
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {selectedTasks.length ===
+              0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <p className="text-white/40">
+                    {selectedDateIsPast
+                      ? "No tasks recorded."
+                      : "Nothing planned yet."}
+                  </p>
+                </div>
+              ) : (
+                displayedTasks.map(
+                  (
+                    task
+                  ) => {
+                    const isDragged =
+                      drag?.id ===
+                      task.id;
+
+                    const visuallyCompleted =
+                      task.completed ||
+                      visualCompleted.includes(
+                        task.id
+                      );
+
+                    const unfinishedIndex =
+                      unfinishedTasks.findIndex(
+                        (
+                          item
+                        ) =>
+                          item.id ===
+                          task.id
+                      );
+
+                    return (
+                      <div
+                        key={
+                          task.id
+                        }
+
+                        ref={(
+                          element
+                        ) => {
+                          if (
+                            element
+                          ) {
+                            taskRefs.current.set(
+                              task.id,
+                              element
+                            );
+                          } else {
+                            taskRefs.current.delete(
+                              task.id
+                            );
+                          }
+                        }}
+
+                        onPointerDown={(
+                          event
+                        ) =>
+                          handleTaskPointerDown(
+                            event,
+                            task,
+                            unfinishedIndex
+                          )
+                        }
+
+                        onPointerMove={(
+                          event
+                        ) =>
+                          handleTaskPointerMove(
+                            event,
+                            task
+                          )
+                        }
+
+                        onPointerUp={(
+                          event
+                        ) =>
+                          handleTaskPointerUp(
+                            event,
+                            task
+                          )
+                        }
+
+                        onPointerCancel={(
+                          event
+                        ) =>
+                          handleTaskPointerUp(
+                            event,
+                            task
+                          )
+                        }
+
+                        onDoubleClick={(
+                          event
+                        ) =>
+                          handleTaskDoubleClick(
+                            event,
+                            task
+                          )
+                        }
+
+                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${
+                          !task.completed &&
+                          !selectedDateIsPast &&
+                          editingTaskId !==
+                            task.id
+                            ? "cursor-grab active:cursor-grabbing"
+                            : ""
+                        } ${
+                          isDragged
+                            ? "invisible"
+                            : ""
+                        } ${
+                          deletingTasks.includes(
+                            task.id
+                          )
+                            ? "task-delete"
+                            : ""
+                        }`}
+
+                        style={{
+                          transition:
+                            "background-color 300ms ease, opacity 300ms ease",
+
+                          touchAction:
+                            task.completed ||
+                            selectedDateIsPast
+                              ? "auto"
+                              : "none",
+
+                          userSelect:
+                            editingTaskId ===
+                            task.id
+                              ? "text"
+                              : "none",
+                        }}
+                      >
+                        {/* CHECKBOX */}
+
+                        <button
+                          onPointerDown={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+
+                          onDoubleClick={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+
+                          onClick={() =>
+                            toggleTask(
+                              task.id
+                            )
+                          }
+
+                          className="relative z-20 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center"
+
+                          aria-label={
+                            task.completed
+                              ? "Mark task incomplete"
+                              : "Mark task complete"
+                          }
+                        >
+                          <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-500 ease-out ${
+                              visuallyCompleted
+                                ? "border-[#5B7CFF] bg-[#5B7CFF]"
+                                : "border-white/20 hover:border-white/40"
+                            }`}
+                          >
+                            <span
+                              className={`text-xs text-white transition-all duration-500 ${
+                                visuallyCompleted
+                                  ? "scale-100 opacity-100"
+                                  : "scale-50 opacity-0"
+                              }`}
+                            >
+                              ✓
+                            </span>
+                          </span>
+                        </button>
+
+                        {/* TEXT / EDITOR */}
+
+                        <span className="flex min-w-0 flex-1 overflow-hidden">
+                          {editingTaskId ===
+                          task.id ? (
+                            <input
+                              autoFocus
+                              value={
+                                editTaskText
+                              }
+                              onPointerDown={(
+                                event
+                              ) =>
+                                event.stopPropagation()
+                              }
+                              onDoubleClick={(
+                                event
+                              ) =>
+                                event.stopPropagation()
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                setEditTaskText(
+                                  event.target.value
+                                )
+                              }
+                              onKeyDown={(
+                                event
+                              ) => {
+                                if (
+                                  event.key ===
+                                  "Enter"
+                                ) {
+                                  event.preventDefault();
+
+                                  editCancelledRef.current =
+                                    false;
+
+                                  event.currentTarget.blur();
+                                }
+
+                                if (
+                                  event.key ===
+                                  "Escape"
+                                ) {
+                                  event.preventDefault();
+
+                                  cancelEditingTask();
+                                }
+                              }}
+                              onBlur={() => {
+                                if (
+                                  editCancelledRef.current
+                                ) {
+                                  return;
+                                }
+
+                                saveEditingTask();
+                              }}
+                              className="min-w-0 w-full border-0 border-b border-[#5B7CFF]/45 bg-transparent pb-[2px] text-white/90 outline-none transition-all duration-200 focus:border-[#5B7CFF] focus:shadow-[0_3px_8px_-5px_rgba(91,124,255,0.8)]"
+                            />
+                          ) : (
+                            <span
+                              className={`relative block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 ${
+                                visuallyCompleted
+                                  ? "text-white/30"
+                                  : "text-white/80"
+                              }`}
+                            >
+                              {
+                                task.text
+                              }
+
+                              <span
+                                className={`pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-white/30 transition-all duration-[650ms] ease-out ${
+                                  visuallyCompleted
+                                    ? "scale-x-100 opacity-100"
+                                    : "scale-x-0 opacity-0"
+                                }`}
+                                style={{
+                                  transformOrigin:
+                                    "left center",
+                                }}
+                              />
+                            </span>
+                          )}
+                        </span>
+
+                        {/* DELETE */}
+
+                        <button
+                          onPointerDown={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+
+                          onDoubleClick={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+
+                          onClick={() =>
+                            deleteTask(
+                              task.id
+                            )
+                          }
+
+                          className="relative z-30 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/30 opacity-70 transition-all duration-200 hover:bg-white/5 hover:text-white/80 md:opacity-0 md:group-hover:opacity-100"
+
+                          aria-label="Delete task"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                          >
+                            <path
+                              d="M4.25 4.25L11.75 11.75"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                            />
+
+                            <path
+                              d="M11.75 4.25L4.25 11.75"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                  }
+                )
+              )}
+            </div>
+          </div>
+
+          {/* HABITS */}
+
+          <div className="mt-10">
+            <div className="group flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/60">
+                  Habits
+                </p>
+
+                <p className="mt-1 text-xs text-white/30">
+                  {habitReorderMode
+                    ? "Drag to reorder"
+                    : "Daily"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedHabits.length >
+                  0 &&
+                  !habitReorderMode && (
+                    <p
+                      className={`mr-1 text-xs transition-all duration-500 ${
+                        allHabitsComplete
+                          ? "completion-glow font-medium text-[#5B7CFF]"
+                          : "text-white/30"
+                      }`}
+                    >
+                      {
+                        completedHabitsCount
+                      }
+                      /
+                      {
+                        selectedHabits.length
+                      }{" "}
+                      complete
+                    </p>
+                  )}
+
+                {!selectedDateIsPast &&
+                  selectedHabits.length >
+                    1 && (
+                    <button
+                      onClick={
+                        toggleHabitReorderMode
+                      }
+                      title={
+                        habitReorderMode
+                          ? "Finish reordering"
+                          : "Reorder habits"
+                      }
+                      aria-label={
+                        habitReorderMode
+                          ? "Finish reordering habits"
+                          : "Reorder habits"
+                      }
+                      className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-all duration-200 ${
+                        habitReorderMode
+                          ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/10 text-[#5B7CFF] opacity-100"
+                          : "border-transparent text-white/35 opacity-0 hover:border-white/10 hover:bg-white/5 hover:text-white/70 group-hover:opacity-100"
+                      }`}
+                    >
+                      {habitReorderMode ? (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M3.5 8.2L6.4 11L12.5 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M5 2.75V13.25"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+
+                          <path
+                            d="M2.9 4.8L5 2.7L7.1 4.8"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          <path
+                            d="M11 13.25V2.75"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+
+                          <path
+                            d="M8.9 11.2L11 13.3L13.1 11.2"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+
+                {!selectedDateIsPast &&
+                  !addingHabit &&
+                  !habitReorderMode && (
+                    <button
+                      onClick={() =>
+                        setAddingHabit(
+                          true
+                        )
+                      }
+                      className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-white/60 transition-all duration-200 hover:border-[#5B7CFF]/30 hover:bg-[#5B7CFF]/5 hover:text-white"
+                    >
+                      + Add habit
+                    </button>
+                  )}
+              </div>
+            </div>
+
+            {/* ADD HABIT */}
+
+            {addingHabit &&
+              !selectedDateIsPast &&
+              !habitReorderMode && (
+                <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <input
+                    autoFocus
+                    value={
+                      newHabit
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setNewHabit(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={(
+                      event
+                    ) => {
+                      if (
+                        event.key ===
+                        "Enter"
+                      ) {
+                        addHabit();
+                      }
+
+                      if (
+                        event.key ===
+                        "Escape"
+                      ) {
+                        setAddingHabit(
+                          false
+                        );
+
+                        setNewHabit(
+                          ""
+                        );
+                      }
+                    }}
+                    placeholder="Add a daily habit"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-[#5B7CFF]/50"
+                  />
+
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setAddingHabit(
+                          false
+                        );
+
+                        setNewHabit(
+                          ""
+                        );
+                      }}
+                      className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={
+                        addHabit
+                      }
+                      className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            {/* HABIT LIST */}
+
+            <div className="mt-3 space-y-2">
+              {selectedHabits.length ===
+              0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <p className="text-white/40">
+                    {selectedDateIsPast
+                      ? "No habits tracked."
+                      : "No habits yet."}
+                  </p>
+                </div>
+              ) : (
+                displayedHabits.map(
+                  (
+                    habit,
+                    habitDisplayIndex
+                  ) => {
+                    const completed =
+                      habit.completedDates.includes(
+                        selectedDateKey
+                      );
+
+                    const isEditing =
+                      editingHabitId ===
+                      habit.id;
+
+                    const confirmingDelete =
+                      confirmDeleteHabitId ===
+                      habit.id;
+
+                    const isDragged =
+                      habitDrag?.id ===
+                      habit.id;
+
+                    const habitIndex =
+                      selectedHabits.findIndex(
+                        (
+                          item
+                        ) =>
+                          item.id ===
+                          habit.id
+                      );
+
+                    return (
+                      <div
+                        key={
+                          habit.id
+                        }
+
+                        ref={(
+                          element
+                        ) => {
+                          if (
+                            element
+                          ) {
+                            habitRefs.current.set(
+                              habit.id,
+                              element
+                            );
+                          } else {
+                            habitRefs.current.delete(
+                              habit.id
+                            );
+                          }
+                        }}
+
+                        onPointerDown={(
+                          event
+                        ) =>
+                          handleHabitPointerDown(
+                            event,
+                            habit,
+                            habitIndex
+                          )
+                        }
+
+                        onPointerMove={(
+                          event
+                        ) =>
+                          handleHabitPointerMove(
+                            event,
+                            habit
+                          )
+                        }
+
+                        onPointerUp={(
+                          event
+                        ) =>
+                          handleHabitPointerUp(
+                            event,
+                            habit
+                          )
+                        }
+
+                        onPointerCancel={(
+                          event
+                        ) =>
+                          handleHabitPointerUp(
+                            event,
+                            habit
+                          )
+                        }
+
+                        onDoubleClick={(
+                          event
+                        ) => {
+                          if (
+                            habitReorderMode
+                          ) {
+                            return;
+                          }
+
+                          const target =
+                            event.target as HTMLElement;
+
+                          if (
+                            target.closest(
+                              "button"
+                            ) ||
+                            target.closest(
+                              "input"
+                            )
+                          ) {
+                            return;
+                          }
+
+                          if (
+                            selectedDateIsPast
+                          ) {
+                            return;
+                          }
+
+                          event.preventDefault();
+                          event.stopPropagation();
+
+                          startEditingHabit(
+                            habit
+                          );
+                        }}
+
+                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border bg-white/[0.03] p-4 transition-colors duration-300 ${
+                          habitReorderMode
+                            ? "cursor-grab border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] active:cursor-grabbing"
+                            : "border-white/10"
+                        } ${
+                          isEditing
+                            ? "border-[#5B7CFF]/25 bg-white/[0.04]"
+                            : ""
+                        } ${
+                          isDragged
+                            ? "invisible"
+                            : ""
+                        } ${
+                          deletingHabits.includes(
+                            habit.id
+                          )
+                            ? "habit-delete"
+                            : ""
+                        }`}
+
+                        style={{
+                          touchAction:
+                            habitReorderMode
+                              ? "none"
+                              : "auto",
+
+                          userSelect:
+                            isEditing
+                              ? "text"
+                              : "none",
+                        }}
+                      >
+                        {confirmingDelete ? (
+                          <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white/80">
+                                Delete this habit?
+                              </p>
+
+                              <p className="mt-0.5 text-xs text-white/35">
+                                Its saved history will be removed.
+                              </p>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                onPointerDown={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onDoubleClick={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onClick={
+                                  cancelDeleteHabit
+                                }
+
+                                className="cursor-pointer rounded-lg px-3 py-2 text-xs text-white/45 transition hover:bg-white/5 hover:text-white/80"
+                              >
+                                Cancel
+                              </button>
+
+                              <button
+                                onPointerDown={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onDoubleClick={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onClick={() =>
+                                  deleteHabit(
+                                    habit.id
+                                  )
+                                }
+
+                                className="cursor-pointer rounded-lg border border-red-400/15 bg-red-400/[0.06] px-3 py-2 text-xs text-red-300/80 transition hover:border-red-400/25 hover:bg-red-400/10 hover:text-red-200"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* HABIT CHECK */}
+
+                            <button
+                              onPointerDown={(
+                                event
+                              ) =>
+                                event.stopPropagation()
+                              }
+
+                              onDoubleClick={(
+                                event
+                              ) =>
+                                event.stopPropagation()
+                              }
+
+                              onClick={() =>
+                                toggleHabit(
+                                  habit.id
+                                )
+                              }
+
+                              disabled={
+                                selectedDateIsPast ||
+                                habitReorderMode
+                              }
+
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ease-out ${
+                                selectedDateIsPast ||
+                                habitReorderMode
+                                  ? "cursor-default"
+                                  : "cursor-pointer"
+                              } ${
+                                completed
+                                  ? "border-[#5B7CFF] bg-[#5B7CFF]"
+                                  : "border-white/20 hover:border-white/40"
+                              }`}
+                            >
+                              <span
+                                className={`text-xs text-white transition-all duration-300 ${
+                                  completed
+                                    ? "scale-100 opacity-100"
+                                    : "scale-50 opacity-0"
+                                }`}
+                              >
+                                ✓
+                              </span>
+                            </button>
+
+                            {/* HABIT NAME */}
+
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  value={
+                                    editHabitName
+                                  }
+                                  onPointerDown={(
+                                    event
+                                  ) =>
+                                    event.stopPropagation()
+                                  }
+                                  onDoubleClick={(
+                                    event
+                                  ) =>
+                                    event.stopPropagation()
+                                  }
+                                  onChange={(
+                                    event
+                                  ) =>
+                                    setEditHabitName(
+                                      event.target.value
+                                    )
+                                  }
+                                  onKeyDown={(
+                                    event
+                                  ) => {
+                                    if (
+                                      event.key ===
+                                      "Enter"
+                                    ) {
+                                      event.preventDefault();
+
+                                      habitEditCancelledRef.current =
+                                        false;
+
+                                      event.currentTarget.blur();
+                                    }
+
+                                    if (
+                                      event.key ===
+                                      "Escape"
+                                    ) {
+                                      event.preventDefault();
+
+                                      cancelEditingHabit();
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    if (
+                                      habitEditCancelledRef.current
+                                    ) {
+                                      return;
+                                    }
+
+                                    saveEditingHabit();
+                                  }}
+                                  className="min-w-0 w-full border-0 border-b border-[#5B7CFF]/45 bg-transparent pb-[2px] text-white/90 outline-none transition-all duration-200 focus:border-[#5B7CFF] focus:shadow-[0_3px_8px_-5px_rgba(91,124,255,0.8)]"
+                                />
+                              ) : (
+                                <span
+                                  className={`block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 ${
+                                    completed
+                                      ? "text-white/50"
+                                      : "text-white/80"
+                                  }`}
+                                >
+                                  {
+                                    habit.name
+                                  }
+                                </span>
+                              )}
+                            </div>
+
+                            {/* STATUS DOT */}
+
+                            {!habitReorderMode && (
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all duration-300 ${
+                                  completed
+                                    ? "bg-[#5B7CFF] opacity-100"
+                                    : "scale-75 bg-white/20 opacity-60"
+                                } ${
+                                  allHabitsComplete
+                                    ? "habit-dot-complete"
+                                    : completed
+                                      ? "scale-100"
+                                      : ""
+                                }`}
+                                style={
+                                  allHabitsComplete
+                                    ? {
+                                        animationDelay:
+                                          `${habitDisplayIndex * 85}ms`,
+                                      }
+                                    : undefined
+                                }
+                              />
+                            )}
+
+                            {/* REORDER INDICATOR */}
+
+                            {habitReorderMode && (
+                              <div className="flex w-7 shrink-0 items-center justify-center text-white/25">
+                                <svg
+                                  width="15"
+                                  height="15"
+                                  viewBox="0 0 15 15"
+                                  fill="none"
+                                >
+                                  <circle cx="5" cy="4" r="0.8" fill="currentColor" />
+                                  <circle cx="10" cy="4" r="0.8" fill="currentColor" />
+                                  <circle cx="5" cy="7.5" r="0.8" fill="currentColor" />
+                                  <circle cx="10" cy="7.5" r="0.8" fill="currentColor" />
+                                  <circle cx="5" cy="11" r="0.8" fill="currentColor" />
+                                  <circle cx="10" cy="11" r="0.8" fill="currentColor" />
+                                </svg>
+                              </div>
+                            )}
+
+                            {/* DELETE */}
+
+                            {!habitReorderMode && (
+                              <button
+                                onPointerDown={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onDoubleClick={(
+                                  event
+                                ) =>
+                                  event.stopPropagation()
+                                }
+
+                                onClick={() =>
+                                  askToDeleteHabit(
+                                    habit.id
+                                  )
+                                }
+
+                                disabled={
+                                  selectedDateIsPast
+                                }
+
+                                className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/30 transition-all duration-200 ${
+                                  selectedDateIsPast
+                                    ? "cursor-default opacity-0"
+                                    : "cursor-pointer opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
+                                }`}
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 16 16"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M4.25 4.25L11.75 11.75"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                  />
+
+                                  <path
+                                    d="M11.75 4.25L4.25 11.75"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+                )
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ====================================================
+            RIGHT COLUMN
+            ==================================================== */}
+
+        <div className="hidden min-w-0 space-y-4 xl:block">
+
+          {/* ==================================================
+              DAY OVERVIEW
+              ================================================== */}
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">
+              Day Overview
+            </p>
+
+            {/* DAILY SCORE */}
+
+            <div className="mt-4">
+              <p className="text-sm text-white/40">
+                Daily Score
+              </p>
+
+              <div className="mt-1.5 flex items-end gap-2">
+                <span className="text-5xl font-semibold tracking-tight text-white">
+                  {dailyScore ?? "—"}
+                </span>
+
+                <span className="mb-1.5 text-xs text-white/25">
+                  Daily Score
+                </span>
+              </div>
+            </div>
+
+            <div className="my-5 h-px bg-white/[0.07]" />
+
+            {/* TASK PROGRESS */}
+
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/55">
+                  Tasks
+                </span>
+
+                <span
+                  className={`text-sm transition-colors duration-500 ${
+                    allTasksComplete
+                      ? "text-[#5B7CFF]"
+                      : "text-white/40"
+                  }`}
+                >
+                  {visualTaskCompletedCount}
+                  {" / "}
+                  {selectedTasks.length}
+                </span>
+              </div>
+
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                <div
+                  className="h-full rounded-full bg-[#5B7CFF] transition-[width] duration-500 ease-out"
+                  style={{
+                    width:
+                      selectedTasks.length >
+                      0
+                        ? `${Math.min(
+                            100,
+                            (visualTaskCompletedCount /
+                              selectedTasks.length) *
+                              100
+                          )}%`
+                        : "0%",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* HABIT PROGRESS */}
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/55">
+                  Habits
+                </span>
+
+                <span
+                  className={`text-sm transition-colors duration-500 ${
+                    allHabitsComplete
+                      ? "text-[#5B7CFF]"
+                      : "text-white/40"
+                  }`}
+                >
+                  {completedHabitsCount}
+                  {" / "}
+                  {selectedHabits.length}
+                </span>
+              </div>
+
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                <div
+                  className="h-full rounded-full bg-[#5B7CFF] transition-[width] duration-500 ease-out"
+                  style={{
+                    width:
+                      selectedHabits.length >
+                      0
+                        ? `${Math.min(
+                            100,
+                            (completedHabitsCount /
+                              selectedHabits.length) *
+                              100
+                          )}%`
+                        : "0%",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* REMAINING */}
+
+            <div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-2.5">
+              {selectedTasks.length ===
+                0 &&
+              selectedHabits.length ===
+                0 ? (
+                <p className="text-sm text-white/35">
+                  Nothing planned for this day.
+                </p>
+              ) : allTasksComplete &&
+                allHabitsComplete ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#5B7CFF]/15 text-xs text-[#5B7CFF]">
+                    ✓
+                  </span>
+
+                  <p className="text-sm font-medium text-[#5B7CFF]">
+                    Day complete
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-white/40">
+                  {Math.max(
+                    0,
+                    selectedTasks.length -
+                      visualTaskCompletedCount
+                  )}{" "}
+                  {selectedTasks.length -
+                    visualTaskCompletedCount ===
+                  1
+                    ? "task"
+                    : "tasks"}
+                  {" · "}
+                  {Math.max(
+                    0,
+                    selectedHabits.length -
+                      completedHabitsCount
+                  )}{" "}
+                  {selectedHabits.length -
+                    completedHabitsCount ===
+                  1
+                    ? "habit"
+                    : "habits"}{" "}
+                  remaining
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ==================================================
+              UP NEXT
+              ================================================== */}
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">
+                Up Next
+              </p>
+
+              {upcomingTasks.length >
+                0 && (
+                <span className="text-[11px] text-white/20">
+                  Next 3
+                </span>
+              )}
+            </div>
+
+            {upcomingTasks.length ===
+            0 ? (
+              <div className="mt-4">
+                <p className="text-sm text-white/35">
+                  Nothing coming up.
+                </p>
+
+                <p className="mt-1 text-xs text-white/20">
+                  Future tasks will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {Object.entries(
+                  upcomingTasksByDate
+                ).map(
+                  ([
+                    dateKey,
+                    dateTasks,
+                  ]) => {
+                    const date =
+                      new Date(
+                        `${dateKey}T12:00:00`
+                      );
+
+                    const tomorrow =
+                      new Date(
+                        selectedDate
+                      );
+
+                    tomorrow.setDate(
+                      tomorrow.getDate() +
+                        1
+                    );
+
+                    const isTomorrow =
+                      isSameDay(
+                        date,
+                        tomorrow
+                      );
+
+                    return (
+                      <div
+                        key={
+                          dateKey
+                        }
+                      >
+                        <p className="text-[11px] font-medium text-white/30">
+                          {isTomorrow
+                            ? "Tomorrow"
+                            : date.toLocaleDateString(
+                                "en-US",
+                                {
+                                  weekday:
+                                    "long",
+                                  month:
+                                    "short",
+                                  day:
+                                    "numeric",
+                                }
+                              )}
+                        </p>
+
+                        <div className="mt-1.5 space-y-1">
+                          {dateTasks.map(
+                            (
+                              task
+                            ) => {
+                              const slightlyLong =
+                                task.text.length >
+                                34;
+
+                              return (
+                                <div
+                                  key={
+                                    task.id
+                                  }
+                                  className="flex min-w-0 items-start gap-2.5 rounded-xl py-1"
+                                >
+                                  <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border border-white/15" />
+
+                                  <p
+                                    className={`up-next-clamp min-w-0 leading-[1.35] text-white/55 ${
+                                      slightlyLong
+                                        ? "text-[12px]"
+                                        : "text-[13px]"
+                                    }`}
+                                  >
+                                    {
+                                      task.text
+                                    }
+                                  </p>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* TASK DRAG OVERLAY */}
+
+      {drag && (
+        <div
+          ref={
+            dragOverlayRef
+          }
+
+          className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl border border-white/15 bg-[#171a24] p-4 shadow-2xl shadow-black/40"
+
+          style={{
+            top:
+              drag.top,
+
+            left:
+              drag.left,
+
+            width:
+              drag.width,
+
+            minHeight:
+              drag.height,
+
+            transform:
+              "translate3d(0, 0, 0) scale(1.012)",
+
+            willChange:
+              "transform",
+          }}
+        >
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="flex h-5 w-5 shrink-0 rounded-full border border-white/20" />
+
+            <span className="min-w-0 flex-1 whitespace-normal break-words leading-5 text-white/80 [overflow-wrap:anywhere]">
+              {
+                drag.text
+              }
+            </span>
+
+            <span className="h-7 w-7 shrink-0" />
+          </div>
+        </div>
+      )}
+
+      {/* HABIT DRAG OVERLAY */}
+
+      {habitDrag && (
+        <div
+          ref={
+            habitDragOverlayRef
+          }
+
+          className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl border border-[#5B7CFF]/20 bg-[#171a24] p-4 shadow-2xl shadow-black/40"
+
+          style={{
+            top:
+              habitDrag.top,
+
+            left:
+              habitDrag.left,
+
+            width:
+              habitDrag.width,
+
+            minHeight:
+              habitDrag.height,
+
+            transform:
+              "translate3d(0, 0, 0) scale(1.012)",
+
+            willChange:
+              "transform",
+          }}
+        >
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="flex h-5 w-5 shrink-0 rounded-full border border-white/20" />
+
+            <span className="min-w-0 flex-1 whitespace-normal break-words leading-5 text-white/80 [overflow-wrap:anywhere]">
+              {
+                habitDrag.name
+              }
+            </span>
+
+            <div className="flex w-7 shrink-0 items-center justify-center text-white/25">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+              >
+                <circle cx="5" cy="4" r="0.8" fill="currentColor" />
+                <circle cx="10" cy="4" r="0.8" fill="currentColor" />
+                <circle cx="5" cy="7.5" r="0.8" fill="currentColor" />
+                <circle cx="10" cy="7.5" r="0.8" fill="currentColor" />
+                <circle cx="5" cy="11" r="0.8" fill="currentColor" />
+                <circle cx="10" cy="11" r="0.8" fill="currentColor" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
