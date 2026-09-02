@@ -3205,7 +3205,7 @@ export default function Progress({
           min-h-screen
           flex-col
           px-10
-          py-8
+          py-5
         "
       >
         <div className="flex items-end justify-between">
@@ -3748,7 +3748,7 @@ export default function Progress({
           min-h-screen
           flex-col
           px-10
-          py-8
+          py-5
         "
       >
         <div className="flex items-start justify-between">
