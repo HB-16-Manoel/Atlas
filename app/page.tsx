@@ -824,7 +824,13 @@ export default function AtlasApp() {
          * MAIN
          * ==================================================== */}
 
-        <section className="min-w-0 flex-1 p-10">
+        <section
+          className={`min-w-0 flex-1 ${
+            activePage === "Home"
+              ? "px-10 py-7"
+              : "p-10"
+          }`}
+        >
 
           {/* HOME */}
 
