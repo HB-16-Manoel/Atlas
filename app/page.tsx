@@ -752,14 +752,14 @@ export default function AtlasApp() {
    */
 
   return (
-    <main className="h-dvh overflow-hidden bg-[#11131D] text-white">
-      <div className="flex h-full">
+    <main className="min-h-screen bg-[#11131D] text-white">
+      <div className="flex min-h-screen">
 
         {/* ====================================================
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="h-full w-60 shrink-0 overflow-y-auto border-r border-white/10 p-6">
+        <aside className="w-60 shrink-0 border-r border-white/10 p-6">
           <h1 className="text-2xl font-semibold text-[#5B7CFF]">
             Atlas
           </h1>
@@ -824,15 +824,7 @@ export default function AtlasApp() {
          * MAIN
          * ==================================================== */}
 
-        <section
-          className={`min-w-0 flex-1 ${
-            activePage === "Progress"
-              ? "overflow-hidden p-0"
-              : activePage === "Home"
-                ? "overflow-y-auto p-8"
-                : "overflow-y-auto p-10"
-          }`}
-        >
+        <section className="min-w-0 flex-1 p-10">
 
           {/* HOME */}
 
