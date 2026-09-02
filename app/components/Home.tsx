@@ -618,11 +618,11 @@ export default function Home({
        * TOP ROW
        * ====================================================== */}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
 
         {/* DAILY SCORE */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
@@ -637,7 +637,7 @@ export default function Home({
             <div className="h-2 w-2 rounded-full bg-[#5B7CFF]" />
           </div>
 
-          <div className="mt-5 flex items-end">
+          <div className="mt-3 flex items-end">
             <p className="text-5xl font-semibold tracking-[-0.055em]">
               {
                 dailyScore ??
@@ -653,7 +653,7 @@ export default function Home({
             )}
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.1em] text-white/20">
                 Tasks
@@ -696,7 +696,7 @@ export default function Home({
 
         {/* TODAY */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
           <div className="flex items-start justify-between gap-5">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
@@ -733,7 +733,7 @@ export default function Home({
             </div>
           </div>
 
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
             <div
               className="h-full rounded-full bg-[#5B7CFF] transition-[width] duration-500"
               style={{
@@ -743,7 +743,7 @@ export default function Home({
             />
           </div>
 
-          <div className="mt-4 min-h-[96px]">
+          <div className="mt-3 min-h-[96px]">
             {nextItems.length ===
             0 ? (
               <div className="flex h-[96px] items-center justify-center rounded-xl border border-dashed border-white/[0.06]">
@@ -764,7 +764,7 @@ export default function Home({
                       key={
                         item.id
                       }
-                      className="flex items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] px-4 py-2.5"
+                      className="flex items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] px-4 py-2"
                     >
                       <div className="h-2 w-2 shrink-0 rounded-full border border-white/20" />
 
@@ -792,7 +792,7 @@ export default function Home({
                 "Planning"
               )
             }
-            className="mt-3 text-xs font-medium text-[#8EA4FF]/80 transition hover:text-[#A8B7FF]"
+            className="mt-2 text-xs font-medium text-[#8EA4FF]/80 transition hover:text-[#A8B7FF]"
           >
             Open Planning →
           </button>
@@ -803,11 +803,11 @@ export default function Home({
        * SECOND ROW
        * ====================================================== */}
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
 
         {/* FOCUS */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
               Focus
@@ -835,7 +835,7 @@ export default function Home({
 
         {/* CONSISTENCY */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
@@ -914,7 +914,7 @@ export default function Home({
        * ATLAS INTELLIGENCE
        * ====================================================== */}
 
-      <div className="mt-4 rounded-2xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] px-5 py-4">
+      <div className="mt-3 rounded-2xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] px-5 py-3">
         <div className="flex items-start gap-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/10 text-[#91A6FF]">
             <svg
@@ -965,7 +965,7 @@ export default function Home({
               }
             </p>
 
-            <div className="mt-3 border-t border-[#5B7CFF]/10 pt-3">
+            <div className="mt-2 border-t border-[#5B7CFF]/10 pt-2">
   <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#91A6FF]/45">
     Recommendation
   </p>
@@ -977,7 +977,7 @@ export default function Home({
   </p>
 </div>
 
-            <p className="mt-2 text-[9px] text-white/16">
+            <p className="mt-1 text-[9px] text-white/16">
               Based on{" "}
               {
                 atlasInsight.source
