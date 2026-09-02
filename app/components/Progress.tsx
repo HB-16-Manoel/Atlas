@@ -3072,18 +3072,8 @@ export default function Progress({
       return;
     }
 
-    const landingOffset =
-      section ===
-      "consistency"
-        ? 24
-        : 0;
-
     animateScrollTo(
-      Math.max(
-        0,
-        target.offsetTop -
-          landingOffset
-      )
+      target.offsetTop
     );
   };
 
@@ -3755,8 +3745,10 @@ export default function Progress({
 
         className="
           flex
-          min-h-screen
+          h-screen
+          shrink-0
           flex-col
+          overflow-hidden
           px-10
           py-5
         "
