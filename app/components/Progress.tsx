@@ -3072,8 +3072,18 @@ export default function Progress({
       return;
     }
 
+    const landingOffset =
+      section ===
+      "consistency"
+        ? 24
+        : 0;
+
     animateScrollTo(
-      target.offsetTop
+      Math.max(
+        0,
+        target.offsetTop -
+          landingOffset
+      )
     );
   };
 
