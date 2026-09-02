@@ -827,7 +827,7 @@ export default function AtlasApp() {
         <section
           className={`min-w-0 flex-1 ${
             activePage === "Home"
-              ? "px-10 py-7"
+              ? "px-10 py-4"
               : "p-10"
           }`}
         >
