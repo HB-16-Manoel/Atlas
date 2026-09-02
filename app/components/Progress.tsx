@@ -3750,7 +3750,7 @@ export default function Progress({
           flex-col
           overflow-hidden
           px-10
-          py-5
+          py-3
         "
       >
         <div className="flex items-start justify-between">
@@ -4335,7 +4335,7 @@ export default function Progress({
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
 
-        <div className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-5 py-4">
+        <div className="mt-2 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-5 py-3">
           <div className="flex items-start gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
               <svg
