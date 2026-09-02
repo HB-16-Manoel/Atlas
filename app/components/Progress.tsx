@@ -3183,7 +3183,8 @@ export default function Progress({
       }
 
       className="
-        h-full
+        -m-10
+        h-screen
         overflow-y-auto
         overscroll-contain
         [scrollbar-width:none]
@@ -3201,7 +3202,7 @@ export default function Progress({
 
         className="
           flex
-          min-h-full
+          min-h-screen
           flex-col
           px-10
           py-8
@@ -3744,7 +3745,7 @@ export default function Progress({
 
         className="
           flex
-          min-h-full
+          min-h-screen
           flex-col
           px-10
           py-8
