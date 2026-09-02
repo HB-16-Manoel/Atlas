@@ -3258,7 +3258,7 @@ export default function Progress({
 
         {/* OVERALL PROGRESS */}
 
-        <div className="mt-7 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-7 pb-5 pt-6">
+        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-6 pb-4 pt-4">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
@@ -3294,7 +3294,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-6 h-[215px]">
+          <div className="relative mt-4 h-[180px]">
             <div className="absolute inset-0 flex flex-col justify-between">
               {[
                 "100",
@@ -3480,8 +3480,8 @@ export default function Progress({
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-5 grid grid-cols-[1.12fr_0.88fr] gap-5">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <div className="mt-4 grid grid-cols-[1.12fr_0.88fr] gap-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-white/30">
@@ -3523,7 +3523,7 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-6">
+            <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4">
               <div>
                 <p className="text-sm text-white/35">
                   Strongest day
@@ -3615,7 +3615,7 @@ export default function Progress({
 
           {/* COMPLETION */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
               Completion
             </p>
@@ -3624,7 +3624,7 @@ export default function Progress({
               This week
             </h3>
 
-            <div className="mt-6 space-y-6">
+            <div className="mt-4 space-y-4">
               <div>
                 <div className="flex items-end justify-between">
                   <div>
@@ -3792,7 +3792,7 @@ export default function Progress({
 
         {/* DAYS ON TRACK */}
 
-        <div className="mt-7 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
@@ -3834,7 +3834,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-8">
+          <div className="relative mt-5">
             <div className="absolute left-[7%] right-[7%] top-[45px] h-px bg-white/[0.07]" />
 
             <div className="relative grid grid-cols-7">
@@ -4024,10 +4024,10 @@ export default function Progress({
 
         {/* TASKS VS HABITS + 4-WEEK CONSISTENCY */}
 
-        <div className="mt-5 grid grid-cols-[1.35fr_0.65fr] gap-5">
+        <div className="mt-4 grid grid-cols-[1.35fr_0.65fr] gap-5">
           {/* TASKS VS HABITS */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
@@ -4058,7 +4058,7 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="relative mt-6 h-[160px]">
+            <div className="relative mt-4 h-[140px]">
               <div className="absolute inset-0 flex flex-col justify-between pb-6">
                 {[
                   "100",
@@ -4219,7 +4219,7 @@ export default function Progress({
 
           {/* 4 WEEK CONSISTENCY */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
               Consistency
             </p>
@@ -4333,7 +4333,7 @@ export default function Progress({
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
 
-        <div className="mt-5 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-6 py-5">
+        <div className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-5 py-4">
           <div className="flex items-start gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
               <svg
