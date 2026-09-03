@@ -48,16 +48,31 @@ function AtlasLogo({
   );
 }
 
-function AtlasWordmark() {
+function AtlasWordmark({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div
+      className={`flex items-center ${
+        compact
+          ? "gap-2.5"
+          : "gap-3"
+      }`}
+    >
       <AtlasLogo
+        compact={compact}
         decorative
       />
 
       <span
         aria-label="Atlas"
-        className="text-[22px] font-semibold leading-none tracking-[0.15em]"
+        className={
+          compact
+            ? "text-lg font-semibold leading-none tracking-[0.12em]"
+            : "text-[22px] font-semibold leading-none tracking-[0.15em]"
+        }
       >
         <span
           aria-hidden="true"
@@ -988,7 +1003,7 @@ export default function AtlasApp() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#11131D]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:hidden">
-            <AtlasLogo
+            <AtlasWordmark
               compact
             />
 
