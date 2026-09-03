@@ -21,57 +21,54 @@ import Planning, {
 
 import Progress from "./components/Progress";
 
-function AtlasWordmark({
+function AtlasLogo({
   compact = false,
+  decorative = false,
 }: {
   compact?: boolean;
+  decorative?: boolean;
 }) {
-  const logoSize =
-    compact
-      ? 32
-      : 40;
-
   return (
-    <div className="flex items-center gap-3">
-      <Image
-        src="/atlas-icon.svg"
-        alt=""
-        width={
-          logoSize
-        }
-        height={
-          logoSize
-        }
-        className="shrink-0"
-        priority
+    <Image
+      src="/atlas-logo.png"
+      alt={
+        decorative
+          ? ""
+          : "Atlas"
+      }
+      width={131}
+      height={127}
+      className={
+        compact
+          ? "h-[33px] w-[34px] shrink-0 object-contain"
+          : "h-[50px] w-[52px] shrink-0 object-contain"
+      }
+      priority
+    />
+  );
+}
+
+function AtlasWordmark() {
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <AtlasLogo
+        decorative
       />
 
       <span
         aria-label="Atlas"
-        className={`flex items-center font-semibold leading-none ${
-          compact
-            ? "text-lg"
-            : "text-[1.35rem]"
-        }`}
+        className="font-semibold leading-none tracking-[0.17em]"
       >
-        <svg
+        <span
           aria-hidden="true"
-          viewBox="0 0 24 20"
-          className="mr-1 h-[1.08em] w-[1.28em] shrink-0 overflow-visible"
-          fill="none"
+          className="inline-block text-[1.08em] text-[#2F8CFF]"
         >
-          <path
-            d="M3 18 12 3 21 18"
-            stroke="#5B7CFF"
-            strokeWidth="3.7"
-            strokeLinecap="square"
-            strokeLinejoin="miter"
-          />
-        </svg>
+          A
+        </span>
 
         <span
           aria-hidden="true"
-          className="tracking-[0.17em] text-[#F4F6FF]"
+          className="text-[#F4F6FF]"
         >
           TLAS
         </span>
@@ -991,7 +988,7 @@ export default function AtlasApp() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#11131D]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:hidden">
-            <AtlasWordmark
+            <AtlasLogo
               compact
             />
 
