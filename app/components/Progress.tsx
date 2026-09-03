@@ -2127,6 +2127,9 @@ export default function Progress({
   const wheelLockRef =
     useRef(false);
 
+  const lastSignificantWheelAtRef =
+    useRef(0);
+
   const scrollAnimationRef =
     useRef<number | null>(
       null
@@ -3090,20 +3093,35 @@ export default function Progress({
       return;
     }
 
-    if (
+    event.preventDefault();
+
+    const wheelMagnitude =
       Math.abs(
         event.deltaY
-      ) <
+      );
+
+    if (
+      wheelMagnitude <
       18
     ) {
       return;
     }
 
-    if (
-      wheelLockRef.current
-    ) {
-      event.preventDefault();
+    const now =
+      performance.now();
 
+    const timeSinceLastSignificantWheel =
+      now -
+      lastSignificantWheelAtRef.current;
+
+    lastSignificantWheelAtRef.current =
+      now;
+
+    if (
+      wheelLockRef.current ||
+      timeSinceLastSignificantWheel <
+        180
+    ) {
       return;
     }
 
@@ -3123,8 +3141,6 @@ export default function Progress({
         0 &&
       onOverview
     ) {
-      event.preventDefault();
-
       wheelLockRef.current =
         true;
 
@@ -3148,8 +3164,6 @@ export default function Progress({
         0 &&
       !onOverview
     ) {
-      event.preventDefault();
-
       wheelLockRef.current =
         true;
 
