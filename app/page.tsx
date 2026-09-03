@@ -19,6 +19,112 @@ import Planning, {
 
 import Progress from "./components/Progress";
 
+type MobilePage =
+  | "Home"
+  | "Planning"
+  | "Progress"
+  | "Journal";
+
+const mobilePages: MobilePage[] = [
+  "Home",
+  "Planning",
+  "Progress",
+  "Journal",
+];
+
+function MobileNavIcon({
+  page,
+}: {
+  page: MobilePage;
+}) {
+  const iconClasses =
+    "h-5 w-5";
+
+  if (page === "Home") {
+    return (
+      <svg
+        aria-hidden="true"
+        className={iconClasses}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="m3 11 9-8 9 8"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M5 10v10h14V10M9 20v-6h6v6"
+        />
+      </svg>
+    );
+  }
+
+  if (page === "Planning") {
+    return (
+      <svg
+        aria-hidden="true"
+        className={iconClasses}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="m8.5 14 2 2 4.5-5"
+        />
+      </svg>
+    );
+  }
+
+  if (page === "Progress") {
+    return (
+      <svg
+        aria-hidden="true"
+        className={iconClasses}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M4 19V9m6 10V5m6 14v-7m4 7H2"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      className={iconClasses}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5Zm16 0A2.5 2.5 0 0 0 17.5 3H13v17h4.5a2.5 2.5 0 0 1 2.5 2V5.5Z"
+      />
+    </svg>
+  );
+}
+
 /* ============================================================
  * TASK HISTORY
  * ============================================================
@@ -759,7 +865,7 @@ export default function AtlasApp() {
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="w-60 shrink-0 border-r border-white/10 p-6">
+        <aside className="hidden w-60 shrink-0 border-r border-white/10 p-6 md:block">
           <h1 className="text-2xl font-semibold text-[#5B7CFF]">
             Atlas
           </h1>
@@ -824,11 +930,60 @@ export default function AtlasApp() {
          * MAIN
          * ==================================================== */}
 
-        <section
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#11131D]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:hidden">
+            <h1 className="text-xl font-semibold text-[#5B7CFF]">
+              Atlas
+            </h1>
+
+            <button
+              type="button"
+              aria-label="Open Settings"
+              aria-current={
+                activePage === "Settings"
+                  ? "page"
+                  : undefined
+              }
+              onClick={() =>
+                setActivePage(
+                  "Settings"
+                )
+              }
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                activePage === "Settings"
+                  ? "bg-[#5B7CFF]/15 text-[#7892FF]"
+                  : "text-white/55 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <svg
+                aria-hidden="true"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"
+                />
+              </svg>
+            </button>
+          </header>
+
+          <section
           className={`min-w-0 flex-1 ${
             activePage === "Home"
-              ? "px-10 py-4"
-              : "p-10"
+              ? "px-4 pb-28 pt-4 md:px-10 md:py-4"
+              : activePage === "Progress"
+                ? "p-10 pb-28 md:p-10"
+                : "px-4 pb-28 pt-4 md:p-10"
           }`}
         >
 
@@ -934,7 +1089,60 @@ export default function AtlasApp() {
               </p>
             </div>
           )}
-        </section>
+          </section>
+        </div>
+
+        <nav
+          aria-label="Mobile navigation"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#11131D]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden"
+        >
+          <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
+            {mobilePages.map(
+              (
+                page
+              ) => {
+                const isActive =
+                  activePage ===
+                  page;
+
+                return (
+                  <button
+                    type="button"
+                    key={
+                      page
+                    }
+                    aria-current={
+                      isActive
+                        ? "page"
+                        : undefined
+                    }
+                    onClick={() =>
+                      setActivePage(
+                        page
+                      )
+                    }
+                    className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-medium transition-colors ${
+                      isActive
+                        ? "bg-[#5B7CFF]/15 text-[#7892FF]"
+                        : "text-white/45 hover:bg-white/5 hover:text-white/75"
+                    }`}
+                  >
+                    <MobileNavIcon
+                      page={
+                        page
+                      }
+                    />
+                    <span>
+                      {
+                        page
+                      }
+                    </span>
+                  </button>
+                );
+              }
+            )}
+          </div>
+        </nav>
       </div>
     </main>
   );
