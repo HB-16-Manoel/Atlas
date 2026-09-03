@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import Image from "next/image";
+
 import Home from "./components/Home";
 
 import Journal, {
@@ -18,6 +20,65 @@ import Planning, {
 } from "./components/Planning";
 
 import Progress from "./components/Progress";
+
+function AtlasWordmark({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
+  const logoSize =
+    compact
+      ? 32
+      : 40;
+
+  return (
+    <div className="flex items-center gap-3">
+      <Image
+        src="/atlas-icon.svg"
+        alt=""
+        width={
+          logoSize
+        }
+        height={
+          logoSize
+        }
+        className="shrink-0"
+        priority
+      />
+
+      <span
+        aria-label="Atlas"
+        className={`flex items-center font-semibold leading-none ${
+          compact
+            ? "text-lg"
+            : "text-[1.35rem]"
+        }`}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 20"
+          className="mr-1 h-[1.08em] w-[1.28em] shrink-0 overflow-visible"
+          fill="none"
+        >
+          <path
+            d="M3 18 12 3 21 18"
+            stroke="#5B7CFF"
+            strokeWidth="3.7"
+            strokeLinecap="square"
+            strokeLinejoin="miter"
+          />
+        </svg>
+
+        <span
+          aria-hidden="true"
+          className="tracking-[0.17em] text-[#F4F6FF]"
+        >
+          TLAS
+        </span>
+      </span>
+    </div>
+  );
+}
 
 type MobilePage =
   | "Home"
@@ -866,9 +927,7 @@ export default function AtlasApp() {
          * ==================================================== */}
 
         <aside className="hidden w-60 shrink-0 border-r border-white/10 p-6 md:block">
-          <h1 className="text-2xl font-semibold text-[#5B7CFF]">
-            Atlas
-          </h1>
+          <AtlasWordmark />
 
           <nav className="mt-10 space-y-2">
             {[
@@ -932,9 +991,9 @@ export default function AtlasApp() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#11131D]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:hidden">
-            <h1 className="text-xl font-semibold text-[#5B7CFF]">
-              Atlas
-            </h1>
+            <AtlasWordmark
+              compact
+            />
 
             <button
               type="button"
