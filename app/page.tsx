@@ -36,12 +36,12 @@ function AtlasLogo({
           ? ""
           : "Atlas"
       }
-      width={131}
-      height={127}
+      width={512}
+      height={512}
       className={
         compact
-          ? "h-[33px] w-[34px] shrink-0 object-contain"
-          : "h-[50px] w-[52px] shrink-0 object-contain"
+          ? "h-8 w-8 shrink-0 object-contain"
+          : "h-11 w-11 shrink-0 object-contain"
       }
       priority
     />
@@ -50,14 +50,14 @@ function AtlasLogo({
 
 function AtlasWordmark() {
   return (
-    <div className="flex flex-col items-start gap-3">
+    <div className="flex flex-col items-start gap-1.5">
       <AtlasLogo
         decorative
       />
 
       <span
         aria-label="Atlas"
-        className="font-semibold leading-none tracking-[0.17em]"
+        className="text-lg font-semibold leading-none tracking-[0.15em]"
       >
         <span
           aria-hidden="true"
@@ -926,7 +926,7 @@ export default function AtlasApp() {
         <aside className="hidden w-60 shrink-0 border-r border-white/10 p-6 md:block">
           <AtlasWordmark />
 
-          <nav className="mt-10 space-y-2">
+          <nav className="mt-6 space-y-2">
             {[
               "Home",
               "Planning",
