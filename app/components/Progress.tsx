@@ -1,9 +1,10 @@
 "use client";
 
 import {
+  useCallback,
+  useEffect,
   useRef,
   useState,
-  type WheelEvent,
 } from "react";
 
 import type {
@@ -2124,10 +2125,15 @@ export default function Progress({
       null
     );
 
-  const wheelLockRef =
+  const wheelGestureActiveRef =
     useRef(false);
 
-  const lastSignificantWheelAtRef =
+  const wheelGestureTimeoutRef =
+    useRef<number | null>(
+      null
+    );
+
+  const wheelDeltaRef =
     useRef(0);
 
   const scrollAnimationRef =
@@ -2951,11 +2957,12 @@ export default function Progress({
    * ============================================================
    */
 
-  const animateScrollTo = (
-    targetTop: number,
-    duration =
-      1150
-  ) => {
+  const animateScrollTo =
+    useCallback((
+      targetTop: number,
+      duration =
+        1150
+    ) => {
     const container =
       scrollRef.current;
 
@@ -3056,9 +3063,10 @@ export default function Progress({
       requestAnimationFrame(
         animate
       );
-  };
+  }, []);
 
-  const scrollToSection = (
+  const scrollToSection =
+    useCallback((
     section:
       | "overview"
       | "consistency"
@@ -3078,12 +3086,9 @@ export default function Progress({
     animateScrollTo(
       target.offsetTop
     );
-  };
+  }, [animateScrollTo]);
 
-  const handleWheel = (
-    event:
-      WheelEvent<HTMLDivElement>
-  ) => {
+  useEffect(() => {
     const container =
       scrollRef.current;
 
@@ -3093,93 +3098,140 @@ export default function Progress({
       return;
     }
 
-    event.preventDefault();
+    const markGestureActivity =
+      () => {
+        if (
+          wheelGestureTimeoutRef.current !==
+          null
+        ) {
+          window.clearTimeout(
+            wheelGestureTimeoutRef.current
+          );
+        }
 
-    const wheelMagnitude =
-      Math.abs(
-        event.deltaY
+        wheelGestureTimeoutRef.current =
+          window.setTimeout(
+            () => {
+              wheelGestureActiveRef.current =
+                false;
+
+              wheelDeltaRef.current =
+                0;
+
+              wheelGestureTimeoutRef.current =
+                null;
+            },
+            220
+          );
+      };
+
+    const handleWheel = (
+      event: WheelEvent
+    ) => {
+      event.preventDefault();
+
+      markGestureActivity();
+
+      if (
+        wheelGestureActiveRef.current ||
+        scrollAnimationRef.current !==
+          null
+      ) {
+        return;
+      }
+
+      wheelDeltaRef.current +=
+        event.deltaY;
+
+      if (
+        Math.abs(
+          wheelDeltaRef.current
+        ) <
+        40
+      ) {
+        return;
+      }
+
+      const direction =
+        wheelDeltaRef.current >
+        0
+          ? "down"
+          : "up";
+
+      wheelDeltaRef.current =
+        0;
+
+      const viewportHeight =
+        container.clientHeight;
+
+      const onOverview =
+        container.scrollTop <
+        viewportHeight *
+          0.5;
+
+      if (
+        direction ===
+          "down" &&
+        onOverview
+      ) {
+        wheelGestureActiveRef.current =
+          true;
+
+        scrollToSection(
+          "consistency"
+        );
+
+        return;
+      }
+
+      if (
+        direction ===
+          "up" &&
+        !onOverview
+      ) {
+        wheelGestureActiveRef.current =
+          true;
+
+        scrollToSection(
+          "overview"
+        );
+      }
+    };
+
+    container.addEventListener(
+      "wheel",
+      handleWheel,
+      {
+        passive:
+          false,
+      }
+    );
+
+    return () => {
+      container.removeEventListener(
+        "wheel",
+        handleWheel
       );
 
-    if (
-      wheelMagnitude <
-      18
-    ) {
-      return;
-    }
+      if (
+        wheelGestureTimeoutRef.current !==
+        null
+      ) {
+        window.clearTimeout(
+          wheelGestureTimeoutRef.current
+        );
+      }
 
-    const now =
-      performance.now();
-
-    const timeSinceLastSignificantWheel =
-      now -
-      lastSignificantWheelAtRef.current;
-
-    lastSignificantWheelAtRef.current =
-      now;
-
-    if (
-      wheelLockRef.current ||
-      timeSinceLastSignificantWheel <
-        180
-    ) {
-      return;
-    }
-
-    const viewportHeight =
-      container.clientHeight;
-
-    const currentPosition =
-      container.scrollTop;
-
-    const onOverview =
-      currentPosition <
-      viewportHeight *
-        0.5;
-
-    if (
-      event.deltaY >
-        0 &&
-      onOverview
-    ) {
-      wheelLockRef.current =
-        true;
-
-      scrollToSection(
-        "consistency"
-      );
-
-      window.setTimeout(
-        () => {
-          wheelLockRef.current =
-            false;
-        },
-        1250
-      );
-
-      return;
-    }
-
-    if (
-      event.deltaY <
-        0 &&
-      !onOverview
-    ) {
-      wheelLockRef.current =
-        true;
-
-      scrollToSection(
-        "overview"
-      );
-
-      window.setTimeout(
-        () => {
-          wheelLockRef.current =
-            false;
-        },
-        1250
-      );
-    }
-  };
+      if (
+        scrollAnimationRef.current !==
+        null
+      ) {
+        cancelAnimationFrame(
+          scrollAnimationRef.current
+        );
+      }
+    };
+  }, [scrollToSection]);
 
   /* ============================================================
    * UI
@@ -3190,10 +3242,6 @@ export default function Progress({
     <div
       ref={
         scrollRef
-      }
-
-      onWheel={
-        handleWheel
       }
 
       className="
