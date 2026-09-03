@@ -30,7 +30,7 @@ function AtlasLogo({
 }) {
   return (
     <Image
-      src="/atlas-logo.png"
+      src="/atlas-icon-512.png"
       alt={
         decorative
           ? ""
@@ -40,8 +40,8 @@ function AtlasLogo({
       height={512}
       className={
         compact
-          ? "h-8 w-8 shrink-0 object-contain"
-          : "h-11 w-11 shrink-0 object-contain"
+          ? "h-10 w-10 shrink-0 object-contain"
+          : "h-16 w-16 shrink-0 object-contain"
       }
       priority
     />
@@ -50,14 +50,14 @@ function AtlasLogo({
 
 function AtlasWordmark() {
   return (
-    <div className="flex flex-col items-start gap-1.5">
+    <div className="flex flex-col items-start gap-1">
       <AtlasLogo
         decorative
       />
 
       <span
         aria-label="Atlas"
-        className="text-lg font-semibold leading-none tracking-[0.15em]"
+        className="text-[22px] font-semibold leading-none tracking-[0.15em]"
       >
         <span
           aria-hidden="true"
