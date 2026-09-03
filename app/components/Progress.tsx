@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  useCallback,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -2125,22 +2123,6 @@ export default function Progress({
       null
     );
 
-  const wheelGestureActiveRef =
-    useRef(false);
-
-  const wheelGestureTimeoutRef =
-    useRef<number | null>(
-      null
-    );
-
-  const wheelDeltaRef =
-    useRef(0);
-
-  const scrollAnimationRef =
-    useRef<number | null>(
-      null
-    );
-
   /* ============================================================
    * TODAY / CURRENT CALENDAR WEEK
    * ============================================================
@@ -2957,120 +2939,14 @@ export default function Progress({
    * ============================================================
    */
 
-  const animateScrollTo =
-    useCallback((
-      targetTop: number,
-      duration =
-        1150
-    ) => {
-    const container =
-      scrollRef.current;
-
-    if (
-      !container
-    ) {
-      return;
-    }
-
-    if (
-      scrollAnimationRef.current !==
-      null
-    ) {
-      cancelAnimationFrame(
-        scrollAnimationRef.current
-      );
-    }
-
-    const startTop =
-      container.scrollTop;
-
-    const distance =
-      targetTop -
-      startTop;
-
-    const startTime =
-      performance.now();
-
-    const easeInOutQuart = (
-      progress: number
-    ) => {
-      if (
-        progress <
-        0.5
-      ) {
-        return (
-          8 *
-          progress *
-          progress *
-          progress *
-          progress
-        );
-      }
-
-      return (
-        1 -
-        Math.pow(
-          -2 *
-            progress +
-            2,
-          4
-        ) /
-          2
-      );
-    };
-
-    const animate = (
-      now: number
-    ) => {
-      const elapsed =
-        now -
-        startTime;
-
-      const progress =
-        Math.min(
-          elapsed /
-            duration,
-          1
-        );
-
-      const eased =
-        easeInOutQuart(
-          progress
-        );
-
-      container.scrollTop =
-        startTop +
-        distance *
-          eased;
-
-      if (
-        progress <
-        1
-      ) {
-        scrollAnimationRef.current =
-          requestAnimationFrame(
-            animate
-          );
-
-        return;
-      }
-
-      scrollAnimationRef.current =
-        null;
-    };
-
-    scrollAnimationRef.current =
-      requestAnimationFrame(
-        animate
-      );
-  }, []);
-
-  const scrollToSection =
-    useCallback((
+  const scrollToSection = (
     section:
       | "overview"
       | "consistency"
   ) => {
+    const container =
+      scrollRef.current;
+
     const target =
       section ===
       "overview"
@@ -3078,160 +2954,20 @@ export default function Progress({
         : consistencyRef.current;
 
     if (
+      !container ||
       !target
     ) {
       return;
     }
 
-    animateScrollTo(
-      target.offsetTop
-    );
-  }, [animateScrollTo]);
+    container.scrollTo({
+      top:
+        target.offsetTop,
 
-  useEffect(() => {
-    const container =
-      scrollRef.current;
-
-    if (
-      !container
-    ) {
-      return;
-    }
-
-    const markGestureActivity =
-      () => {
-        if (
-          wheelGestureTimeoutRef.current !==
-          null
-        ) {
-          window.clearTimeout(
-            wheelGestureTimeoutRef.current
-          );
-        }
-
-        wheelGestureTimeoutRef.current =
-          window.setTimeout(
-            () => {
-              wheelGestureActiveRef.current =
-                false;
-
-              wheelDeltaRef.current =
-                0;
-
-              wheelGestureTimeoutRef.current =
-                null;
-            },
-            220
-          );
-      };
-
-    const handleWheel = (
-      event: WheelEvent
-    ) => {
-      event.preventDefault();
-
-      markGestureActivity();
-
-      if (
-        wheelGestureActiveRef.current ||
-        scrollAnimationRef.current !==
-          null
-      ) {
-        return;
-      }
-
-      wheelDeltaRef.current +=
-        event.deltaY;
-
-      if (
-        Math.abs(
-          wheelDeltaRef.current
-        ) <
-        40
-      ) {
-        return;
-      }
-
-      const direction =
-        wheelDeltaRef.current >
-        0
-          ? "down"
-          : "up";
-
-      wheelDeltaRef.current =
-        0;
-
-      const viewportHeight =
-        container.clientHeight;
-
-      const onOverview =
-        container.scrollTop <
-        viewportHeight *
-          0.5;
-
-      if (
-        direction ===
-          "down" &&
-        onOverview
-      ) {
-        wheelGestureActiveRef.current =
-          true;
-
-        scrollToSection(
-          "consistency"
-        );
-
-        return;
-      }
-
-      if (
-        direction ===
-          "up" &&
-        !onOverview
-      ) {
-        wheelGestureActiveRef.current =
-          true;
-
-        scrollToSection(
-          "overview"
-        );
-      }
-    };
-
-    container.addEventListener(
-      "wheel",
-      handleWheel,
-      {
-        passive:
-          false,
-      }
-    );
-
-    return () => {
-      container.removeEventListener(
-        "wheel",
-        handleWheel
-      );
-
-      if (
-        wheelGestureTimeoutRef.current !==
-        null
-      ) {
-        window.clearTimeout(
-          wheelGestureTimeoutRef.current
-        );
-      }
-
-      if (
-        scrollAnimationRef.current !==
-        null
-      ) {
-        cancelAnimationFrame(
-          scrollAnimationRef.current
-        );
-      }
-    };
-  }, [scrollToSection]);
+      behavior:
+        "smooth",
+    });
+  };
 
   /* ============================================================
    * UI
@@ -3247,6 +2983,9 @@ export default function Progress({
       className="
         -m-10
         h-screen
+        snap-y
+        snap-mandatory
+        scroll-smooth
         overflow-y-auto
         overscroll-contain
         [scrollbar-width:none]
@@ -3265,6 +3004,8 @@ export default function Progress({
         className="
           flex
           min-h-screen
+          snap-start
+          snap-always
           flex-col
           px-10
           py-5
@@ -3809,6 +3550,8 @@ export default function Progress({
           flex
           h-screen
           shrink-0
+          snap-start
+          snap-always
           flex-col
           overflow-hidden
           px-10
