@@ -5223,7 +5223,7 @@ export default function Planning({
                           className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
                             selectedDateIsPast
                               ? "pointer-events-none text-white/10 opacity-0"
-                              : "cursor-pointer text-white/30 opacity-70 hover:bg-white/5 hover:text-white/80 md:opacity-0 md:group-hover:opacity-100"
+                              : "cursor-pointer text-white/35 opacity-80 hover:bg-white/5 hover:text-white/80"
                           }`}
 
                           aria-label="Delete task"
@@ -5257,7 +5257,7 @@ export default function Planning({
             </div>
           </div>
 
-          {/* HABITS */}          {/* HABITS */}
+          {/* HABITS */}
 
           <div className="mt-10">
             <div className="group flex items-center justify-between">
@@ -5315,7 +5315,7 @@ export default function Planning({
                       className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-all duration-200 ${
                         habitReorderMode
                           ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/10 text-[#5B7CFF] opacity-100"
-                          : "border-transparent text-white/35 opacity-0 hover:border-white/10 hover:bg-white/5 hover:text-white/70 group-hover:opacity-100"
+                          : "border-transparent text-white/35 opacity-75 hover:border-white/10 hover:bg-white/5 hover:text-white/70"
                       }`}
                     >
                       {habitReorderMode ? (
@@ -5898,7 +5898,7 @@ export default function Planning({
                                 className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/30 transition-all duration-200 ${
                                   selectedDateIsPast
                                     ? "cursor-default opacity-0"
-                                    : "cursor-pointer opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
+                                    : "cursor-pointer opacity-80 hover:bg-white/5 hover:text-white/80"
                                 }`}
                               >
                                 <svg
@@ -6281,7 +6281,7 @@ export default function Planning({
                                 )
                               }
                               aria-label={`Delete ${occurrence.event.title}`}
-                              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/20 transition hover:bg-white/5 hover:text-white/60 md:opacity-0 md:group-hover:opacity-100"
+                              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/35 opacity-80 transition hover:bg-white/5 hover:text-white/70"
                             >
                               ×
                             </button>

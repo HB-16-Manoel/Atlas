@@ -239,7 +239,6 @@ function getCurrentStreak(
 export default function Home({
   tasks,
   habits,
-  events,
   journalEntries,
   taskHistory,
   onNavigate,
@@ -253,125 +252,6 @@ export default function Home({
     formatDateKey(
       today
     );
-
-  /* ============================================================
-   * EVENTS
-   * ============================================================
-   */
-
-  const eventOccurrences =
-    events
-      .map(
-        (
-          event
-        ) => {
-          if (!event.repeatYearly) {
-            return {
-              event,
-              occurrenceDate:
-                event.date,
-            };
-          }
-
-          const monthDay =
-            event.date.slice(5);
-          const year =
-            today.getFullYear();
-          const thisYear =
-            `${year}-${monthDay}`;
-
-          return {
-            event,
-            occurrenceDate:
-              thisYear >=
-              todayKey
-                ? thisYear
-                : `${year + 1}-${monthDay}`,
-          };
-        }
-      )
-      .filter(
-        (
-          occurrence
-        ) =>
-          occurrence.occurrenceDate >=
-          todayKey
-      )
-      .sort(
-        (
-          a,
-          b
-        ) =>
-          a.occurrenceDate.localeCompare(
-            b.occurrenceDate
-          ) ||
-          (a.event.time ?? "").localeCompare(
-            b.event.time ?? ""
-          )
-      );
-
-  const displayEvent =
-    eventOccurrences[0] ??
-    null;
-
-  const formatEventDate =
-    (
-      dateKey: string
-    ) => {
-      if (dateKey === todayKey) {
-        return "Today";
-      }
-
-      const [
-        year,
-        month,
-        day,
-      ] = dateKey
-        .split("-")
-        .map(Number);
-
-      return new Date(
-        year,
-        month - 1,
-        day
-      ).toLocaleDateString(
-        "en-US",
-        {
-          month: "short",
-          day: "numeric",
-        }
-      );
-    };
-
-  const formatEventTime =
-    (
-      time?: string
-    ) => {
-      if (!time) {
-        return null;
-      }
-
-      const [
-        hours,
-        minutes,
-      ] = time
-        .split(":")
-        .map(Number);
-
-      return new Date(
-        2000,
-        0,
-        1,
-        hours,
-        minutes
-      ).toLocaleTimeString(
-        "en-US",
-        {
-          hour: "numeric",
-          minute: "2-digit",
-        }
-      );
-    };
 
   /* ============================================================
    * TODAY TASKS
@@ -736,40 +616,6 @@ export default function Home({
         </p>
       </div>
 
-      {displayEvent && (
-        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.07] px-4 py-3">
-          <div
-            aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#5B7CFF]/15 text-[#8EA3FF]"
-          >
-            <span className="text-base">●</span>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#8EA3FF]">
-              {formatEventDate(
-                displayEvent.occurrenceDate
-              )}
-              {displayEvent.event.repeatYearly
-                ? " · Yearly"
-                : ""}
-            </p>
-
-            <p className="mt-0.5 truncate font-medium text-white/85">
-              {displayEvent.event.title}
-            </p>
-          </div>
-
-          {displayEvent.event.time && (
-            <p className="shrink-0 text-sm text-white/40">
-              {formatEventTime(
-                displayEvent.event.time
-              )}
-            </p>
-          )}
-        </div>
-      )}
-
       {/* ======================================================
        * TOP ROW
        * ====================================================== */}
@@ -778,7 +624,7 @@ export default function Home({
 
         {/* DAILY SCORE */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+        <div className="flex h-full flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
@@ -793,8 +639,8 @@ export default function Home({
             <div className="h-2 w-2 rounded-full bg-[#5B7CFF]" />
           </div>
 
-          <div className="mt-3 flex items-end">
-            <p className="text-5xl font-semibold tracking-[-0.055em]">
+          <div className="mt-4 flex items-end">
+            <p className="text-6xl font-semibold tracking-[-0.055em]">
               {
                 dailyScore ??
                 "—"
@@ -809,7 +655,7 @@ export default function Home({
             )}
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-auto grid grid-cols-2 gap-3 pt-5">
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.1em] text-white/20">
                 Tasks
@@ -963,30 +809,26 @@ export default function Home({
 
         {/* FOCUS */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+        <div className="flex h-full flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
               Focus
             </p>
 
             <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.08em] text-white/25">
-              {
-                focusType
-              }
+              {focusType}
             </span>
           </div>
 
-          <h3 className="mt-3 text-xl font-semibold tracking-[-0.02em] text-white/85">
-            {
-              focusTitle
-            }
-          </h3>
+          <div className="flex flex-1 flex-col justify-center py-4">
+            <h3 className="text-2xl font-semibold tracking-[-0.025em] text-white/85">
+              {focusTitle}
+            </h3>
 
-          <p className="mt-1.5 text-sm leading-5 text-white/35">
-            {
-              focusBody
-            }
-          </p>
+            <p className="mt-2 text-sm leading-5 text-white/40">
+              {focusBody}
+            </p>
+          </div>
         </div>
 
         {/* CONSISTENCY */}
