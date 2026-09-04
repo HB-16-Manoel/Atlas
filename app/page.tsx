@@ -15,6 +15,7 @@ import Journal, {
 } from "./components/Journal";
 
 import Planning, {
+  type AtlasEvent,
   type Habit,
   type Task,
 } from "./components/Planning";
@@ -269,6 +270,24 @@ export default function AtlasApp() {
   const [
     habitsLoaded,
     setHabitsLoaded,
+  ] =
+    useState(false);
+
+  /* ============================================================
+   * EVENT STATE
+   * ============================================================
+   */
+
+  const [
+    events,
+    setEvents,
+  ] = useState<AtlasEvent[]>(
+    []
+  );
+
+  const [
+    eventsLoaded,
+    setEventsLoaded,
   ] =
     useState(false);
 
@@ -646,6 +665,94 @@ export default function AtlasApp() {
       habits,
       habitsLoaded,
     ]
+  );
+
+  /* ============================================================
+   * LOAD EVENTS
+   * ============================================================
+   */
+
+  useEffect(
+    () => {
+      try {
+        const saved =
+          localStorage.getItem(
+            "atlas-events"
+          );
+
+        if (!saved) {
+          return;
+        }
+
+        const parsed =
+          JSON.parse(saved);
+
+        if (!Array.isArray(parsed)) {
+          return;
+        }
+
+        setEvents(
+          parsed.filter(
+            (
+              event
+            ): event is AtlasEvent =>
+              event &&
+              typeof event.id ===
+                "number" &&
+              typeof event.title ===
+                "string" &&
+              typeof event.date ===
+                "string"
+          ).map(
+            (
+              event
+            ) => ({
+              ...event,
+              time:
+                typeof event.time ===
+                "string"
+                  ? event.time
+                  : undefined,
+              repeatYearly:
+                event.repeatYearly ===
+                true,
+            })
+          )
+        );
+      } catch {
+        console.log(
+          "Atlas could not load events."
+        );
+      } finally {
+        setEventsLoaded(true);
+      }
+    },
+    []
+  );
+
+  /* ============================================================
+   * SAVE EVENTS
+   * ============================================================
+   */
+
+  useEffect(
+    () => {
+      if (!eventsLoaded) {
+        return;
+      }
+
+      try {
+        localStorage.setItem(
+          "atlas-events",
+          JSON.stringify(events)
+        );
+      } catch {
+        console.log(
+          "Atlas could not save events."
+        );
+      }
+    },
+    [events, eventsLoaded]
   );
 
   /* ============================================================
@@ -1208,6 +1315,10 @@ export default function AtlasApp() {
     habits
   }
 
+  events={
+    events
+  }
+
   journalEntries={
     journalEntries
   }
@@ -1241,6 +1352,14 @@ export default function AtlasApp() {
 
               setHabits={
                 setHabits
+              }
+
+              events={
+                events
+              }
+
+              setEvents={
+                setEvents
               }
             />
           )}

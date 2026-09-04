@@ -30,6 +30,14 @@ export type Task = {
   carriedTo?: string;
 };
 
+export type AtlasEvent = {
+  id: number;
+  title: string;
+  date: string;
+  time?: string;
+  repeatYearly: boolean;
+};
+
 export type Habit = {
   id: number;
   name: string;
@@ -175,6 +183,12 @@ type PlanningProps = {
   setHabits: Dispatch<
     SetStateAction<Habit[]>
   >;
+
+  events: AtlasEvent[];
+
+  setEvents: Dispatch<
+    SetStateAction<AtlasEvent[]>
+  >;
 };
 
 export default function Planning({
@@ -182,6 +196,8 @@ export default function Planning({
   setTasks,
   habits,
   setHabits,
+  events,
+  setEvents,
 }: PlanningProps) {
   /* ============================================================
    * TODAY
@@ -281,6 +297,26 @@ export default function Planning({
     newTaskCarryOver,
     setNewTaskCarryOver,
   ] = useState(true);
+
+  const [
+    addingEvent,
+    setAddingEvent,
+  ] = useState(false);
+
+  const [
+    newEventTitle,
+    setNewEventTitle,
+  ] = useState("");
+
+  const [
+    newEventTime,
+    setNewEventTime,
+  ] = useState("");
+
+  const [
+    newEventRepeatYearly,
+    setNewEventRepeatYearly,
+  ] = useState(false);
 
   /* ============================================================
    * HABIT STATE
@@ -552,6 +588,33 @@ export default function Planning({
     isPast(
       selectedDate
     );
+
+  const selectedEvents =
+    events
+      .filter(
+        (
+          event
+        ) =>
+          event.date ===
+            selectedDateKey ||
+          (
+            event.repeatYearly &&
+            event.date.slice(5) ===
+              selectedDateKey.slice(5)
+          )
+      )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          (a.time ?? "").localeCompare(
+            b.time ?? ""
+          ) ||
+          a.title.localeCompare(
+            b.title
+          )
+      );
 
   /* ============================================================
    * TASK LIST
@@ -1108,6 +1171,75 @@ export default function Planning({
 
       setAddingTask(
         false
+      );
+    };
+
+  /* ============================================================
+   * ADD EVENT
+   * ============================================================
+   */
+
+  const resetEventForm =
+    () => {
+      setAddingEvent(false);
+      setNewEventTitle("");
+      setNewEventTime("");
+      setNewEventRepeatYearly(false);
+    };
+
+  const addEvent =
+    () => {
+      if (selectedDateIsPast) {
+        return;
+      }
+
+      const title =
+        newEventTitle.trim();
+
+      if (!title) {
+        return;
+      }
+
+      setEvents(
+        (
+          current
+        ) => [
+          ...current,
+          {
+            id: Date.now(),
+            title,
+            date:
+              selectedDateKey,
+            time:
+              newEventTime ||
+              undefined,
+            repeatYearly:
+              newEventRepeatYearly,
+          },
+        ]
+      );
+
+      resetEventForm();
+    };
+
+  const deleteEvent =
+    (
+      id: number
+    ) => {
+      if (selectedDateIsPast) {
+        return;
+      }
+
+      setEvents(
+        (
+          current
+        ) =>
+          current.filter(
+            (
+              event
+            ) =>
+              event.id !== id
+          )
       );
     };
 
@@ -4340,6 +4472,25 @@ export default function Planning({
                 today
               );
 
+            const dateKey =
+              formatDateKey(
+                date
+              );
+
+            const hasEvent =
+              events.some(
+                (
+                  event
+                ) =>
+                  event.date ===
+                    dateKey ||
+                  (
+                    event.repeatYearly &&
+                    event.date.slice(5) ===
+                      dateKey.slice(5)
+                  )
+              );
+
             return (
               <button
                 key={
@@ -4376,6 +4527,13 @@ export default function Planning({
                   {date.getDate()}
                 </p>
 
+                {hasEvent && (
+                  <span
+                    aria-label="Event planned"
+                    className="mx-auto mt-2 block h-1.5 w-1.5 rounded-full bg-[#5B7CFF]"
+                  />
+                )}
+
                 {current && (
                   <p
                     className={`mt-1 text-xs ${
@@ -4407,84 +4565,74 @@ export default function Planning({
 
           {/* DAY HEADER */}
 
-          <div className="flex items-end justify-between">
+          <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-sm text-white/40">
-                {formatDate(
-                  selectedDate
-                )}
+                {formatDate(selectedDate)}
               </p>
 
               <h3 className="mt-1 text-2xl font-semibold">
-                {isSameDay(
-                  selectedDate,
-                  today
-                )
+                {isSameDay(selectedDate, today)
                   ? "Today"
-                  : selectedDate <
-                      today
+                  : selectedDate < today
                     ? "Past day"
                     : "Upcoming"}
               </h3>
             </div>
 
-            {!selectedDateIsPast &&
-              !addingTask && (
-                <button
-                  onClick={() => {
-                    setNewTaskCarryOver(
-                      true
-                    );
+            {!selectedDateIsPast && (
+              <div className="flex shrink-0 gap-2">
+                {!addingEvent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingTask(false);
+                      setNewTask("");
+                      setAddingHabit(false);
+                      setAddingEvent(true);
+                    }}
+                    className="cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white"
+                  >
+                    + Event
+                  </button>
+                )}
 
-                    setAddingTask(
-                      true
-                    );
-                  }}
-                  className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 font-medium transition-all duration-200 hover:scale-[1.02] hover:opacity-90"
-                >
-                  + Add task
-                </button>
-              )}
+                {!addingTask && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetEventForm();
+                      setNewTaskCarryOver(true);
+                      setAddingTask(true);
+                    }}
+                    className="cursor-pointer rounded-lg bg-[#5B7CFF] px-3 py-2 text-sm font-medium transition hover:opacity-90"
+                  >
+                    + Task
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* ADD TASK */}
+          {/* ADD TASK */}          {/* ADD TASK */}
 
           {addingTask &&
             !selectedDateIsPast && (
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                 <input
                   autoFocus
-                  value={
-                    newTask
+                  value={newTask}
+                  onChange={(event) =>
+                    setNewTask(event.target.value)
                   }
-                  onChange={(
-                    event
-                  ) =>
-                    setNewTask(
-                      event.target.value
-                    )
-                  }
-                  onKeyDown={(
-                    event
-                  ) => {
-                    if (
-                      event.key ===
-                      "Enter"
-                    ) {
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
                       addTask();
                     }
 
-                    if (
-                      event.key ===
-                      "Escape"
-                    ) {
-                      setAddingTask(
-                        false
-                      );
-
-                      setNewTask(
-                        ""
-                      );
+                    if (event.key === "Escape") {
+                      setAddingTask(false);
+                      setNewTask("");
                     }
                   }}
                   placeholder="What needs to get done?"
@@ -4496,65 +4644,30 @@ export default function Planning({
                     type="button"
                     onClick={() =>
                       setNewTaskCarryOver(
-                        (
-                          current
-                        ) =>
-                          !current
+                        (current) => !current
                       )
                     }
-                    aria-pressed={
-                      newTaskCarryOver
-                    }
-                    title={
-                      newTaskCarryOver
-                        ? "Unfinished task will carry into the next day"
-                        : "Task stays only on this date"
-                    }
-                    className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-200 ${
-                      newTaskCarryOver
-                        ? "border-[#5B7CFF]/35 bg-[#5B7CFF]/10 text-[#8EA3FF]"
-                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white/60"
-                    }`}
+                    aria-pressed={newTaskCarryOver}
+                    className="flex w-fit cursor-pointer items-center gap-2.5 text-xs text-white/55"
                   >
-                    <svg
+                    <span>Carry over</span>
+                    <span
                       aria-hidden="true"
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
+                      className={`relative h-5 w-9 rounded-full transition-colors ${newTaskCarryOver ? "bg-[#5B7CFF]" : "bg-white/15"}`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M20 7v5h-5M4 17v-5h5"
+                      <span
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newTaskCarryOver ? "translate-x-[18px]" : "translate-x-0.5"}`}
                       />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.1 9A7 7 0 0 1 18.4 6.6L20 8M4 16l1.6 1.4A7 7 0 0 0 17.9 15"
-                      />
-                    </svg>
-
-                    {newTaskCarryOver
-                      ? "Carries over"
-                      : "One day only"}
+                    </span>
                   </button>
 
                   <div className="flex justify-end gap-2">
                     <button
+                      type="button"
                       onClick={() => {
-                        setAddingTask(
-                          false
-                        );
-
-                        setNewTask(
-                          ""
-                        );
-
-                        setNewTaskCarryOver(
-                          true
-                        );
+                        setAddingTask(false);
+                        setNewTask("");
+                        setNewTaskCarryOver(true);
                       }}
                       className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
                     >
@@ -4562,9 +4675,8 @@ export default function Planning({
                     </button>
 
                     <button
-                      onClick={
-                        addTask
-                      }
+                      type="button"
+                      onClick={addTask}
                       className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
                     >
                       Add
@@ -4574,7 +4686,84 @@ export default function Planning({
               </div>
             )}
 
-          {/* TASK LIST */}
+          {addingEvent &&
+            !selectedDateIsPast && (
+              <div className="mt-5 rounded-2xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.04] p-5">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
+                  <input
+                    autoFocus
+                    value={newEventTitle}
+                    onChange={(event) =>
+                      setNewEventTitle(event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        addEvent();
+                      }
+
+                      if (event.key === "Escape") {
+                        resetEventForm();
+                      }
+                    }}
+                    placeholder="Birthday, first day of school..."
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-[#5B7CFF]/50"
+                  />
+
+                  <input
+                    type="time"
+                    value={newEventTime}
+                    onChange={(event) =>
+                      setNewEventTime(event.target.value)
+                    }
+                    aria-label="Optional event time"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white/70 outline-none focus:border-[#5B7CFF]/50"
+                  />
+                </div>
+
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewEventRepeatYearly(
+                        (current) => !current
+                      )
+                    }
+                    aria-pressed={newEventRepeatYearly}
+                    className="flex w-fit cursor-pointer items-center gap-2.5 text-xs text-white/55"
+                  >
+                    <span>Repeat yearly</span>
+                    <span
+                      aria-hidden="true"
+                      className={`relative h-5 w-9 rounded-full transition-colors ${newEventRepeatYearly ? "bg-[#5B7CFF]" : "bg-white/15"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newEventRepeatYearly ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                      />
+                    </span>
+                  </button>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={resetEventForm}
+                      className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={addEvent}
+                      className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                    >
+                      Add event
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {/* TASK LIST */}          {/* TASK LIST */}
 
           <div className="mt-6">
             <div className="flex items-center justify-between">
@@ -4896,82 +5085,51 @@ export default function Planning({
 
                         <button
                           type="button"
-                          onPointerDown={(
-                            event
-                          ) =>
+                          onPointerDown={(event) =>
                             event.stopPropagation()
                           }
-                          onDoubleClick={(
-                            event
-                          ) =>
+                          onDoubleClick={(event) =>
                             event.stopPropagation()
                           }
                           onClick={() =>
-                            toggleTaskCarryOver(
-                              task.id
-                            )
+                            toggleTaskCarryOver(task.id)
                           }
                           disabled={
                             selectedDateIsPast ||
                             task.completed
                           }
                           title={
-                            task.carryOver ===
-                            false
-                              ? "One day only"
-                              : "Carries over if unfinished"
+                            task.carryOver === false
+                              ? "Enable carry-over"
+                              : "Disable carry-over"
                           }
                           aria-label={
-                            task.carryOver ===
-                            false
+                            task.carryOver === false
                               ? "Enable task carry-over"
                               : "Disable task carry-over"
                           }
                           aria-pressed={
-                            task.carryOver !==
-                            false
+                            task.carryOver !== false
                           }
-                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition-all duration-200 ${
-                            selectedDateIsPast ||
-                            task.completed
-                              ? "pointer-events-none border-transparent text-white/15 opacity-0"
-                              : task.carryOver ===
-                                  false
-                                ? "cursor-pointer border-white/10 text-white/35 hover:bg-white/5 hover:text-white/60"
-                                : "cursor-pointer border-[#5B7CFF]/25 bg-[#5B7CFF]/10 text-[#8EA3FF]"
-                          }`}
+                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-1.5 text-[10px] font-medium transition-all duration-200 ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : "cursor-pointer text-white/40 hover:bg-white/5 hover:text-white/65"}`}
                         >
-                          <svg
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M20 7v5h-5M4 17v-5h5"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M6.1 9A7 7 0 0 1 18.4 6.6L20 8M4 16l1.6 1.4A7 7 0 0 0 17.9 15"
-                            />
-                          </svg>
-
                           <span className="hidden xl:inline">
                             {task.carriedFrom
-                              ? "Carried"
-                              : task.carryOver ===
-                                  false
-                                ? "Once"
-                                : "Carry"}
+                              ? "Carried over"
+                              : "Carry"}
+                          </span>
+
+                          <span
+                            aria-hidden="true"
+                            className={`relative h-4 w-7 rounded-full transition-colors ${task.carryOver === false ? "bg-white/15" : "bg-[#5B7CFF]"}`}
+                          >
+                            <span
+                              className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${task.carryOver === false ? "translate-x-0.5" : "translate-x-[14px]"}`}
+                            />
                           </span>
                         </button>
 
-                        {/* DELETE */}
+                        {/* DELETE */}                        {/* DELETE */}
 
                         <button
                           onPointerDown={(
@@ -5028,6 +5186,103 @@ export default function Planning({
                       </div>
                     );
                   }
+                )
+              )}
+            </div>
+          </div>
+
+          {/* EVENTS */}
+
+          <div className="mt-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/60">
+                  Events
+                </p>
+
+                <p className="mt-1 text-xs text-white/30">
+                  Dates that matter
+                </p>
+              </div>
+
+              {selectedEvents.length > 0 && (
+                <p className="text-xs text-white/30">
+                  {selectedEvents.length}
+                  {selectedEvents.length === 1
+                    ? " event"
+                    : " events"}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {selectedEvents.length === 0 ? (
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-4">
+                  <p className="text-sm text-white/30">
+                    No events on this date.
+                  </p>
+                </div>
+              ) : (
+                selectedEvents.map(
+                  (
+                    event
+                  ) => (
+                    <div
+                      key={event.id}
+                      className="group flex items-center gap-3 rounded-2xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.05] px-4 py-3"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-8 w-1 shrink-0 rounded-full bg-[#5B7CFF]"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-white/85">
+                          {event.title}
+                        </p>
+
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-white/35">
+                          {event.time && (
+                            <span>
+                              {event.time}
+                            </span>
+                          )}
+
+                          {event.repeatYearly && (
+                            <span className="rounded-full bg-[#5B7CFF]/10 px-2 py-0.5 text-[#8EA3FF]">
+                              Yearly
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {!selectedDateIsPast && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            deleteEvent(event.id)
+                          }
+                          aria-label={`Delete ${event.title}`}
+                          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/25 transition hover:bg-white/5 hover:text-white/70 md:opacity-0 md:group-hover:opacity-100"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                          >
+                            <path
+                              d="M4.25 4.25L11.75 11.75M11.75 4.25L4.25 11.75"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )
                 )
               )}
             </div>
