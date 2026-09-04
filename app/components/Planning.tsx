@@ -46,19 +46,7 @@ export type Habit = {
   completedDates: string[];
 };
 
-type UpNextItem =
-  | {
-      kind: "task";
-      date: string;
-      task: Task;
-    }
-  | {
-      kind: "event";
-      date: string;
-      event: AtlasEvent;
-    };
-
-type DragPhase = "dragging" | "settling";
+type DragPhasetype DragPhase = "dragging" | "settling";
 
 type DragState = {
   id: number;
@@ -328,6 +316,28 @@ export default function Planning({
   const [
     newEventRepeatYearly,
     setNewEventRepeatYearly,
+  ] = useState(false);
+
+  const [
+    editingEventId,
+    setEditingEventId,
+  ] = useState<
+    number | null
+  >(null);
+
+  const [
+    editEventTitle,
+    setEditEventTitle,
+  ] = useState("");
+
+  const [
+    editEventTime,
+    setEditEventTime,
+  ] = useState("");
+
+  const [
+    editEventRepeatYearly,
+    setEditEventRepeatYearly,
   ] = useState(false);
 
   /* ============================================================
@@ -799,16 +809,6 @@ export default function Planning({
    * ============================================================
    */
 
-  const upcomingTasks =
-    tasks.filter(
-      (
-        task
-      ) =>
-        !task.completed &&
-        task.date >
-          selectedDateKey
-    );
-
   const upcomingEvents =
     events
       .map(
@@ -844,71 +844,20 @@ export default function Planning({
         ) =>
           occurrence.date >=
           selectedDateKey
-      );
-
-  const upNextItems: UpNextItem[] = [
-    ...upcomingTasks.map(
-      (
-        task
-      ) => ({
-        kind: "task" as const,
-        date: task.date,
-        task,
-      })
-    ),
-    ...upcomingEvents.map(
-      (
-        occurrence
-      ) => ({
-        kind: "event" as const,
-        date: occurrence.date,
-        event: occurrence.event,
-      })
-    ),
-  ]
-    .sort(
-      (
-        a,
-        b
-      ) =>
-        a.date.localeCompare(
-          b.date
-        ) ||
+      )
+      .sort(
         (
-          a.kind === "event"
-            ? a.event.time ?? ""
-            : ""
-        ).localeCompare(
-          b.kind === "event"
-            ? b.event.time ?? ""
-            : ""
-        )
-    )
-    .slice(0, 5);
-
-  const upNextItemsByDate =
-    upNextItems.reduce<
-      Record<
-        string,
-        UpNextItem[]
-      >
-    >(
-      (
-        groups,
-        item
-      ) => {
-        if (!groups[item.date]) {
-          groups[item.date] = [];
-        }
-
-        groups[item.date].push(
-          item
-        );
-
-        return groups;
-      },
-      {}
-    );
+          a,
+          b
+        ) =>
+          a.date.localeCompare(
+            b.date
+          ) ||
+          (a.event.time ?? "").localeCompare(
+            b.event.time ?? ""
+          )
+      )
+      .slice(0, 3);
 
   /* ============================================================
    * EDIT HELPERS  /* ============================================================
@@ -1253,6 +1202,70 @@ export default function Planning({
       resetEventForm();
     };
 
+  const startEditingEvent =
+    (
+      event: AtlasEvent
+    ) => {
+      setEditingEventId(
+        event.id
+      );
+      setEditEventTitle(
+        event.title
+      );
+      setEditEventTime(
+        event.time ?? ""
+      );
+      setEditEventRepeatYearly(
+        event.repeatYearly
+      );
+    };
+
+  const cancelEditingEvent =
+    () => {
+      setEditingEventId(null);
+      setEditEventTitle("");
+      setEditEventTime("");
+      setEditEventRepeatYearly(false);
+    };
+
+  const saveEditingEvent =
+    () => {
+      const title =
+        editEventTitle.trim();
+
+      if (
+        editingEventId === null ||
+        !title
+      ) {
+        return;
+      }
+
+      setEvents(
+        (
+          current
+        ) =>
+          current.map(
+            (
+              event
+            ) =>
+              event.id ===
+                editingEventId
+                ? {
+                    ...event,
+                    title,
+                    time:
+                      editEventTime ||
+                      undefined,
+                    repeatYearly:
+                      editEventRepeatYearly,
+                  }
+                : event
+          )
+      );
+
+      cancelEditingEvent();
+    };
+
   const deleteEvent =
     (
       id: number
@@ -1272,6 +1285,12 @@ export default function Planning({
               event.id !== id
           )
       );
+
+      if (
+        editingEventId === id
+      ) {
+        cancelEditingEvent();
+      }
     };
 
   /* ============================================================
@@ -4785,10 +4804,10 @@ export default function Planning({
                     <span>Repeat yearly</span>
                     <span
                       aria-hidden="true"
-                      className={`relative h-5 w-9 rounded-full transition-colors ${newEventRepeatYearly ? "bg-[#5B7CFF]" : "bg-white/15"}`}
+                      className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors ${newEventRepeatYearly ? "bg-[#5B7CFF]" : "bg-white/15"}`}
                     >
                       <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newEventRepeatYearly ? "translate-x-4" : "translate-x-0.5"}`}
+                        className={`absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newEventRepeatYearly ? "translate-x-[18px]" : "translate-x-0.5"}`}
                       />
                     </span>
                   </button>
@@ -4814,7 +4833,7 @@ export default function Planning({
               </div>
             )}
 
-          {/* TASK LIST */}          {/* TASK LIST */}
+          {/* TASK LIST */}
 
           <div className="mt-6">
             <div className="flex items-center justify-between">
@@ -6100,156 +6119,192 @@ export default function Planning({
           </div>
 
           {/* ==================================================
-              UP NEXT
+              UPCOMING EVENTS
               ================================================== */}
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">
-                Up Next
-              </p>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">
+                  Upcoming Events
+                </p>
 
-              {upNextItems.length > 0 && (
+                <p className="mt-1 text-xs text-white/20">
+                  Important dates ahead
+                </p>
+              </div>
+
+              {upcomingEvents.length > 0 && (
                 <span className="text-[11px] text-white/20">
-                  Next {upNextItems.length}
+                  Next {upcomingEvents.length}
                 </span>
               )}
             </div>
 
-            {upNextItems.length === 0 ? (
-              <div className="mt-4">
+            {upcomingEvents.length === 0 ? (
+              <div className="mt-5">
                 <p className="text-sm text-white/35">
-                  Nothing coming up.
+                  No upcoming events.
                 </p>
 
                 <p className="mt-1 text-xs text-white/20">
-                  Future tasks and events will appear here.
+                  Add birthdays, school dates, or anything important.
                 </p>
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
-                {Object.entries(
-                  upNextItemsByDate
-                ).map(
-                  ([
-                    dateKey,
-                    dateItems,
-                  ]) => {
-                    const date =
+              <div className="mt-4 space-y-2.5">
+                {upcomingEvents.map(
+                  (
+                    occurrence
+                  ) => {
+                    const eventDate =
                       new Date(
-                        `${dateKey}T12:00:00`
+                        `${occurrence.date}T12:00:00`
                       );
 
-                    const tomorrow =
-                      new Date(
-                        selectedDate
-                      );
-
-                    tomorrow.setDate(
-                      tomorrow.getDate() + 1
-                    );
-
-                    const dateLabel =
-                      isSameDay(date, today)
-                        ? "Today"
-                        : isSameDay(
-                            date,
-                            tomorrow
-                          )
-                          ? "Tomorrow"
-                          : date.toLocaleDateString(
-                              "en-US",
-                              {
-                                weekday: "long",
-                                month: "short",
-                                day: "numeric",
-                              }
-                            );
+                    const editing =
+                      editingEventId ===
+                      occurrence.event.id;
 
                     return (
-                      <div key={dateKey}>
-                        <p className="text-[11px] font-medium text-white/30">
-                          {dateLabel}
-                        </p>
-
-                        <div className="mt-1.5 space-y-1">
-                          {dateItems.map(
-                            (
-                              item
-                            ) => {
-                              if (
-                                item.kind ===
-                                "event"
-                              ) {
-                                return (
-                                  <div
-                                    key={`event-${item.event.id}-${dateKey}`}
-                                    className="group flex min-w-0 items-center gap-2.5 rounded-xl bg-[#5B7CFF]/[0.07] px-2.5 py-2"
-                                  >
-                                    <span
-                                      aria-hidden="true"
-                                      className="h-2 w-2 shrink-0 rounded-full bg-[#5B7CFF]"
-                                    />
-
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-[13px] font-medium text-[#A9B7FF]">
-                                        {item.event.title}
-                                      </p>
-
-                                      {(item.event.time ||
-                                        item.event.repeatYearly) && (
-                                        <p className="mt-0.5 text-[10px] text-white/30">
-                                          {item.event.time}
-                                          {item.event.time &&
-                                          item.event.repeatYearly
-                                            ? " · "
-                                            : ""}
-                                          {item.event.repeatYearly
-                                            ? "Yearly"
-                                            : ""}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    {!selectedDateIsPast && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          deleteEvent(
-                                            item.event.id
-                                          )
-                                        }
-                                        aria-label={`Delete ${item.event.title}`}
-                                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/20 transition hover:bg-white/5 hover:text-white/60 md:opacity-0 md:group-hover:opacity-100"
-                                      >
-                                        ×
-                                      </button>
-                                    )}
-                                  </div>
-                                );
+                      <div
+                        key={`${occurrence.event.id}-${occurrence.date}`}
+                        className="group flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
+                      >
+                        <div className="flex w-12 shrink-0 flex-col items-center overflow-hidden rounded-lg border border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.07]">
+                          <span className="w-full bg-[#5B7CFF]/15 py-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8EA3FF]">
+                            {eventDate.toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
                               }
+                            )}
+                          </span>
 
-                              const slightlyLong =
-                                item.task.text.length >
-                                34;
-
-                              return (
-                                <div
-                                  key={`task-${item.task.id}`}
-                                  className="flex min-w-0 items-start gap-2.5 rounded-xl py-1"
-                                >
-                                  <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border border-white/15" />
-
-                                  <p
-                                    className={`up-next-clamp min-w-0 leading-[1.35] text-white/55 ${slightlyLong ? "text-[12px]" : "text-[13px]"}`}
-                                  >
-                                    {item.task.text}
-                                  </p>
-                                </div>
-                              );
-                            }
-                          )}
+                          <span className="py-1 text-lg font-semibold leading-none text-white/85">
+                            {eventDate.getDate()}
+                          </span>
                         </div>
+
+                        {editing ? (
+                          <div className="min-w-0 flex-1">
+                            <input
+                              autoFocus
+                              value={editEventTitle}
+                              onChange={(event) =>
+                                setEditEventTitle(
+                                  event.target.value
+                                )
+                              }
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  saveEditingEvent();
+                                }
+
+                                if (event.key === "Escape") {
+                                  cancelEditingEvent();
+                                }
+                              }}
+                              aria-label="Event title"
+                              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-[#5B7CFF]/50"
+                            />
+
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                type="time"
+                                value={editEventTime}
+                                onChange={(event) =>
+                                  setEditEventTime(
+                                    event.target.value
+                                  )
+                                }
+                                aria-label="Event time"
+                                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/65 outline-none focus:border-[#5B7CFF]/50"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditEventRepeatYearly(
+                                    (current) =>
+                                      !current
+                                  )
+                                }
+                                aria-pressed={
+                                  editEventRepeatYearly
+                                }
+                                className="flex cursor-pointer items-center gap-2 text-[11px] text-white/45"
+                              >
+                                Yearly
+
+                                <span
+                                  aria-hidden="true"
+                                  className={`relative h-4 w-7 shrink-0 overflow-hidden rounded-full ${editEventRepeatYearly ? "bg-[#5B7CFF]" : "bg-white/15"}`}
+                                >
+                                  <span
+                                    className={`absolute left-0 top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${editEventRepeatYearly ? "translate-x-[14px]" : "translate-x-0.5"}`}
+                                  />
+                                </span>
+                              </button>
+
+                              <div className="ml-auto flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={cancelEditingEvent}
+                                  className="cursor-pointer rounded-md px-2 py-1 text-[11px] text-white/35 hover:bg-white/5 hover:text-white/60"
+                                >
+                                  Cancel
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={saveEditingEvent}
+                                  className="cursor-pointer rounded-md bg-[#5B7CFF] px-2 py-1 text-[11px] font-medium"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                startEditingEvent(
+                                  occurrence.event
+                                )
+                              }
+                              className="min-w-0 flex-1 cursor-pointer text-left"
+                            >
+                              <p className="truncate text-sm font-medium text-white/75">
+                                {occurrence.event.title}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-white/30">
+                                {occurrence.event.time
+                                  ? occurrence.event.time
+                                  : "All day"}
+                                {occurrence.event.repeatYearly
+                                  ? " · Yearly"
+                                  : ""}
+                              </p>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteEvent(
+                                  occurrence.event.id
+                                )
+                              }
+                              aria-label={`Delete ${occurrence.event.title}`}
+                              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/20 transition hover:bg-white/5 hover:text-white/60 md:opacity-0 md:group-hover:opacity-100"
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
                       </div>
                     );
                   }
