@@ -4702,32 +4702,21 @@ export default function Planning({
                         ? "Unfinished task will move to the next day"
                         : "Task stays only on this date"
                     }
-                    className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${newTaskCarryOver ? "border-[#5B7CFF]/35 bg-[#5B7CFF]/10 text-[#8EA3FF]" : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white/60"}`}
+                    className="w-fit cursor-pointer py-1 text-xs text-white/30 transition hover:text-white/55"
                   >
-                    <svg
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5"
-                      viewBox="0 0 20 20"
-                      fill="none"
+                    Carry over
+                    <span
+                      className={
+                        newTaskCarryOver
+                          ? "text-[#8295E8]/75"
+                          : "text-white/25"
+                      }
                     >
-                      <path
-                        d="M15.5 9A5.75 5.75 0 1 0 14 13"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M15.5 4.75V9h-4.25"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-
-                    {newTaskCarryOver
-                      ? "Carries over"
-                      : "One day only"}
+                      {" · "}
+                      {newTaskCarryOver
+                        ? "On"
+                        : "Off"}
+                    </span>
                   </button>
 
                   <div className="flex justify-end gap-2">
@@ -4967,7 +4956,7 @@ export default function Planning({
                         className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 ${
                           task.carriedFrom &&
                           !visuallyCompleted
-                            ? "border-[#5B7CFF]/30 bg-[#5B7CFF]/[0.07]"
+                            ? "border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.025]"
                             : "border-white/10 bg-white/[0.03]"
                         } ${
                           !task.completed &&
@@ -5170,7 +5159,9 @@ export default function Planning({
                           title={
                             task.carryOver === false
                               ? "Enable carry-over"
-                              : "Disable carry-over"
+                              : task.carriedFrom
+                                ? "Carried from an earlier day"
+                                : "Disable carry-over"
                           }
                           aria-label={
                             task.carryOver === false
@@ -5180,7 +5171,7 @@ export default function Planning({
                           aria-pressed={
                             task.carryOver !== false
                           }
-                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver === false ? "cursor-pointer border-white/10 text-white/35 hover:bg-white/5 hover:text-white/60" : "cursor-pointer border-[#5B7CFF]/30 bg-[#5B7CFF]/10 text-[#8EA3FF]"}`}
+                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carriedFrom ? "cursor-pointer text-[#8295E8]/55 hover:bg-white/[0.03] hover:text-[#9EACEC]/80" : "cursor-pointer text-white/20 opacity-40 hover:bg-white/[0.03] hover:text-white/50 md:opacity-0 md:group-hover:opacity-100"}`}
                         >
                           <svg
                             aria-hidden="true"
@@ -5191,25 +5182,17 @@ export default function Planning({
                             <path
                               d="M15.5 9A5.75 5.75 0 1 0 14 13"
                               stroke="currentColor"
-                              strokeWidth="1.7"
+                              strokeWidth="1.45"
                               strokeLinecap="round"
                             />
                             <path
                               d="M15.5 4.75V9h-4.25"
                               stroke="currentColor"
-                              strokeWidth="1.7"
+                              strokeWidth="1.45"
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
                           </svg>
-
-                          <span className="hidden xl:inline">
-                            {task.carriedFrom
-                              ? "Carried over"
-                              : task.carryOver === false
-                                ? "One day"
-                                : "Carry"}
-                          </span>
                         </button>
 
                         {/* DELETE */}
