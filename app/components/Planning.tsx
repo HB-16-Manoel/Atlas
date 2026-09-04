@@ -25,6 +25,9 @@ export type Task = {
   completed: boolean;
   date: string;
   order: number;
+  carryOver?: boolean;
+  carriedFrom?: string;
+  carriedTo?: string;
 };
 
 export type Habit = {
@@ -273,6 +276,11 @@ export default function Planning({
     newTask,
     setNewTask,
   ] = useState("");
+
+  const [
+    newTaskCarryOver,
+    setNewTaskCarryOver,
+  ] = useState(true);
 
   /* ============================================================
    * HABIT STATE
@@ -1076,6 +1084,9 @@ export default function Planning({
           order:
             highestOrder +
             1,
+
+          carryOver:
+            newTaskCarryOver,
         };
 
       setTasks(
@@ -1089,6 +1100,10 @@ export default function Planning({
 
       setNewTask(
         ""
+      );
+
+      setNewTaskCarryOver(
+        true
       );
 
       setAddingTask(
@@ -1565,6 +1580,42 @@ export default function Planning({
   };
 
   /* ============================================================
+   * TASK CARRY-OVER
+   * ============================================================
+   */
+
+  const toggleTaskCarryOver = (
+    id: number
+  ) => {
+    if (
+      selectedDateIsPast
+    ) {
+      return;
+    }
+
+    setTasks(
+      (
+        current
+      ) =>
+        current.map(
+          (
+            task
+          ) =>
+            task.id ===
+            id
+              ? {
+                  ...task,
+
+                  carryOver:
+                    task.carryOver ===
+                    false,
+                }
+              : task
+        )
+    );
+  };
+
+  /* ============================================================
    * COMPLETE / UNCOMPLETE TASK
    * ============================================================
    */
@@ -1572,6 +1623,11 @@ export default function Planning({
   const toggleTask = (
     id: number
   ) => {
+    if (
+      selectedDateIsPast
+    ) {
+      return;
+    }
     const task =
       tasks.find(
         (
@@ -1871,6 +1927,12 @@ export default function Planning({
   const deleteTask = (
     id: number
   ) => {
+    if (
+      selectedDateIsPast
+    ) {
+      return;
+    }
+
     if (
       editingTaskId ===
       id
@@ -4369,11 +4431,15 @@ export default function Planning({
             {!selectedDateIsPast &&
               !addingTask && (
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    setNewTaskCarryOver(
+                      true
+                    );
+
                     setAddingTask(
                       true
-                    )
-                  }
+                    );
+                  }}
                   className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 font-medium transition-all duration-200 hover:scale-[1.02] hover:opacity-90"
                 >
                   + Add task
@@ -4425,30 +4491,85 @@ export default function Planning({
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-[#5B7CFF]/50"
                 />
 
-                <div className="mt-3 flex justify-end gap-2">
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
-                    onClick={() => {
-                      setAddingTask(
-                        false
-                      );
-
-                      setNewTask(
-                        ""
-                      );
-                    }}
-                    className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    onClick={
-                      addTask
+                    type="button"
+                    onClick={() =>
+                      setNewTaskCarryOver(
+                        (
+                          current
+                        ) =>
+                          !current
+                      )
                     }
-                    className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                    aria-pressed={
+                      newTaskCarryOver
+                    }
+                    title={
+                      newTaskCarryOver
+                        ? "Unfinished task will carry into the next day"
+                        : "Task stays only on this date"
+                    }
+                    className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-200 ${
+                      newTaskCarryOver
+                        ? "border-[#5B7CFF]/35 bg-[#5B7CFF]/10 text-[#8EA3FF]"
+                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white/60"
+                    }`}
                   >
-                    Add
+                    <svg
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M20 7v5h-5M4 17v-5h5"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6.1 9A7 7 0 0 1 18.4 6.6L20 8M4 16l1.6 1.4A7 7 0 0 0 17.9 15"
+                      />
+                    </svg>
+
+                    {newTaskCarryOver
+                      ? "Carries over"
+                      : "One day only"}
                   </button>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setAddingTask(
+                          false
+                        );
+
+                        setNewTask(
+                          ""
+                        );
+
+                        setNewTaskCarryOver(
+                          true
+                        );
+                      }}
+                      className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={
+                        addTask
+                      }
+                      className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -4585,7 +4706,12 @@ export default function Planning({
                           )
                         }
 
-                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${
+                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 ${
+                          task.carriedFrom &&
+                          !visuallyCompleted
+                            ? "border-[#5B7CFF]/30 bg-[#5B7CFF]/[0.07]"
+                            : "border-white/10 bg-white/[0.03]"
+                        } ${
                           !task.completed &&
                           !selectedDateIsPast &&
                           editingTaskId !==
@@ -4642,7 +4768,15 @@ export default function Planning({
                             )
                           }
 
-                          className="relative z-20 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center"
+                          disabled={
+                            selectedDateIsPast
+                          }
+
+                          className={`relative z-20 flex h-5 w-5 shrink-0 items-center justify-center ${
+                            selectedDateIsPast
+                              ? "cursor-default"
+                              : "cursor-pointer"
+                          }`}
 
                           aria-label={
                             task.completed
@@ -4758,6 +4892,85 @@ export default function Planning({
                           )}
                         </span>
 
+                        {/* CARRY-OVER */}
+
+                        <button
+                          type="button"
+                          onPointerDown={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+                          onDoubleClick={(
+                            event
+                          ) =>
+                            event.stopPropagation()
+                          }
+                          onClick={() =>
+                            toggleTaskCarryOver(
+                              task.id
+                            )
+                          }
+                          disabled={
+                            selectedDateIsPast ||
+                            task.completed
+                          }
+                          title={
+                            task.carryOver ===
+                            false
+                              ? "One day only"
+                              : "Carries over if unfinished"
+                          }
+                          aria-label={
+                            task.carryOver ===
+                            false
+                              ? "Enable task carry-over"
+                              : "Disable task carry-over"
+                          }
+                          aria-pressed={
+                            task.carryOver !==
+                            false
+                          }
+                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition-all duration-200 ${
+                            selectedDateIsPast ||
+                            task.completed
+                              ? "pointer-events-none border-transparent text-white/15 opacity-0"
+                              : task.carryOver ===
+                                  false
+                                ? "cursor-pointer border-white/10 text-white/35 hover:bg-white/5 hover:text-white/60"
+                                : "cursor-pointer border-[#5B7CFF]/25 bg-[#5B7CFF]/10 text-[#8EA3FF]"
+                          }`}
+                        >
+                          <svg
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M20 7v5h-5M4 17v-5h5"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6.1 9A7 7 0 0 1 18.4 6.6L20 8M4 16l1.6 1.4A7 7 0 0 0 17.9 15"
+                            />
+                          </svg>
+
+                          <span className="hidden xl:inline">
+                            {task.carriedFrom
+                              ? "Carried"
+                              : task.carryOver ===
+                                  false
+                                ? "Once"
+                                : "Carry"}
+                          </span>
+                        </button>
+
                         {/* DELETE */}
 
                         <button
@@ -4779,7 +4992,15 @@ export default function Planning({
                             )
                           }
 
-                          className="relative z-30 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/30 opacity-70 transition-all duration-200 hover:bg-white/5 hover:text-white/80 md:opacity-0 md:group-hover:opacity-100"
+                          disabled={
+                            selectedDateIsPast
+                          }
+
+                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+                            selectedDateIsPast
+                              ? "pointer-events-none text-white/10 opacity-0"
+                              : "cursor-pointer text-white/30 opacity-70 hover:bg-white/5 hover:text-white/80 md:opacity-0 md:group-hover:opacity-100"
+                          }`}
 
                           aria-label="Delete task"
                         >

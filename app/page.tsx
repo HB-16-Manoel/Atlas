@@ -348,7 +348,7 @@ export default function AtlasApp() {
           return;
         }
 
-        setTasks(
+        const normalizedTasks =
           parsed.map(
             (
               task: Task,
@@ -361,9 +361,146 @@ export default function AtlasApp() {
                 "number"
                   ? task.order
                   : index,
+
+              carryOver:
+                task.carryOver !==
+                false,
             })
-          )
-        );
+          );
+
+        const now =
+          new Date();
+
+        const todayKey =
+          `${now.getFullYear()}-${String(
+            now.getMonth() + 1
+          ).padStart(2, "0")}-${String(
+            now.getDate()
+          ).padStart(2, "0")}`;
+
+        const tasksToCarry =
+          normalizedTasks.filter(
+            (
+              task
+            ) =>
+              !task.completed &&
+              task.carryOver !==
+                false &&
+              task.date <
+                todayKey &&
+              !task.carriedTo
+          );
+
+        if (
+          tasksToCarry.length ===
+          0
+        ) {
+          setTasks(
+            normalizedTasks
+          );
+
+          return;
+        }
+
+        const highestTodayOrder =
+          normalizedTasks
+            .filter(
+              (
+                task
+              ) =>
+                task.date ===
+                todayKey
+            )
+            .reduce(
+              (
+                highest,
+                task
+              ) =>
+                Math.max(
+                  highest,
+                  task.order
+                ),
+              -1
+            );
+
+        const nextId =
+          Math.max(
+            Date.now(),
+            normalizedTasks.reduce(
+              (
+                highest,
+                task
+              ) =>
+                Math.max(
+                  highest,
+                  task.id
+                ),
+              0
+            ) + 1
+          );
+
+        const carriedIds =
+          new Set(
+            tasksToCarry.map(
+              (
+                task
+              ) =>
+                task.id
+            )
+          );
+
+        const preservedTasks =
+          normalizedTasks.map(
+            (
+              task
+            ) =>
+              carriedIds.has(
+                task.id
+              )
+                ? {
+                    ...task,
+
+                    carriedTo:
+                      todayKey,
+                  }
+                : task
+          );
+
+        const carriedTasks =
+          tasksToCarry.map(
+            (
+              task,
+              index
+            ): Task => ({
+              ...task,
+
+              id:
+                nextId +
+                index,
+
+              completed:
+                false,
+
+              date:
+                todayKey,
+
+              order:
+                highestTodayOrder +
+                index +
+                1,
+
+              carriedFrom:
+                task.date,
+
+              carriedTo:
+                undefined,
+            })
+          );
+
+        setTasks([
+          ...preservedTasks,
+          ...carriedTasks,
+        ]);
       } catch {
         console.log(
           "Atlas could not load tasks."
