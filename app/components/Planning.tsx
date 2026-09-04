@@ -46,6 +46,18 @@ export type Habit = {
   completedDates: string[];
 };
 
+type UpNextItem =
+  | {
+      kind: "task";
+      date: string;
+      task: Task;
+    }
+  | {
+      kind: "event";
+      date: string;
+      event: AtlasEvent;
+    };
+
 type DragPhase = "dragging" | "settling";
 
 type DragState = {
@@ -589,34 +601,8 @@ export default function Planning({
       selectedDate
     );
 
-  const selectedEvents =
-    events
-      .filter(
-        (
-          event
-        ) =>
-          event.date ===
-            selectedDateKey ||
-          (
-            event.repeatYearly &&
-            event.date.slice(5) ===
-              selectedDateKey.slice(5)
-          )
-      )
-      .sort(
-        (
-          a,
-          b
-        ) =>
-          (a.time ?? "").localeCompare(
-            b.time ?? ""
-          ) ||
-          a.title.localeCompare(
-            b.title
-          )
-      );
-
   /* ============================================================
+   * TASK LIST  /* ============================================================
    * TASK LIST
    * ============================================================
    */
@@ -814,65 +800,109 @@ export default function Planning({
    */
 
   const upcomingTasks =
-    tasks
-      .filter(
+    tasks.filter(
+      (
+        task
+      ) =>
+        !task.completed &&
+        task.date >
+          selectedDateKey
+    );
+
+  const upcomingEvents =
+    events
+      .map(
         (
-          task
-        ) =>
-          !task.completed &&
-          task.date >
-            selectedDateKey
-      )
-      .sort(
-        (
-          a,
-          b
+          event
         ) => {
-          if (
-            a.date !==
-            b.date
-          ) {
-            return a.date.localeCompare(
-              b.date
-            );
+          if (!event.repeatYearly) {
+            return {
+              event,
+              date: event.date,
+            };
           }
 
-          return (
-            a.order -
-            b.order
-          );
+          const monthDay =
+            event.date.slice(5);
+          const year =
+            selectedDate.getFullYear();
+          const thisYear =
+            `${year}-${monthDay}`;
+
+          return {
+            event,
+            date:
+              thisYear >= selectedDateKey
+                ? thisYear
+                : `${year + 1}-${monthDay}`,
+          };
         }
       )
-      .slice(
-        0,
-        3
+      .filter(
+        (
+          occurrence
+        ) =>
+          occurrence.date >=
+          selectedDateKey
       );
 
-  const upcomingTasksByDate =
-    upcomingTasks.reduce<
+  const upNextItems: UpNextItem[] = [
+    ...upcomingTasks.map(
+      (
+        task
+      ) => ({
+        kind: "task" as const,
+        date: task.date,
+        task,
+      })
+    ),
+    ...upcomingEvents.map(
+      (
+        occurrence
+      ) => ({
+        kind: "event" as const,
+        date: occurrence.date,
+        event: occurrence.event,
+      })
+    ),
+  ]
+    .sort(
+      (
+        a,
+        b
+      ) =>
+        a.date.localeCompare(
+          b.date
+        ) ||
+        (
+          a.kind === "event"
+            ? a.event.time ?? ""
+            : ""
+        ).localeCompare(
+          b.kind === "event"
+            ? b.event.time ?? ""
+            : ""
+        )
+    )
+    .slice(0, 5);
+
+  const upNextItemsByDate =
+    upNextItems.reduce<
       Record<
         string,
-        Task[]
+        UpNextItem[]
       >
     >(
       (
         groups,
-        task
+        item
       ) => {
-        if (
-          !groups[
-            task.date
-          ]
-        ) {
-          groups[
-            task.date
-          ] = [];
+        if (!groups[item.date]) {
+          groups[item.date] = [];
         }
 
-        groups[
-          task.date
-        ].push(
-          task
+        groups[item.date].push(
+          item
         );
 
         return groups;
@@ -881,6 +911,7 @@ export default function Planning({
     );
 
   /* ============================================================
+   * EDIT HELPERS  /* ============================================================
    * EDIT HELPERS
    * ============================================================
    */
@@ -4648,17 +4679,37 @@ export default function Planning({
                       )
                     }
                     aria-pressed={newTaskCarryOver}
-                    className="flex w-fit cursor-pointer items-center gap-2.5 text-xs text-white/55"
+                    title={
+                      newTaskCarryOver
+                        ? "Unfinished task will move to the next day"
+                        : "Task stays only on this date"
+                    }
+                    className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${newTaskCarryOver ? "border-[#5B7CFF]/35 bg-[#5B7CFF]/10 text-[#8EA3FF]" : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white/60"}`}
                   >
-                    <span>Carry over</span>
-                    <span
+                    <svg
                       aria-hidden="true"
-                      className={`relative h-5 w-9 rounded-full transition-colors ${newTaskCarryOver ? "bg-[#5B7CFF]" : "bg-white/15"}`}
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 20 20"
+                      fill="none"
                     >
-                      <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newTaskCarryOver ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                      <path
+                        d="M15.5 9A5.75 5.75 0 1 0 14 13"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
                       />
-                    </span>
+                      <path
+                        d="M15.5 4.75V9h-4.25"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+
+                    {newTaskCarryOver
+                      ? "Carries over"
+                      : "One day only"}
                   </button>
 
                   <div className="flex justify-end gap-2">
@@ -4737,7 +4788,7 @@ export default function Planning({
                       className={`relative h-5 w-9 rounded-full transition-colors ${newEventRepeatYearly ? "bg-[#5B7CFF]" : "bg-white/15"}`}
                     >
                       <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newEventRepeatYearly ? "translate-x-[18px]" : "translate-x-0.5"}`}
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${newEventRepeatYearly ? "translate-x-4" : "translate-x-0.5"}`}
                       />
                     </span>
                   </button>
@@ -5111,25 +5162,39 @@ export default function Planning({
                           aria-pressed={
                             task.carryOver !== false
                           }
-                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-1.5 text-[10px] font-medium transition-all duration-200 ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : "cursor-pointer text-white/40 hover:bg-white/5 hover:text-white/65"}`}
+                          className={`relative z-30 flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver === false ? "cursor-pointer border-white/10 text-white/35 hover:bg-white/5 hover:text-white/60" : "cursor-pointer border-[#5B7CFF]/30 bg-[#5B7CFF]/10 text-[#8EA3FF]"}`}
                         >
+                          <svg
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                          >
+                            <path
+                              d="M15.5 9A5.75 5.75 0 1 0 14 13"
+                              stroke="currentColor"
+                              strokeWidth="1.7"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M15.5 4.75V9h-4.25"
+                              stroke="currentColor"
+                              strokeWidth="1.7"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+
                           <span className="hidden xl:inline">
                             {task.carriedFrom
                               ? "Carried over"
-                              : "Carry"}
-                          </span>
-
-                          <span
-                            aria-hidden="true"
-                            className={`relative h-4 w-7 rounded-full transition-colors ${task.carryOver === false ? "bg-white/15" : "bg-[#5B7CFF]"}`}
-                          >
-                            <span
-                              className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${task.carryOver === false ? "translate-x-0.5" : "translate-x-[14px]"}`}
-                            />
+                              : task.carryOver === false
+                                ? "One day"
+                                : "Carry"}
                           </span>
                         </button>
 
-                        {/* DELETE */}                        {/* DELETE */}
+                        {/* DELETE */}
 
                         <button
                           onPointerDown={(
@@ -5191,104 +5256,7 @@ export default function Planning({
             </div>
           </div>
 
-          {/* EVENTS */}
-
-          <div className="mt-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/60">
-                  Events
-                </p>
-
-                <p className="mt-1 text-xs text-white/30">
-                  Dates that matter
-                </p>
-              </div>
-
-              {selectedEvents.length > 0 && (
-                <p className="text-xs text-white/30">
-                  {selectedEvents.length}
-                  {selectedEvents.length === 1
-                    ? " event"
-                    : " events"}
-                </p>
-              )}
-            </div>
-
-            <div className="mt-3 space-y-2">
-              {selectedEvents.length === 0 ? (
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-4">
-                  <p className="text-sm text-white/30">
-                    No events on this date.
-                  </p>
-                </div>
-              ) : (
-                selectedEvents.map(
-                  (
-                    event
-                  ) => (
-                    <div
-                      key={event.id}
-                      className="group flex items-center gap-3 rounded-2xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.05] px-4 py-3"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="h-8 w-1 shrink-0 rounded-full bg-[#5B7CFF]"
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-white/85">
-                          {event.title}
-                        </p>
-
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-white/35">
-                          {event.time && (
-                            <span>
-                              {event.time}
-                            </span>
-                          )}
-
-                          {event.repeatYearly && (
-                            <span className="rounded-full bg-[#5B7CFF]/10 px-2 py-0.5 text-[#8EA3FF]">
-                              Yearly
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {!selectedDateIsPast && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            deleteEvent(event.id)
-                          }
-                          aria-label={`Delete ${event.title}`}
-                          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/25 transition hover:bg-white/5 hover:text-white/70 md:opacity-0 md:group-hover:opacity-100"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                          >
-                            <path
-                              d="M4.25 4.25L11.75 11.75M11.75 4.25L4.25 11.75"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  )
-                )
-              )}
-            </div>
-          </div>
-
-          {/* HABITS */}
+          {/* HABITS */}          {/* HABITS */}
 
           <div className="mt-10">
             <div className="group flex items-center justify-between">
@@ -6136,39 +6104,36 @@ export default function Planning({
               ================================================== */}
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
-
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">
                 Up Next
               </p>
 
-              {upcomingTasks.length >
-                0 && (
+              {upNextItems.length > 0 && (
                 <span className="text-[11px] text-white/20">
-                  Next 3
+                  Next {upNextItems.length}
                 </span>
               )}
             </div>
 
-            {upcomingTasks.length ===
-            0 ? (
+            {upNextItems.length === 0 ? (
               <div className="mt-4">
                 <p className="text-sm text-white/35">
                   Nothing coming up.
                 </p>
 
                 <p className="mt-1 text-xs text-white/20">
-                  Future tasks will appear here.
+                  Future tasks and events will appear here.
                 </p>
               </div>
             ) : (
               <div className="mt-4 space-y-3">
                 {Object.entries(
-                  upcomingTasksByDate
+                  upNextItemsByDate
                 ).map(
                   ([
                     dateKey,
-                    dateTasks,
+                    dateItems,
                   ]) => {
                     const date =
                       new Date(
@@ -6181,66 +6146,104 @@ export default function Planning({
                       );
 
                     tomorrow.setDate(
-                      tomorrow.getDate() +
-                        1
+                      tomorrow.getDate() + 1
                     );
 
-                    const isTomorrow =
-                      isSameDay(
-                        date,
-                        tomorrow
-                      );
+                    const dateLabel =
+                      isSameDay(date, today)
+                        ? "Today"
+                        : isSameDay(
+                            date,
+                            tomorrow
+                          )
+                          ? "Tomorrow"
+                          : date.toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            );
 
                     return (
-                      <div
-                        key={
-                          dateKey
-                        }
-                      >
+                      <div key={dateKey}>
                         <p className="text-[11px] font-medium text-white/30">
-                          {isTomorrow
-                            ? "Tomorrow"
-                            : date.toLocaleDateString(
-                                "en-US",
-                                {
-                                  weekday:
-                                    "long",
-                                  month:
-                                    "short",
-                                  day:
-                                    "numeric",
-                                }
-                              )}
+                          {dateLabel}
                         </p>
 
                         <div className="mt-1.5 space-y-1">
-                          {dateTasks.map(
+                          {dateItems.map(
                             (
-                              task
+                              item
                             ) => {
+                              if (
+                                item.kind ===
+                                "event"
+                              ) {
+                                return (
+                                  <div
+                                    key={`event-${item.event.id}-${dateKey}`}
+                                    className="group flex min-w-0 items-center gap-2.5 rounded-xl bg-[#5B7CFF]/[0.07] px-2.5 py-2"
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className="h-2 w-2 shrink-0 rounded-full bg-[#5B7CFF]"
+                                    />
+
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-[13px] font-medium text-[#A9B7FF]">
+                                        {item.event.title}
+                                      </p>
+
+                                      {(item.event.time ||
+                                        item.event.repeatYearly) && (
+                                        <p className="mt-0.5 text-[10px] text-white/30">
+                                          {item.event.time}
+                                          {item.event.time &&
+                                          item.event.repeatYearly
+                                            ? " · "
+                                            : ""}
+                                          {item.event.repeatYearly
+                                            ? "Yearly"
+                                            : ""}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {!selectedDateIsPast && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          deleteEvent(
+                                            item.event.id
+                                          )
+                                        }
+                                        aria-label={`Delete ${item.event.title}`}
+                                        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/20 transition hover:bg-white/5 hover:text-white/60 md:opacity-0 md:group-hover:opacity-100"
+                                      >
+                                        ×
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              }
+
                               const slightlyLong =
-                                task.text.length >
+                                item.task.text.length >
                                 34;
 
                               return (
                                 <div
-                                  key={
-                                    task.id
-                                  }
+                                  key={`task-${item.task.id}`}
                                   className="flex min-w-0 items-start gap-2.5 rounded-xl py-1"
                                 >
                                   <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border border-white/15" />
 
                                   <p
-                                    className={`up-next-clamp min-w-0 leading-[1.35] text-white/55 ${
-                                      slightlyLong
-                                        ? "text-[12px]"
-                                        : "text-[13px]"
-                                    }`}
+                                    className={`up-next-clamp min-w-0 leading-[1.35] text-white/55 ${slightlyLong ? "text-[12px]" : "text-[13px]"}`}
                                   >
-                                    {
-                                      task.text
-                                    }
+                                    {item.task.text}
                                   </p>
                                 </div>
                               );
