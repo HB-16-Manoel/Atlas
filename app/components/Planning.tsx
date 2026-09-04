@@ -46,7 +46,7 @@ export type Habit = {
   completedDates: string[];
 };
 
-type DragPhasetype DragPhase = "dragging" | "settling";
+type DragPhase = "dragging" | "settling";
 
 type DragState = {
   id: number;
@@ -860,7 +860,6 @@ export default function Planning({
       .slice(0, 3);
 
   /* ============================================================
-   * EDIT HELPERS  /* ============================================================
    * EDIT HELPERS
    * ============================================================
    */
