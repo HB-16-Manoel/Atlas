@@ -5171,7 +5171,7 @@ export default function Planning({
                           aria-pressed={
                             task.carryOver !== false
                           }
-                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver !== false ? "cursor-pointer text-[#8295E8]/55 opacity-100 hover:bg-white/[0.03] hover:text-[#9EACEC]/80" : "cursor-pointer text-white/25 opacity-0 hover:bg-white/[0.03] hover:text-white/50 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"}`}
+                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver !== false ? "cursor-pointer text-[#8295E8]/55 opacity-100 hover:bg-white/[0.03] hover:text-[#9EACEC]/80" : "cursor-pointer text-white/25 opacity-0 hover:bg-white/[0.03] hover:text-white/50 group-hover:opacity-100"}`}
                         >
                           <svg
                             aria-hidden="true"
@@ -5223,7 +5223,7 @@ export default function Planning({
                           className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
                             selectedDateIsPast
                               ? "pointer-events-none text-white/10 opacity-0"
-                              : "cursor-pointer text-white/30 opacity-0 hover:bg-white/5 hover:text-white/80 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                              : "cursor-pointer text-white/30 opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
                           }`}
 
                           aria-label="Delete task"
@@ -5315,7 +5315,7 @@ export default function Planning({
                       className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-all duration-200 ${
                         habitReorderMode
                           ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/10 text-[#5B7CFF] opacity-100"
-                          : "border-transparent text-white/35 opacity-0 hover:border-white/10 hover:bg-white/5 hover:text-white/70 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                          : "border-transparent text-white/35 opacity-0 hover:border-white/10 hover:bg-white/5 hover:text-white/70 group-hover:opacity-100"
                       }`}
                     >
                       {habitReorderMode ? (
@@ -5898,7 +5898,7 @@ export default function Planning({
                                 className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/30 transition-all duration-200 ${
                                   selectedDateIsPast
                                     ? "cursor-default opacity-0"
-                                    : "cursor-pointer opacity-0 hover:bg-white/5 hover:text-white/80 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                                    : "cursor-pointer opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
                                 }`}
                               >
                                 <svg
@@ -6281,7 +6281,7 @@ export default function Planning({
                                 )
                               }
                               aria-label={`Delete ${occurrence.event.title}`}
-                              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/30 opacity-0 transition hover:bg-white/5 hover:text-white/70 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/30 opacity-0 transition hover:bg-white/5 hover:text-white/70 group-hover:opacity-100"
                             >
                               ×
                             </button>
