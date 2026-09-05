@@ -588,8 +588,8 @@ export default function Home({
        * HEADER
        * ====================================================== */}
 
-      <div>
-        <p className="text-sm text-white/35">
+      <header className="pb-1">
+        <p className="text-[13px] text-white/35 md:text-sm">
           {today.toLocaleDateString(
             "en-US",
             {
@@ -605,42 +605,39 @@ export default function Home({
           )}
         </p>
 
-        <h2 className="mt-1.5 text-4xl font-semibold tracking-[-0.035em]">
+        <h2 className="mt-1 text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] md:mt-1.5 md:text-4xl">
           {
             greeting
           }
         </h2>
 
-        <p className="mt-1.5 text-white/45">
+        <p className="mt-1.5 text-sm text-white/45 md:text-base">
           Here&apos;s what today looks like.
         </p>
-      </div>
+      </header>
 
-      {/* ======================================================
-       * TOP ROW
-       * ====================================================== */}
+      <div className="mt-4 grid grid-cols-1 gap-y-3 xl:grid-cols-10 xl:gap-x-4">
+        {/* ====================================================
+         * DAILY SCORE
+         * ==================================================== */}
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-
-        {/* DAILY SCORE */}
-
-        <div className="flex h-full flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <section className="order-1 flex h-full min-w-0 flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 xl:col-span-4 xl:col-start-1 xl:row-start-1 xl:p-5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
+              <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/30 md:text-xs">
                 Daily Score
               </p>
 
-              <p className="mt-1 text-xs text-white/22">
+              <p className="mt-1 text-[11px] text-white/22 md:text-xs">
                 Today
               </p>
             </div>
 
-            <div className="h-2 w-2 rounded-full bg-[#5B7CFF]" />
+            <div className="mt-0.5 h-2 w-2 rounded-full bg-[#5B7CFF]" />
           </div>
 
-          <div className="mt-4 flex items-end">
-            <p className="text-6xl font-semibold tracking-[-0.055em]">
+          <div className="mt-3 flex items-end md:mt-4">
+            <p className="text-5xl font-semibold leading-none tracking-[-0.055em] md:text-6xl">
               {
                 dailyScore ??
                 "—"
@@ -649,14 +646,14 @@ export default function Home({
 
             {dailyScore !==
               null && (
-              <p className="mb-1.5 ml-2 text-sm text-white/25">
+              <p className="mb-1 ml-2 text-sm text-white/25 md:mb-1.5">
                 / 100
               </p>
             )}
           </div>
 
-          <div className="mt-auto grid grid-cols-2 gap-3 pt-5">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 xl:mt-auto xl:gap-3 xl:pt-5">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 xl:px-4">
               <p className="text-[10px] uppercase tracking-[0.1em] text-white/20">
                 Tasks
               </p>
@@ -675,7 +672,7 @@ export default function Home({
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 xl:px-4">
               <p className="text-[10px] uppercase tracking-[0.1em] text-white/20">
                 Habits
               </p>
@@ -694,18 +691,46 @@ export default function Home({
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* TODAY */}
+        {/* ====================================================
+         * FOCUS
+         * ==================================================== */}
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-          <div className="flex items-start justify-between gap-5">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
+        <section className="order-2 flex h-full min-w-0 flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 xl:col-span-5 xl:col-start-1 xl:row-start-2 xl:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/30 md:text-xs">
+              Focus
+            </p>
+
+            <span className="shrink-0 rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.08em] text-white/25">
+              {focusType}
+            </span>
+          </div>
+
+          <div className="flex flex-1 flex-col justify-center pb-1 pt-3 xl:py-4">
+            <h3 className="break-words text-xl font-semibold leading-tight tracking-[-0.025em] text-white/85 sm:text-2xl">
+              {focusTitle}
+            </h3>
+
+            <p className="mt-1.5 text-sm leading-5 text-white/40 xl:mt-2">
+              {focusBody}
+            </p>
+          </div>
+        </section>
+
+        {/* ====================================================
+         * TODAY
+         * ==================================================== */}
+
+        <section className="order-3 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 xl:col-span-6 xl:col-start-5 xl:row-start-1">
+          <div className="flex items-start justify-between gap-4 xl:gap-5">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/30 md:text-xs">
                 Today
               </p>
 
-              <h3 className="mt-1.5 text-2xl font-semibold tracking-[-0.025em]">
+              <h3 className="mt-1.5 text-xl font-semibold leading-tight tracking-[-0.025em] sm:text-2xl">
                 {remainingCount ===
                 0
                   ? plannedCount >
@@ -721,15 +746,15 @@ export default function Home({
               </h3>
             </div>
 
-            <div className="text-right">
-              <p className="text-2xl font-semibold text-white/70">
+            <div className="shrink-0 text-right">
+              <p className="text-xl font-semibold text-white/70 sm:text-2xl">
                 {followThrough !==
                 null
                   ? `${followThrough}%`
                   : "—"}
               </p>
 
-              <p className="mt-1 text-[10px] uppercase tracking-[0.1em] text-white/20">
+              <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-white/20 sm:text-[10px]">
                 Follow-through
               </p>
             </div>
@@ -745,11 +770,11 @@ export default function Home({
             />
           </div>
 
-          <div className="mt-3 min-h-[96px]">
+          <div className="mt-3 xl:min-h-[96px]">
             {nextItems.length ===
             0 ? (
-              <div className="flex h-[96px] items-center justify-center rounded-xl border border-dashed border-white/[0.06]">
-                <p className="text-sm text-white/25">
+              <div className="flex min-h-20 items-center justify-center rounded-xl border border-dashed border-white/[0.06] px-4 text-center xl:h-[96px]">
+                <p className="text-sm leading-5 text-white/25">
                   {plannedCount >
                   0
                     ? "Nothing left for today."
@@ -766,7 +791,7 @@ export default function Home({
                       key={
                         item.id
                       }
-                      className="flex items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] px-4 py-2"
+                      className="flex min-h-10 items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] px-3.5 py-2 sm:px-4"
                     >
                       <div className="h-2 w-2 shrink-0 rounded-full border border-white/20" />
 
@@ -776,7 +801,7 @@ export default function Home({
                         }
                       </p>
 
-                      <span className="text-[9px] uppercase tracking-[0.1em] text-white/18">
+                      <span className="shrink-0 text-[9px] uppercase tracking-[0.1em] text-white/18">
                         {
                           item.type
                         }
@@ -789,54 +814,26 @@ export default function Home({
           </div>
 
           <button
+            type="button"
             onClick={() =>
               onNavigate?.(
                 "Planning"
               )
             }
-            className="mt-2 text-xs font-medium text-[#8EA4FF]/80 transition hover:text-[#A8B7FF]"
+            className="-mb-1 mt-2 flex min-h-9 items-center text-xs font-medium text-[#8EA4FF]/80 transition hover:text-[#A8B7FF]"
           >
             Open Planning →
           </button>
-        </div>
-      </div>
+        </section>
 
-      {/* ======================================================
-       * SECOND ROW
-       * ====================================================== */}
+        {/* ====================================================
+         * CONSISTENCY
+         * ==================================================== */}
 
-      <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
-
-        {/* FOCUS */}
-
-        <div className="flex h-full flex-col rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
-              Focus
-            </p>
-
-            <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.08em] text-white/25">
-              {focusType}
-            </span>
-          </div>
-
-          <div className="flex flex-1 flex-col justify-center py-4">
-            <h3 className="text-2xl font-semibold tracking-[-0.025em] text-white/85">
-              {focusTitle}
-            </h3>
-
-            <p className="mt-2 text-sm leading-5 text-white/40">
-              {focusBody}
-            </p>
-          </div>
-        </div>
-
-        {/* CONSISTENCY */}
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-          <div className="flex items-start justify-between">
+        <section className="order-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 xl:col-span-5 xl:col-start-6 xl:row-start-2">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.15em] text-white/30">
+              <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/30 md:text-xs">
                 Consistency
               </p>
 
@@ -846,25 +843,26 @@ export default function Home({
             </div>
 
             <button
+              type="button"
               onClick={() =>
                 onNavigate?.(
                   "Progress"
                 )
               }
-              className="text-xs text-white/25 transition hover:text-white/50"
+              className="-mr-1 -mt-1 flex min-h-10 shrink-0 items-center px-1 text-xs text-white/30 transition hover:text-white/50"
             >
               View Progress →
             </button>
           </div>
 
-          <div className="mt-3 flex items-end gap-2">
-            <p className="text-4xl font-semibold tracking-[-0.045em]">
+          <div className="mt-2.5 flex items-end gap-2 xl:mt-3">
+            <p className="text-4xl font-semibold leading-none tracking-[-0.045em]">
               {
                 currentStreak
               }
             </p>
 
-            <p className="mb-1 text-xs text-white/25">
+            <p className="mb-0.5 text-xs text-white/25 xl:mb-1">
               day streak
             </p>
           </div>
@@ -905,84 +903,85 @@ export default function Home({
             }{" "}
             planned days on track
           </p>
-        </div>
-      </div>
+        </section>
 
-      {/* ======================================================
-       * ATLAS INTELLIGENCE
-       * ====================================================== */}
+        {/* ====================================================
+         * ATLAS INTELLIGENCE
+         * ==================================================== */}
 
-      <div className="mt-3 rounded-2xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] px-5 py-3">
-        <div className="flex items-start gap-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/10 text-[#91A6FF]">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 18 18"
-              fill="none"
-            >
-              <path
-                d="M9 2.5C6.45 2.5 4.4 4.5 4.4 6.98C4.4 8.68 5.34 10.09 6.64 10.92V12.72H11.36V10.92C12.66 10.09 13.6 8.68 13.6 6.98C13.6 4.5 11.55 2.5 9 2.5Z"
-                stroke="currentColor"
-                strokeWidth="1.25"
-                strokeLinejoin="round"
-              />
+        <section className="order-5 min-w-0 rounded-2xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] px-4 py-3.5 xl:col-span-10 xl:col-start-1 xl:row-start-3 xl:px-5 xl:py-3">
+          <div className="flex items-start gap-3 xl:gap-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/10 text-[#91A6FF] xl:h-9 xl:w-9">
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 18 18"
+                fill="none"
+              >
+                <path
+                  d="M9 2.5C6.45 2.5 4.4 4.5 4.4 6.98C4.4 8.68 5.34 10.09 6.64 10.92V12.72H11.36V10.92C12.66 10.09 13.6 8.68 13.6 6.98C13.6 4.5 11.55 2.5 9 2.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinejoin="round"
+                />
 
-              <path
-                d="M6.9 15H11.1"
-                stroke="currentColor"
-                strokeWidth="1.25"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#91A6FF]/70">
-                Atlas Intelligence
-              </p>
-
-              <span className="rounded-md border border-white/[0.055] bg-white/[0.02] px-2 py-0.5 text-[9px] capitalize text-white/20">
-                {
-                  atlasInsight.confidence
-                }{" "}
-                confidence
-              </span>
+                <path
+                  d="M6.9 15H11.1"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
 
-            <h3 className="mt-1.5 text-base font-semibold tracking-[-0.015em] text-white/85">
-              {
-                atlasInsight.title
-              }
-            </h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#91A6FF]/70">
+                  Atlas Intelligence
+                </p>
 
-            <p className="mt-1.5 max-w-4xl text-sm leading-5 text-white/42">
-              {
-                atlasInsight.observation
-              }
-            </p>
+                <span className="rounded-md border border-white/[0.055] bg-white/[0.02] px-2 py-0.5 text-[9px] capitalize text-white/20">
+                  {
+                    atlasInsight.confidence
+                  }{" "}
+                  confidence
+                </span>
+              </div>
 
-            <div className="mt-2 border-t border-[#5B7CFF]/10 pt-2">
-  <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#91A6FF]/45">
-    Recommendation
-  </p>
+              <h3 className="mt-1.5 text-base font-semibold leading-snug tracking-[-0.015em] text-white/85">
+                {
+                  atlasInsight.title
+                }
+              </h3>
 
-  <p className="mt-1.5 text-sm leading-5 text-white/65">
-    {
-      atlasInsight.recommendation
-    }
-  </p>
-</div>
+              <p className="mt-1.5 max-w-4xl text-sm leading-5 text-white/42">
+                {
+                  atlasInsight.observation
+                }
+              </p>
 
-            <p className="mt-1 text-[9px] text-white/16">
-              Based on{" "}
-              {
-                atlasInsight.source
-              }
-            </p>
+              <div className="mt-2 border-t border-[#5B7CFF]/10 pt-2">
+                <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#91A6FF]/45">
+                  Recommendation
+                </p>
+
+                <p className="mt-1.5 text-sm leading-5 text-white/65">
+                  {
+                    atlasInsight.recommendation
+                  }
+                </p>
+              </div>
+
+              <p className="mt-1 text-[9px] text-white/16">
+                Based on{" "}
+                {
+                  atlasInsight.source
+                }
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

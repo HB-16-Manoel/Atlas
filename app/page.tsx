@@ -41,7 +41,7 @@ function AtlasLogo({
       height={512}
       className={
         compact
-          ? "h-10 w-10 shrink-0 object-contain"
+          ? "h-8 w-8 shrink-0 object-contain"
           : "h-16 w-16 shrink-0 object-contain"
       }
       priority
@@ -58,7 +58,7 @@ function AtlasWordmark({
     <div
       className={`flex items-center ${
         compact
-          ? "gap-2.5"
+          ? "gap-2"
           : "gap-3"
       }`}
     >
@@ -71,7 +71,7 @@ function AtlasWordmark({
         aria-label="Atlas"
         className={
           compact
-            ? "text-lg font-semibold leading-none tracking-[0.12em]"
+            ? "text-[15px] font-semibold leading-none tracking-[0.13em]"
             : "text-[22px] font-semibold leading-none tracking-[0.15em]"
         }
       >
@@ -1175,8 +1175,8 @@ export default function AtlasApp() {
    */
 
   return (
-    <main className="min-h-screen bg-[#11131D] text-white">
-      <div className="flex min-h-screen">
+    <main className="min-h-dvh overflow-x-clip bg-[#11131D] text-white">
+      <div className="flex min-h-dvh">
 
         {/* ====================================================
          * SIDEBAR
@@ -1245,8 +1245,8 @@ export default function AtlasApp() {
          * MAIN
          * ==================================================== */}
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#11131D]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.08] bg-[#11131D]/95 px-4 pb-2.5 pt-[calc(env(safe-area-inset-top)+0.625rem)] backdrop-blur-xl md:hidden">
             <AtlasWordmark
               compact
             />
@@ -1264,7 +1264,7 @@ export default function AtlasApp() {
                   "Settings"
                 )
               }
-              className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:bg-white/[0.06] ${
                 activePage === "Settings"
                   ? "bg-[#5B7CFF]/15 text-[#7892FF]"
                   : "text-white/55 hover:bg-white/5 hover:text-white"
@@ -1295,10 +1295,10 @@ export default function AtlasApp() {
           <section
           className={`min-w-0 flex-1 ${
             activePage === "Home"
-              ? "px-4 pb-28 pt-4 md:px-10 md:py-4"
+              ? "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:px-10 md:py-4"
               : activePage === "Progress"
-                ? "p-10 pb-28 md:p-10"
-                : "px-4 pb-28 pt-4 md:p-10"
+                ? "p-10 pb-[calc(env(safe-area-inset-bottom)+6rem)] md:p-10"
+                : "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:p-10"
           }`}
         >
 
@@ -1421,7 +1421,7 @@ export default function AtlasApp() {
 
         <nav
           aria-label="Mobile navigation"
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#11131D]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.08] bg-[#11131D]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.375rem)] pt-1.5 backdrop-blur-xl md:hidden"
         >
           <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
             {mobilePages.map(
@@ -1448,12 +1448,21 @@ export default function AtlasApp() {
                         page
                       )
                     }
-                    className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-medium transition-colors ${
+                    className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors active:bg-white/[0.04] ${
                       isActive
-                        ? "bg-[#5B7CFF]/15 text-[#7892FF]"
+                        ? "text-[#7892FF]"
                         : "text-white/45 hover:bg-white/5 hover:text-white/75"
                     }`}
                   >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute top-0 h-0.5 w-5 rounded-full transition-colors ${
+                        isActive
+                          ? "bg-[#5B7CFF]"
+                          : "bg-transparent"
+                      }`}
+                    />
+
                     <MobileNavIcon
                       page={
                         page
