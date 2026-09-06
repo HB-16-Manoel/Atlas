@@ -299,6 +299,16 @@ export default function Planning({
   ] = useState(true);
 
   const [
+    openTaskMenuId,
+    setOpenTaskMenuId,
+  ] = useState<number | null>(null);
+
+  const [
+    openHabitMenuId,
+    setOpenHabitMenuId,
+  ] = useState<number | null>(null);
+
+  const [
     addingEvent,
     setAddingEvent,
   ] = useState(false);
@@ -595,6 +605,30 @@ export default function Planning({
         date.setDate(
           weekStart.getDate() +
             index
+        );
+
+        return date;
+      }
+    );
+
+  const mobileDays =
+    Array.from(
+      {
+        length: 5,
+      },
+      (
+        _,
+        index
+      ) => {
+        const date =
+          new Date(
+            selectedDate
+          );
+
+        date.setDate(
+          selectedDate.getDate() +
+            index -
+            2
         );
 
         return date;
@@ -912,6 +946,14 @@ export default function Planning({
     closeEditing();
     closeHabitControls();
 
+    setOpenTaskMenuId(
+      null
+    );
+
+    setOpenHabitMenuId(
+      null
+    );
+
     setHabitReorderMode(
       false
     );
@@ -1034,8 +1076,24 @@ export default function Planning({
     closeEditing();
     closeHabitControls();
 
+    setOpenTaskMenuId(
+      null
+    );
+
+    setOpenHabitMenuId(
+      null
+    );
+
     setHabitReorderMode(
       false
+    );
+
+    setOpenTaskMenuId(
+      null
+    );
+
+    setOpenHabitMenuId(
+      null
     );
 
     setSelectedDate(
@@ -1062,6 +1120,36 @@ export default function Planning({
 
     setVisualCompleted(
       []
+    );
+  };
+
+  const moveDay = (
+    amount: number
+  ) => {
+    const nextDate =
+      new Date(
+        selectedDate
+      );
+
+    nextDate.setDate(
+      selectedDate.getDate() +
+        amount
+    );
+
+    setWeekStart(
+      startOfWeek(
+        nextDate
+      )
+    );
+
+    setWeekDirection(
+      amount > 0
+        ? "right"
+        : "left"
+    );
+
+    selectDate(
+      nextDate
     );
   };
 
@@ -2966,6 +3054,13 @@ export default function Planning({
     index:
       number
   ) => {
+    if (
+      event.pointerType !==
+      "mouse"
+    ) {
+      return;
+    }
+
     const target =
       event.target as HTMLElement;
 
@@ -3578,6 +3673,108 @@ export default function Planning({
       );
     };
 
+  const moveTaskOnMobile = (
+    id: number,
+    direction: -1 | 1
+  ) => {
+    if (
+      selectedDateIsPast
+    ) {
+      return;
+    }
+
+    const ids =
+      unfinishedTasks.map(
+        (
+          task
+        ) =>
+          task.id
+      );
+
+    const index =
+      ids.indexOf(
+        id
+      );
+
+    const nextIndex =
+      index +
+      direction;
+
+    if (
+      index < 0 ||
+      nextIndex < 0 ||
+      nextIndex >=
+        ids.length
+    ) {
+      return;
+    }
+
+    [
+      ids[index],
+      ids[nextIndex],
+    ] = [
+      ids[nextIndex],
+      ids[index],
+    ];
+
+    commitPreviewOrder(
+      ids
+    );
+
+    setOpenTaskMenuId(
+      null
+    );
+  };
+
+  const moveHabitOnMobile = (
+    id: number,
+    direction: -1 | 1
+  ) => {
+    if (
+      selectedDateIsPast
+    ) {
+      return;
+    }
+
+    const ids =
+      selectedHabits.map(
+        (
+          habit
+        ) =>
+          habit.id
+      );
+
+    const index =
+      ids.indexOf(
+        id
+      );
+
+    const nextIndex =
+      index +
+      direction;
+
+    if (
+      index < 0 ||
+      nextIndex < 0 ||
+      nextIndex >=
+        ids.length
+    ) {
+      return;
+    }
+
+    [
+      ids[index],
+      ids[nextIndex],
+    ] = [
+      ids[nextIndex],
+      ids[index],
+    ];
+
+    commitHabitPreviewOrder(
+      ids
+    );
+  };
+
   const finishHabitDrag =
     () => {
       const current =
@@ -3898,6 +4095,8 @@ export default function Planning({
         number
     ) => {
       if (
+        event.pointerType !==
+        "mouse" ||
         !habitReorderMode ||
         selectedDateIsPast ||
         index <
@@ -4438,26 +4637,54 @@ export default function Planning({
 
       {/* HEADER */}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white/40">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-white/40 md:text-sm">
             Planning
           </p>
 
-          <h2 className="mt-1 text-3xl font-semibold">
-            {weekStart.toLocaleDateString(
-              "en-US",
-              {
-                month:
-                  "long",
-                year:
-                  "numeric",
-              }
-            )}
+          <h2 className="mt-1 truncate text-2xl font-semibold md:text-3xl">
+            <span className="md:hidden">
+              {selectedDate.toLocaleDateString(
+                "en-US",
+                {
+                  month:
+                    "long",
+                  year:
+                    "numeric",
+                }
+              )}
+            </span>
+
+            <span className="hidden md:inline">
+              {weekStart.toLocaleDateString(
+                "en-US",
+                {
+                  month:
+                    "long",
+                  year:
+                    "numeric",
+                }
+              )}
+            </span>
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        {!isSameDay(
+          selectedDate,
+          today
+        ) && (
+          <button
+            onClick={
+              goToToday
+            }
+            className="min-h-11 shrink-0 cursor-pointer rounded-xl border border-white/10 px-3 text-sm text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white md:hidden"
+          >
+            Today
+          </button>
+        )}
+
+        <div className="hidden items-center gap-2 md:flex">
           {!isSameDay(
             selectedDate,
             today
@@ -4477,6 +4704,7 @@ export default function Planning({
               moveWeek(-1)
             }
             className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white"
+            aria-label="Previous week"
           >
             ←
           </button>
@@ -4486,10 +4714,111 @@ export default function Planning({
               moveWeek(1)
             }
             className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white"
+            aria-label="Next week"
           >
             →
           </button>
         </div>
+      </div>
+
+      {/* MOBILE DAYS */}
+
+      <div className="mt-5 flex items-stretch gap-1.5 md:hidden">
+        <button
+          type="button"
+          onClick={() =>
+            moveDay(-1)
+          }
+          aria-label="Previous day"
+          className="flex min-h-14 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/10 text-white/45 transition active:bg-white/[0.07]"
+        >
+          ‹
+        </button>
+
+        <div className="grid min-w-0 flex-1 grid-cols-5 gap-1.5">
+          {mobileDays.map(
+            (
+              date
+            ) => {
+              const selected =
+                isSameDay(
+                  date,
+                  selectedDate
+                );
+
+              const current =
+                isSameDay(
+                  date,
+                  today
+                );
+
+              const dateKey =
+                formatDateKey(
+                  date
+                );
+
+              const hasEvent =
+                events.some(
+                  (
+                    event
+                  ) =>
+                    event.date ===
+                      dateKey ||
+                    (
+                      event.repeatYearly &&
+                      event.date.slice(5) ===
+                        dateKey.slice(5)
+                    )
+                );
+
+              return (
+                <button
+                  key={
+                    date.toISOString()
+                  }
+                  type="button"
+                  onClick={() =>
+                    selectDate(
+                      date
+                    )
+                  }
+                  className={`relative min-h-14 min-w-0 cursor-pointer rounded-xl border px-1 py-2 text-center transition ${selected ? "border-[#5B7CFF]/70 bg-[#5B7CFF]/15" : "border-white/[0.08] bg-white/[0.025]"}`}
+                >
+                  <span className="block text-[10px] font-medium uppercase tracking-wide text-white/35">
+                    {date.toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday:
+                          "narrow",
+                      }
+                    )}
+                  </span>
+
+                  <span className={`mt-1 block text-base font-semibold ${selected ? "text-[#8295E8]" : "text-white/75"}`}>
+                    {date.getDate()}
+                  </span>
+
+                  {(hasEvent || current) && (
+                    <span
+                      className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${hasEvent ? "bg-[#5B7CFF]" : "bg-white/30"}`}
+                    />
+                  )}
+                </button>
+              );
+            }
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            moveDay(1)
+          }
+          aria-label="Next day"
+          className="flex min-h-14 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/10 text-white/45 transition active:bg-white/[0.07]"
+        >
+          ›
+        </button>
       </div>
 
       {/* WEEK */}
@@ -4498,7 +4827,7 @@ export default function Planning({
         key={
           weekStart.toISOString()
         }
-        className={`mt-6 grid grid-cols-7 gap-2 ${
+        className={`mt-6 hidden grid-cols-7 gap-2 md:grid ${
           weekDirection ===
           "right"
             ? "week-right"
@@ -4604,7 +4933,7 @@ export default function Planning({
           TWO-COLUMN CONTENT AREA
           ====================================================== */}
 
-      <div className="mt-10 grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,2.05fr)_minmax(280px,0.95fr)]">
+      <div className="mt-7 grid grid-cols-1 gap-8 md:mt-10 md:gap-10 xl:grid-cols-[minmax(0,2.05fr)_minmax(280px,0.95fr)]">
 
         {/* ====================================================
             LEFT COLUMN
@@ -4614,13 +4943,24 @@ export default function Planning({
 
           {/* DAY HEADER */}
 
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex items-start justify-between gap-3 md:items-end md:gap-4">
             <div>
-              <p className="text-sm text-white/40">
+              <p className="text-xs text-white/40 md:hidden">
+                {selectedDate.toLocaleDateString(
+                  "en-US",
+                  {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  }
+                )}
+              </p>
+
+              <p className="hidden text-sm text-white/40 md:block">
                 {formatDate(selectedDate)}
               </p>
 
-              <h3 className="mt-1 text-2xl font-semibold">
+              <h3 className="mt-1 text-xl font-semibold md:text-2xl">
                 {isSameDay(selectedDate, today)
                   ? "Today"
                   : selectedDate < today
@@ -4630,7 +4970,7 @@ export default function Planning({
             </div>
 
             {!selectedDateIsPast && (
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 gap-1.5 md:gap-2">
                 {!addingEvent && (
                   <button
                     type="button"
@@ -4640,7 +4980,7 @@ export default function Planning({
                       setAddingHabit(false);
                       setAddingEvent(true);
                     }}
-                    className="cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white"
+                    className="min-h-10 cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white md:px-3 md:text-sm"
                   >
                     + Event
                   </button>
@@ -4654,7 +4994,7 @@ export default function Planning({
                       setNewTaskCarryOver(true);
                       setAddingTask(true);
                     }}
-                    className="cursor-pointer rounded-lg bg-[#5B7CFF] px-3 py-2 text-sm font-medium transition hover:opacity-90"
+                    className="min-h-10 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 md:px-3 md:text-sm"
                   >
                     + Task
                   </button>
@@ -4667,7 +5007,7 @@ export default function Planning({
 
           {addingTask &&
             !selectedDateIsPast && (
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:mt-5 md:p-5">
                 <input
                   autoFocus
                   value={newTask}
@@ -4746,7 +5086,7 @@ export default function Planning({
 
           {addingEvent &&
             !selectedDateIsPast && (
-              <div className="mt-5 rounded-2xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.04] p-5">
+              <div className="mt-4 rounded-2xl border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.04] p-4 md:mt-5 md:p-5">
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
                   <input
                     autoFocus
@@ -4823,7 +5163,7 @@ export default function Planning({
 
           {/* TASK LIST */}
 
-          <div className="mt-6">
+          <div className="mt-5 md:mt-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-white/60">
                 Tasks
@@ -4953,7 +5293,7 @@ export default function Planning({
                           )
                         }
 
-                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-4 ${
+                        className={`group relative flex w-full min-w-0 flex-wrap items-center gap-3 overflow-hidden rounded-2xl border p-3.5 touch-pan-y md:flex-nowrap md:gap-4 md:p-4 ${
                           task.carriedFrom &&
                           !visuallyCompleted
                             ? "border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.025]"
@@ -4963,7 +5303,7 @@ export default function Planning({
                           !selectedDateIsPast &&
                           editingTaskId !==
                             task.id
-                            ? "cursor-grab active:cursor-grabbing"
+                            ? "md:cursor-grab md:active:cursor-grabbing"
                             : ""
                         } ${
                           isDragged
@@ -4980,12 +5320,6 @@ export default function Planning({
                         style={{
                           transition:
                             "background-color 300ms ease, opacity 300ms ease",
-
-                          touchAction:
-                            task.completed ||
-                            selectedDateIsPast
-                              ? "auto"
-                              : "none",
 
                           userSelect:
                             editingTaskId ===
@@ -5019,7 +5353,7 @@ export default function Planning({
                             selectedDateIsPast
                           }
 
-                          className={`relative z-20 flex h-5 w-5 shrink-0 items-center justify-center ${
+                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center md:h-5 md:w-5 ${
                             selectedDateIsPast
                               ? "cursor-default"
                               : "cursor-pointer"
@@ -5114,7 +5448,19 @@ export default function Planning({
                             />
                           ) : (
                             <span
-                              className={`relative block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 ${
+                              onClick={(event) => {
+                                if (
+                                  window.matchMedia(
+                                    "(max-width: 767px)"
+                                  ).matches
+                                ) {
+                                  event.stopPropagation();
+                                  startEditingTask(
+                                    task
+                                  );
+                                }
+                              }}
+                              className={`relative block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 md:cursor-default ${
                                 visuallyCompleted
                                   ? "text-white/30"
                                   : "text-white/80"
@@ -5171,7 +5517,7 @@ export default function Planning({
                           aria-pressed={
                             task.carryOver !== false
                           }
-                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver !== false ? "cursor-pointer text-[#8295E8]/55 opacity-100 hover:bg-white/[0.03] hover:text-[#9EACEC]/80" : "cursor-pointer text-white/25 opacity-0 hover:bg-white/[0.03] hover:text-white/50 group-hover:opacity-100"}`}
+                          className={`relative z-30 hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg transition md:flex ${selectedDateIsPast || task.completed ? "pointer-events-none opacity-0" : task.carryOver !== false ? "cursor-pointer text-[#8295E8]/55 opacity-100 hover:bg-white/[0.03] hover:text-[#9EACEC]/80" : "cursor-pointer text-white/25 opacity-0 hover:bg-white/[0.03] hover:text-white/50 group-hover:opacity-100"}`}
                         >
                           <svg
                             aria-hidden="true"
@@ -5220,7 +5566,7 @@ export default function Planning({
                             selectedDateIsPast
                           }
 
-                          className={`relative z-30 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+                          className={`relative z-30 hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 md:flex ${
                             selectedDateIsPast
                               ? "pointer-events-none text-white/10 opacity-0"
                               : "cursor-pointer text-white/30 opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
@@ -5249,6 +5595,139 @@ export default function Planning({
                             />
                           </svg>
                         </button>
+                        {!selectedDateIsPast && (
+                          <button
+                            type="button"
+                            onPointerDown={(event) =>
+                              event.stopPropagation()
+                            }
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenTaskMenuId(
+                                (current) =>
+                                  current === task.id
+                                    ? null
+                                    : task.id
+                              );
+                              setOpenHabitMenuId(
+                                null
+                              );
+                            }}
+                            aria-label={`Task options for ${task.text}`}
+                            aria-expanded={
+                              openTaskMenuId ===
+                              task.id
+                            }
+                            className={`relative z-30 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white/35 transition active:bg-white/[0.06] md:hidden ${openTaskMenuId === task.id ? "bg-white/[0.05] text-white/65" : ""}`}
+                          >
+                            {task.carryOver !== false &&
+                              !task.completed && (
+                                <svg
+                                  aria-hidden="true"
+                                  className="absolute left-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#8295E8]/70"
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M15.5 9A5.75 5.75 0 1 0 14 13"
+                                    stroke="currentColor"
+                                    strokeWidth="1.45"
+                                    strokeLinecap="round"
+                                  />
+                                  <path
+                                    d="M15.5 4.75V9h-4.25"
+                                    stroke="currentColor"
+                                    strokeWidth="1.45"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+
+                            <span className="text-lg leading-none">
+                              ⋯
+                            </span>
+                          </button>
+                        )}
+
+                        {openTaskMenuId ===
+                          task.id &&
+                          !selectedDateIsPast && (
+                            <div className="flex basis-full items-center gap-1 border-t border-white/[0.06] pt-2 md:hidden">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleTaskCarryOver(
+                                    task.id
+                                  )
+                                }
+                                disabled={
+                                  task.completed
+                                }
+                                aria-pressed={
+                                  task.carryOver !==
+                                  false
+                                }
+                                className={`min-h-11 flex-1 rounded-lg px-2 text-xs transition ${task.completed ? "text-white/15" : task.carryOver !== false ? "bg-[#5B7CFF]/[0.08] text-[#8295E8]" : "text-white/45 active:bg-white/[0.05]"}`}
+                              >
+                                Carry {task.carryOver !== false ? "on" : "off"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  moveTaskOnMobile(
+                                    task.id,
+                                    -1
+                                  )
+                                }
+                                disabled={
+                                  task.completed ||
+                                  unfinishedIndex <=
+                                    0
+                                }
+                                aria-label="Move task up"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 disabled:text-white/10"
+                              >
+                                ↑
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  moveTaskOnMobile(
+                                    task.id,
+                                    1
+                                  )
+                                }
+                                disabled={
+                                  task.completed ||
+                                  unfinishedIndex <
+                                    0 ||
+                                  unfinishedIndex >=
+                                    unfinishedTasks.length -
+                                      1
+                                }
+                                aria-label="Move task down"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 disabled:text-white/10"
+                              >
+                                ↓
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteTask(
+                                    task.id
+                                  )
+                                }
+                                aria-label="Delete task"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg text-white/35 active:bg-white/[0.05] active:text-white/70"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
                       </div>
                     );
                   }
@@ -5267,9 +5746,16 @@ export default function Planning({
                 </p>
 
                 <p className="mt-1 text-xs text-white/30">
-                  {habitReorderMode
-                    ? "Drag to reorder"
-                    : "Daily"}
+                  <span className="md:hidden">
+                    {habitReorderMode
+                      ? "Use arrows to reorder"
+                      : "Daily"}
+                  </span>
+                  <span className="hidden md:inline">
+                    {habitReorderMode
+                      ? "Drag to reorder"
+                      : "Daily"}
+                  </span>
                 </p>
               </div>
 
@@ -5312,10 +5798,10 @@ export default function Planning({
                           ? "Finish reordering habits"
                           : "Reorder habits"
                       }
-                      className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-all duration-200 ${
+                      className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border transition-all duration-200 md:h-8 md:w-8 ${
                         habitReorderMode
                           ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/10 text-[#5B7CFF] opacity-100"
-                          : "border-transparent text-white/35 opacity-0 hover:border-white/10 hover:bg-white/5 hover:text-white/70 group-hover:opacity-100"
+                          : "border-transparent text-white/35 opacity-60 hover:border-white/10 hover:bg-white/5 hover:text-white/70 md:opacity-0 md:group-hover:opacity-100"
                       }`}
                     >
                       {habitReorderMode ? (
@@ -5605,9 +6091,9 @@ export default function Planning({
                           );
                         }}
 
-                        className={`group relative flex w-full min-w-0 items-center gap-4 overflow-hidden rounded-2xl border bg-white/[0.03] p-4 transition-colors duration-300 ${
+                        className={`group relative flex w-full min-w-0 flex-wrap items-center gap-3 overflow-hidden rounded-2xl border bg-white/[0.03] p-3.5 touch-pan-y transition-colors duration-300 md:flex-nowrap md:gap-4 md:p-4 ${
                           habitReorderMode
-                            ? "cursor-grab border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] active:cursor-grabbing"
+                            ? "border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] md:cursor-grab md:active:cursor-grabbing"
                             : "border-white/10"
                         } ${
                           isEditing
@@ -5626,11 +6112,6 @@ export default function Planning({
                         }`}
 
                         style={{
-                          touchAction:
-                            habitReorderMode
-                              ? "none"
-                              : "auto",
-
                           userSelect:
                             isEditing
                               ? "text"
@@ -5725,25 +6206,29 @@ export default function Planning({
                                 habitReorderMode
                               }
 
-                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ease-out ${
+                              className={`flex h-11 w-11 shrink-0 items-center justify-center md:h-5 md:w-5 ${
                                 selectedDateIsPast ||
                                 habitReorderMode
                                   ? "cursor-default"
                                   : "cursor-pointer"
-                              } ${
-                                completed
-                                  ? "border-[#5B7CFF] bg-[#5B7CFF]"
-                                  : "border-white/20 hover:border-white/40"
                               }`}
                             >
                               <span
-                                className={`text-xs text-white transition-all duration-300 ${
+                                className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-300 ease-out ${
                                   completed
-                                    ? "scale-100 opacity-100"
-                                    : "scale-50 opacity-0"
+                                    ? "border-[#5B7CFF] bg-[#5B7CFF]"
+                                    : "border-white/20 hover:border-white/40"
                                 }`}
                               >
-                                ✓
+                                <span
+                                  className={`text-xs text-white transition-all duration-300 ${
+                                    completed
+                                      ? "scale-100 opacity-100"
+                                      : "scale-50 opacity-0"
+                                  }`}
+                                >
+                                  ✓
+                                </span>
                               </span>
                             </button>
 
@@ -5810,7 +6295,19 @@ export default function Planning({
                                 />
                               ) : (
                                 <span
-                                  className={`block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 ${
+                                  onClick={(event) => {
+                                    if (
+                                      window.matchMedia(
+                                        "(max-width: 767px)"
+                                      ).matches
+                                    ) {
+                                      event.stopPropagation();
+                                      startEditingHabit(
+                                        habit
+                                      );
+                                    }
+                                  }}
+                                  className={`block min-w-0 max-w-full whitespace-normal break-words leading-5 [overflow-wrap:anywhere] transition-colors duration-300 md:cursor-default ${
                                     completed
                                       ? "text-white/50"
                                       : "text-white/80"
@@ -5895,7 +6392,7 @@ export default function Planning({
                                   selectedDateIsPast
                                 }
 
-                                className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/30 transition-all duration-200 ${
+                                className={`relative hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/30 transition-all duration-200 md:flex ${
                                   selectedDateIsPast
                                     ? "cursor-default opacity-0"
                                     : "cursor-pointer opacity-0 hover:bg-white/5 hover:text-white/80 group-hover:opacity-100"
@@ -5925,12 +6422,301 @@ export default function Planning({
                             )}
                           </>
                         )}
+                            {habitReorderMode && (
+                              <div className="ml-auto flex items-center gap-1 md:hidden">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    moveHabitOnMobile(
+                                      habit.id,
+                                      -1
+                                    );
+                                  }}
+                                  disabled={
+                                    habitIndex <=
+                                    0
+                                  }
+                                  aria-label="Move habit up"
+                                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/45 disabled:text-white/10"
+                                >
+                                  ↑
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    moveHabitOnMobile(
+                                      habit.id,
+                                      1
+                                    );
+                                  }}
+                                  disabled={
+                                    habitIndex >=
+                                    selectedHabits.length -
+                                      1
+                                  }
+                                  aria-label="Move habit down"
+                                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/45 disabled:text-white/10"
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                            )}
+
+                            {!habitReorderMode &&
+                              !selectedDateIsPast && (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setOpenHabitMenuId(
+                                      (current) =>
+                                        current === habit.id
+                                          ? null
+                                          : habit.id
+                                    );
+                                    setOpenTaskMenuId(
+                                      null
+                                    );
+                                  }}
+                                  aria-label={`Habit options for ${habit.name}`}
+                                  aria-expanded={
+                                    openHabitMenuId ===
+                                    habit.id
+                                  }
+                                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg leading-none text-white/35 transition active:bg-white/[0.06] md:hidden ${openHabitMenuId === habit.id ? "bg-white/[0.05] text-white/65" : ""}`}
+                                >
+                                  ⋯
+                                </button>
+                              )}
+
+                            {openHabitMenuId ===
+                              habit.id &&
+                              !habitReorderMode &&
+                              !selectedDateIsPast && (
+                                <div className="flex basis-full justify-end border-t border-white/[0.06] pt-2 md:hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      askToDeleteHabit(
+                                        habit.id
+                                      )
+                                    }
+                                    className="min-h-11 rounded-lg px-3 text-xs text-white/40 active:bg-white/[0.05] active:text-white/70"
+                                  >
+                                    Delete habit
+                                  </button>
+                                </div>
+                              )}
                       </div>
                     );
                   }
                 )
               )}
             </div>
+          </div>
+
+          {/* MOBILE / TABLET EVENTS */}
+
+          <div className="mt-10 xl:hidden">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/60">
+                  Events
+                </p>
+
+                <p className="mt-1 text-xs text-white/30">
+                  Important dates ahead
+                </p>
+              </div>
+
+              {upcomingEvents.length > 0 && (
+                <span className="text-xs text-white/25">
+                  Next {upcomingEvents.length}
+                </span>
+              )}
+            </div>
+
+            {upcomingEvents.length === 0 ? (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/35">
+                  No upcoming events.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {upcomingEvents.map(
+                  (
+                    occurrence
+                  ) => {
+                    const eventDate =
+                      new Date(
+                        `${occurrence.date}T12:00:00`
+                      );
+
+                    const editing =
+                      editingEventId ===
+                      occurrence.event.id;
+
+                    return (
+                      <div
+                        key={`mobile-${occurrence.event.id}-${occurrence.date}`}
+                        className="flex min-w-0 items-start gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3.5"
+                      >
+                        <div className="flex w-11 shrink-0 flex-col items-center overflow-hidden rounded-lg border border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.06]">
+                          <span className="w-full bg-[#5B7CFF]/12 py-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8295E8]">
+                            {eventDate.toLocaleDateString(
+                              "en-US",
+                              {
+                                month:
+                                  "short",
+                              }
+                            )}
+                          </span>
+
+                          <span className="py-1.5 text-base font-semibold leading-none text-white/80">
+                            {eventDate.getDate()}
+                          </span>
+                        </div>
+
+                        {editing ? (
+                          <div className="min-w-0 flex-1">
+                            <input
+                              autoFocus
+                              value={
+                                editEventTitle
+                              }
+                              onChange={(event) =>
+                                setEditEventTitle(
+                                  event.target.value
+                                )
+                              }
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key ===
+                                  "Enter"
+                                ) {
+                                  saveEditingEvent();
+                                }
+
+                                if (
+                                  event.key ===
+                                  "Escape"
+                                ) {
+                                  cancelEditingEvent();
+                                }
+                              }}
+                              aria-label="Event title"
+                              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-[#5B7CFF]/50"
+                            />
+
+                            <div className="mt-2 grid grid-cols-1 gap-2 min-[390px]:grid-cols-[120px_minmax(0,1fr)]">
+                              <input
+                                type="time"
+                                value={
+                                  editEventTime
+                                }
+                                onChange={(event) =>
+                                  setEditEventTime(
+                                    event.target.value
+                                  )
+                                }
+                                aria-label="Event time"
+                                className="min-h-11 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-xs text-white/65 outline-none focus:border-[#5B7CFF]/50"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditEventRepeatYearly(
+                                    (current) =>
+                                      !current
+                                  )
+                                }
+                                aria-pressed={
+                                  editEventRepeatYearly
+                                }
+                                className={`min-h-11 rounded-lg border px-3 text-xs transition ${editEventRepeatYearly ? "border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.08] text-[#8295E8]" : "border-white/[0.08] text-white/40"}`}
+                              >
+                                Yearly {editEventRepeatYearly ? "on" : "off"}
+                              </button>
+                            </div>
+
+                            <div className="mt-2 flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={
+                                  cancelEditingEvent
+                                }
+                                className="min-h-11 rounded-lg px-3 text-xs text-white/40"
+                              >
+                                Cancel
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={
+                                  saveEditingEvent
+                                }
+                                className="min-h-11 rounded-lg bg-[#5B7CFF] px-3 text-xs font-medium"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                startEditingEvent(
+                                  occurrence.event
+                                )
+                              }
+                              disabled={
+                                selectedDateIsPast
+                              }
+                              className="min-h-11 min-w-0 flex-1 text-left"
+                            >
+                              <span className="block truncate text-sm font-medium text-white/75">
+                                {occurrence.event.title}
+                              </span>
+
+                              <span className="mt-1 block text-xs text-white/30">
+                                {occurrence.event.time
+                                  ? occurrence.event.time
+                                  : "All day"}
+                                {occurrence.event.repeatYearly
+                                  ? " · Yearly"
+                                  : ""}
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteEvent(
+                                  occurrence.event.id
+                                )
+                              }
+                              disabled={
+                                selectedDateIsPast
+                              }
+                              aria-label={`Delete ${occurrence.event.title}`}
+                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg text-white/30 transition active:bg-white/[0.06] active:text-white/70 disabled:text-white/10"
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            )}
           </div>
         </div>
 
