@@ -80,6 +80,15 @@ type PendingDragState = {
 
   startX: number;
   startY: number;
+  currentY: number;
+};
+
+type MobileWeekGestureState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
 };
 
 type HabitDragState = {
@@ -469,6 +478,27 @@ export default function Planning({
       PendingDragState | null
     >(null);
 
+  const taskLongPressTimerRef =
+    useRef<number | null>(
+      null
+    );
+
+  const suppressTaskMenuClickUntilRef =
+    useRef(0);
+
+  const mobileWeekGestureRef =
+    useRef<
+      MobileWeekGestureState | null
+    >(null);
+
+  const suppressMobileDateClickUntilRef =
+    useRef(0);
+
+  const inputVisibilityTimerRef =
+    useRef<number | null>(
+      null
+    );
+
   const suppressDoubleClickUntilRef =
     useRef(0);
 
@@ -856,7 +886,7 @@ export default function Planning({
       selectedHabits.length;
 
   /* ============================================================
-   * UP NEXT
+   * UPCOMING EVENTS
    * ============================================================
    */
 
@@ -900,13 +930,37 @@ export default function Planning({
         (
           a,
           b
-        ) =>
-          a.date.localeCompare(
-            b.date
-          ) ||
-          (a.event.time ?? "").localeCompare(
-            b.event.time ?? ""
-          )
+        ) => {
+          const dateOrder =
+            a.date.localeCompare(
+              b.date
+            );
+
+          if (dateOrder !== 0) {
+            return dateOrder;
+          }
+
+          const aTime =
+            a.event.time;
+          const bTime =
+            b.event.time;
+
+          if (!aTime && !bTime) {
+            return 0;
+          }
+
+          if (!aTime) {
+            return -1;
+          }
+
+          if (!bTime) {
+            return 1;
+          }
+
+          return aTime.localeCompare(
+            bTime
+          );
+        }
       )
       .slice(0, 3);
 
@@ -951,6 +1005,54 @@ export default function Planning({
         null
       );
     };
+
+  const keepMobileInputVisible = (
+    element: HTMLInputElement
+  ) => {
+    if (
+      !window.matchMedia(
+        "(max-width: 767px)"
+      ).matches
+    ) {
+      return;
+    }
+
+    const revealInput =
+      () => {
+        element.scrollIntoView(
+          {
+            block:
+              "center",
+            inline:
+              "nearest",
+          }
+        );
+      };
+
+    requestAnimationFrame(
+      revealInput
+    );
+
+    if (
+      inputVisibilityTimerRef.current !==
+      null
+    ) {
+      window.clearTimeout(
+        inputVisibilityTimerRef.current
+      );
+    }
+
+    inputVisibilityTimerRef.current =
+      window.setTimeout(
+        () => {
+          revealInput();
+
+          inputVisibilityTimerRef.current =
+            null;
+        },
+        280
+      );
+  };
 
   /* ============================================================
    * WEEK NAVIGATION
@@ -1168,6 +1270,157 @@ export default function Planning({
 
     selectDate(
       nextDate
+    );
+  };
+
+  const jumpToDate = (
+    dateKey: string
+  ) => {
+    if (!dateKey) {
+      return;
+    }
+
+    const nextDate =
+      new Date(
+        `${dateKey}T12:00:00`
+      );
+
+    if (
+      Number.isNaN(
+        nextDate.getTime()
+      )
+    ) {
+      return;
+    }
+
+    setWeekDirection(
+      nextDate >= selectedDate
+        ? "right"
+        : "left"
+    );
+
+    setWeekStart(
+      startOfWeek(
+        nextDate
+      )
+    );
+
+    selectDate(
+      nextDate
+    );
+  };
+
+  const handleMobileWeekPointerDown = (
+    event:
+      ReactPointerEvent<HTMLDivElement>
+  ) => {
+    if (
+      event.pointerType ===
+        "mouse"
+    ) {
+      return;
+    }
+
+    mobileWeekGestureRef.current =
+      {
+        pointerId:
+          event.pointerId,
+        startX:
+          event.clientX,
+        startY:
+          event.clientY,
+        currentX:
+          event.clientX,
+        currentY:
+          event.clientY,
+      };
+  };
+
+  const handleMobileWeekPointerMove = (
+    event:
+      ReactPointerEvent<HTMLDivElement>
+  ) => {
+    const gesture =
+      mobileWeekGestureRef.current;
+
+    if (
+      !gesture ||
+      gesture.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    gesture.currentX =
+      event.clientX;
+    gesture.currentY =
+      event.clientY;
+
+    const dx =
+      gesture.currentX -
+      gesture.startX;
+    const dy =
+      gesture.currentY -
+      gesture.startY;
+
+    if (
+      Math.abs(dx) >
+        12 &&
+      Math.abs(dx) >
+        Math.abs(dy) *
+          1.2
+    ) {
+      event.preventDefault();
+    }
+  };
+
+  const releaseMobileWeekGesture = (
+    event:
+      ReactPointerEvent<HTMLDivElement>,
+    cancelled = false
+  ) => {
+    const gesture =
+      mobileWeekGestureRef.current;
+
+    mobileWeekGestureRef.current =
+      null;
+
+    if (
+      cancelled ||
+      !gesture ||
+      gesture.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    const dx =
+      event.clientX -
+      gesture.startX;
+    const dy =
+      event.clientY -
+      gesture.startY;
+
+    if (
+      Math.abs(dx) <
+        52 ||
+      Math.abs(dx) <=
+        Math.abs(dy) *
+          1.25
+    ) {
+      return;
+    }
+
+    suppressMobileDateClickUntilRef.current =
+      performance.now() +
+      400;
+
+    event.preventDefault();
+
+    moveMobileWeek(
+      dx < 0
+        ? 1
+        : -1
     );
   };
 
@@ -3064,6 +3317,212 @@ export default function Planning({
     );
   };
 
+  const clearTaskLongPress =
+    () => {
+      if (
+        taskLongPressTimerRef.current !==
+        null
+      ) {
+        window.clearTimeout(
+          taskLongPressTimerRef.current
+        );
+
+        taskLongPressTimerRef.current =
+          null;
+      }
+
+      pendingDragRef.current =
+        null;
+    };
+
+  const handleTaskMenuPointerDown = (
+    event:
+      ReactPointerEvent<HTMLButtonElement>,
+    task:
+      Task,
+    index:
+      number
+  ) => {
+    event.stopPropagation();
+
+    if (
+      event.pointerType ===
+        "mouse" ||
+      task.completed ||
+      selectedDateIsPast ||
+      editingTaskId !==
+        null ||
+      index <
+        0
+    ) {
+      return;
+    }
+
+    clearTaskLongPress();
+
+    const trigger =
+      event.currentTarget;
+
+    const pending:
+      PendingDragState =
+      {
+        task,
+        index,
+        pointerId:
+          event.pointerId,
+        startX:
+          event.clientX,
+        startY:
+          event.clientY,
+        currentY:
+          event.clientY,
+      };
+
+    pendingDragRef.current =
+      pending;
+
+    try {
+      trigger.setPointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+
+    taskLongPressTimerRef.current =
+      window.setTimeout(
+        () => {
+          taskLongPressTimerRef.current =
+            null;
+
+          const latest =
+            pendingDragRef.current;
+
+          if (
+            !latest ||
+            latest.pointerId !==
+              pending.pointerId ||
+            latest.task.id !==
+              task.id
+          ) {
+            return;
+          }
+
+          pendingDragRef.current =
+            null;
+
+          setOpenTaskMenuId(
+            null
+          );
+
+          setOpenHabitMenuId(
+            null
+          );
+
+          suppressTaskMenuClickUntilRef.current =
+            performance.now() +
+            700;
+
+          try {
+            trigger.releasePointerCapture(
+              pending.pointerId
+            );
+          } catch {
+            // Safe fallback.
+          }
+
+          beginActualDrag(
+            latest,
+            latest.currentY
+          );
+        },
+        360
+      );
+  };
+
+  const handleTaskMenuPointerMove = (
+    event:
+      ReactPointerEvent<HTMLButtonElement>,
+    task:
+      Task
+  ) => {
+    const pending =
+      pendingDragRef.current;
+
+    if (
+      !pending ||
+      pending.pointerId !==
+        event.pointerId ||
+      pending.task.id !==
+        task.id
+    ) {
+      return;
+    }
+
+    event.stopPropagation();
+
+    pending.currentY =
+      event.clientY;
+
+    const distance =
+      Math.hypot(
+        event.clientX -
+          pending.startX,
+        event.clientY -
+          pending.startY
+      );
+
+    if (distance <= 10) {
+      return;
+    }
+
+    suppressTaskMenuClickUntilRef.current =
+      performance.now() +
+      350;
+
+    clearTaskLongPress();
+
+    try {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+  };
+
+  const handleTaskMenuPointerUp = (
+    event:
+      ReactPointerEvent<HTMLButtonElement>,
+    task:
+      Task
+  ) => {
+    const pending =
+      pendingDragRef.current;
+
+    if (
+      !pending ||
+      pending.pointerId !==
+        event.pointerId ||
+      pending.task.id !==
+        task.id
+    ) {
+      return;
+    }
+
+    event.stopPropagation();
+
+    clearTaskLongPress();
+
+    try {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {
+      // Safe fallback.
+    }
+  };
+
   const handleTaskPointerDown = (
     event:
       ReactPointerEvent<HTMLDivElement>,
@@ -3072,28 +3531,19 @@ export default function Planning({
     index:
       number
   ) => {
-    const target =
-      event.target as HTMLElement;
-
-    const mobileDragHandle =
-      target.closest(
-        "[data-mobile-task-drag-handle]"
-      );
-
     if (
       event.pointerType !==
-        "mouse" &&
-      !mobileDragHandle
+        "mouse"
     ) {
       return;
     }
 
+    const target =
+      event.target as HTMLElement;
+
     if (
-      (
-        target.closest(
-          "button"
-        ) &&
-        !mobileDragHandle
+      target.closest(
+        "button"
       ) ||
       target.closest(
         "input"
@@ -3135,6 +3585,9 @@ export default function Planning({
 
         startY:
           event.clientY,
+
+        currentY:
+          event.clientY,
       };
 
     try {
@@ -3164,6 +3617,9 @@ export default function Planning({
     ) {
       return;
     }
+
+    pending.currentY =
+      event.clientY;
 
     const dx =
       event.clientX -
@@ -4197,6 +4653,27 @@ export default function Planning({
         pendingHabitDragRef.current =
           null;
 
+        mobileWeekGestureRef.current =
+          null;
+
+        if (
+          taskLongPressTimerRef.current !==
+          null
+        ) {
+          window.clearTimeout(
+            taskLongPressTimerRef.current
+          );
+        }
+
+        if (
+          inputVisibilityTimerRef.current !==
+          null
+        ) {
+          window.clearTimeout(
+            inputVisibilityTimerRef.current
+          );
+        }
+
         window.removeEventListener(
           "pointermove",
           handlePointerMove
@@ -4323,7 +4800,31 @@ export default function Planning({
    */
 
   return (
-    <div className="w-full">
+    <div
+      className="w-full"
+      onPointerDownCapture={(event) => {
+        const target =
+          event.target as HTMLElement;
+
+        if (
+          target.closest(
+            "[data-planning-context-menu]"
+          )
+        ) {
+          return;
+        }
+
+        clearTaskLongPress();
+
+        setOpenTaskMenuId(
+          null
+        );
+
+        setOpenHabitMenuId(
+          null
+        );
+      }}
+    >
       <style jsx>{`
         @keyframes weekRight {
           from {
@@ -4371,6 +4872,19 @@ export default function Planning({
               0.25,
               1
             );
+        }
+
+        .mobile-week.week-right,
+        .mobile-week.week-left {
+          animation-duration:
+            260ms;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mobile-week.week-right,
+          .mobile-week.week-left {
+            animation: none;
+          }
         }
 
         @keyframes taskDelete {
@@ -4584,14 +5098,14 @@ export default function Planning({
 
       {/* HEADER */}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-end justify-between gap-3 md:items-center">
         <div className="min-w-0">
           <p className="text-xs text-white/40 md:text-sm">
             Planning
           </p>
 
-          <h2 className="mt-1 truncate text-2xl font-semibold md:text-3xl">
-            <span className="md:hidden">
+          <label className="relative mt-1 block w-fit max-w-full cursor-pointer text-xl font-semibold leading-tight text-white transition focus-within:text-[#A8B5F0] active:text-white/75 md:hidden">
+            <span className="block truncate">
               {selectedDate.toLocaleDateString(
                 "en-US",
                 {
@@ -4603,33 +5117,72 @@ export default function Planning({
               )}
             </span>
 
-            <span className="hidden md:inline">
-              {weekStart.toLocaleDateString(
-                "en-US",
-                {
-                  month:
-                    "long",
-                  year:
-                    "numeric",
-                }
-              )}
-            </span>
+            <input
+              type="date"
+              value={
+                selectedDateKey
+              }
+              onChange={(event) =>
+                jumpToDate(
+                  event.target.value
+                )
+              }
+              aria-label="Jump to another date"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+          </label>
+
+          <h2 className="mt-1 hidden truncate text-3xl font-semibold md:block">
+            {weekStart.toLocaleDateString(
+              "en-US",
+              {
+                month:
+                  "long",
+                year:
+                  "numeric",
+              }
+            )}
           </h2>
         </div>
 
-        {!isSameDay(
-          selectedDate,
-          today
-        ) && (
+        <div className="flex shrink-0 items-center gap-1 md:hidden">
+          {!isSameDay(
+            selectedDate,
+            today
+          ) && (
+            <button
+              type="button"
+              onClick={
+                goToToday
+              }
+              className="h-11 shrink-0 cursor-pointer rounded-xl border border-white/10 px-2.5 text-xs text-white/55 transition active:bg-white/[0.07] active:text-white"
+            >
+              Today
+            </button>
+          )}
+
           <button
-            onClick={
-              goToToday
+            type="button"
+            onClick={() =>
+              moveMobileWeek(-1)
             }
-            className="min-h-11 shrink-0 cursor-pointer rounded-xl border border-white/10 px-3 text-sm text-white/60 transition-all duration-300 hover:bg-white/5 hover:text-white md:hidden"
+            aria-label="Previous week"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-lg text-white/40 transition active:bg-white/[0.07] active:text-white/70"
           >
-            Today
+            ‹
           </button>
-        )}
+
+          <button
+            type="button"
+            onClick={() =>
+              moveMobileWeek(1)
+            }
+            aria-label="Next week"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-lg text-white/40 transition active:bg-white/[0.07] active:text-white/70"
+          >
+            ›
+          </button>
+        </div>
 
         <div className="hidden items-center gap-2 md:flex">
           {!isSameDay(
@@ -4672,20 +5225,26 @@ export default function Planning({
 
       <div
         key={`mobile-${mobileWeekStart.toISOString()}`}
-        className={`mt-5 flex items-stretch gap-1.5 md:hidden ${weekDirection === "right" ? "week-right" : "week-left"}`}
+        onPointerDown={
+          handleMobileWeekPointerDown
+        }
+        onPointerMove={
+          handleMobileWeekPointerMove
+        }
+        onPointerUp={(event) =>
+          releaseMobileWeekGesture(
+            event
+          )
+        }
+        onPointerCancel={(event) =>
+          releaseMobileWeekGesture(
+            event,
+            true
+          )
+        }
+        className={`mobile-week mt-5 touch-pan-y md:hidden ${weekDirection === "right" ? "week-right" : "week-left"}`}
       >
-        <button
-          type="button"
-          onClick={() =>
-            moveMobileWeek(-1)
-          }
-          aria-label="Previous week"
-          className="flex min-h-14 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-white/40 transition active:bg-white/[0.07]"
-        >
-          ‹
-        </button>
-
-        <div className="grid min-w-0 flex-1 grid-cols-7 gap-0.5">
+        <div className="grid w-full grid-cols-7 gap-1">
           {mobileWeekDays.map(
             (
               date
@@ -4727,13 +5286,20 @@ export default function Planning({
                     date.toISOString()
                   }
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (
+                      performance.now() <
+                      suppressMobileDateClickUntilRef.current
+                    ) {
+                      return;
+                    }
+
                     selectDate(
                       date
-                    )
-                  }
+                    );
+                  }}
                   aria-label={`${formatDate(date)}${current ? ", Today" : ""}${hasEvent ? ", event planned" : ""}`}
-                  className={`relative min-h-14 min-w-0 cursor-pointer rounded-xl border px-0.5 py-2 text-center transition ${selected ? "border-[#5B7CFF]/65 bg-[#5B7CFF]/[0.12]" : current ? "border-white/20 bg-white/[0.025]" : "border-transparent bg-white/[0.015] active:bg-white/[0.05]"}`}
+                  className={`relative min-h-14 min-w-0 cursor-pointer rounded-xl border px-0.5 py-2 text-center transition active:bg-white/[0.06] ${selected ? "border-[#5B7CFF]/65 bg-[#5B7CFF]/[0.12]" : current ? "border-white/20 bg-white/[0.025]" : "border-transparent bg-white/[0.015]"}`}
                 >
                   <span className="block text-[9px] font-medium uppercase tracking-[0.04em] text-white/35">
                     {date.toLocaleDateString(
@@ -4770,17 +5336,6 @@ export default function Planning({
             }
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            moveMobileWeek(1)
-          }
-          aria-label="Next week"
-          className="flex min-h-14 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-white/40 transition active:bg-white/[0.07]"
-        >
-          ›
-        </button>
       </div>
 
       {/* WEEK */}
@@ -4961,7 +5516,7 @@ export default function Planning({
                       setAddingHabit(false);
                       setAddingEvent(true);
                     }}
-                    className="min-h-11 cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white md:px-3 md:text-sm"
+                    className="min-h-11 cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white active:bg-white/[0.08] active:text-white md:px-3 md:text-sm"
                   >
                     + Event
                   </button>
@@ -4975,7 +5530,7 @@ export default function Planning({
                       setNewTaskCarryOver(true);
                       setAddingTask(true);
                     }}
-                    className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 md:px-3 md:text-sm"
+                    className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 active:opacity-80 md:px-3 md:text-sm"
                   >
                     + Task
                   </button>
@@ -4991,12 +5546,19 @@ export default function Planning({
               <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:mt-5 md:p-5">
                 <input
                   autoFocus
+                  enterKeyHint="done"
+                  onFocus={(event) =>
+                    keepMobileInputVisible(
+                      event.currentTarget
+                    )
+                  }
                   value={newTask}
                   onChange={(event) =>
                     setNewTask(event.target.value)
                   }
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
+                      event.preventDefault();
                       addTask();
                     }
 
@@ -5071,12 +5633,19 @@ export default function Planning({
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
                   <input
                     autoFocus
+                    enterKeyHint="done"
+                    onFocus={(event) =>
+                      keepMobileInputVisible(
+                        event.currentTarget
+                      )
+                    }
                     value={newEventTitle}
                     onChange={(event) =>
                       setNewEventTitle(event.target.value)
                     }
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
+                        event.preventDefault();
                         addEvent();
                       }
 
@@ -5125,6 +5694,11 @@ export default function Planning({
 
                       <input
                         type="time"
+                        onFocus={(event) =>
+                          keepMobileInputVisible(
+                            event.currentTarget
+                          )
+                        }
                         value={
                           newEventTime
                         }
@@ -5156,6 +5730,11 @@ export default function Planning({
 
                   <input
                     type="time"
+                    onFocus={(event) =>
+                      keepMobileInputVisible(
+                        event.currentTarget
+                      )
+                    }
                     value={newEventTime}
                     onChange={(event) =>
                       setNewEventTime(event.target.value)
@@ -5174,7 +5753,7 @@ export default function Planning({
                       )
                     }
                     aria-pressed={newEventRepeatYearly}
-                    className="flex w-fit cursor-pointer items-center gap-2.5 text-xs text-white/55"
+                    className="flex min-h-11 w-fit cursor-pointer items-center gap-2.5 text-xs text-white/55 transition active:text-white/75 md:min-h-0 md:active:text-white/55"
                   >
                     <span>Repeat yearly</span>
                     <span
@@ -5191,7 +5770,7 @@ export default function Planning({
                     <button
                       type="button"
                       onClick={resetEventForm}
-                      className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                      className="min-h-11 cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white active:bg-white/[0.06] md:min-h-0"
                     >
                       Cancel
                     </button>
@@ -5199,7 +5778,7 @@ export default function Planning({
                     <button
                       type="button"
                       onClick={addEvent}
-                      className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                      className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90 active:opacity-80 md:min-h-0"
                     >
                       Add event
                     </button>
@@ -5270,6 +5849,11 @@ export default function Planning({
                           item.id ===
                           task.id
                       );
+
+                    const taskCarryOverActive =
+                      task.carryOver !==
+                        false &&
+                      !task.completed;
 
                     return (
                       <div
@@ -5400,7 +5984,7 @@ export default function Planning({
                             selectedDateIsPast
                           }
 
-                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center md:h-5 md:w-5 ${
+                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${
                             selectedDateIsPast
                               ? "cursor-default"
                               : "cursor-pointer"
@@ -5438,6 +6022,12 @@ export default function Planning({
                           task.id ? (
                             <input
                               autoFocus
+                              enterKeyHint="done"
+                              onFocus={(event) =>
+                                keepMobileInputVisible(
+                                  event.currentTarget
+                                )
+                              }
                               value={
                                 editTaskText
                               }
@@ -5642,79 +6232,72 @@ export default function Planning({
                             />
                           </svg>
                         </button>
-                        {!task.completed &&
-                          !selectedDateIsPast &&
-                          editingTaskId !==
-                            task.id && (
-                            <span
-                              data-mobile-task-drag-handle
-                              aria-hidden="true"
-                              className="flex h-11 w-7 shrink-0 touch-none select-none items-center justify-center text-white/20 transition active:text-[#8295E8] md:hidden"
-                            >
-                              <svg
-                                className="h-4 w-3"
-                                viewBox="0 0 12 16"
-                                fill="none"
-                              >
-                                <circle cx="3" cy="3" r="1" fill="currentColor" />
-                                <circle cx="9" cy="3" r="1" fill="currentColor" />
-                                <circle cx="3" cy="8" r="1" fill="currentColor" />
-                                <circle cx="9" cy="8" r="1" fill="currentColor" />
-                                <circle cx="3" cy="13" r="1" fill="currentColor" />
-                                <circle cx="9" cy="13" r="1" fill="currentColor" />
-                              </svg>
-                            </span>
-                          )}
-
                         {!selectedDateIsPast && (
                           <button
+                            data-planning-context-menu
                             type="button"
                             onPointerDown={(event) =>
-                              event.stopPropagation()
+                              handleTaskMenuPointerDown(
+                                event,
+                                task,
+                                unfinishedIndex
+                              )
                             }
+                            onPointerMove={(event) =>
+                              handleTaskMenuPointerMove(
+                                event,
+                                task
+                              )
+                            }
+                            onPointerUp={(event) =>
+                              handleTaskMenuPointerUp(
+                                event,
+                                task
+                              )
+                            }
+                            onPointerCancel={(event) =>
+                              handleTaskMenuPointerUp(
+                                event,
+                                task
+                              )
+                            }
+                            onContextMenu={(event) => {
+                              if (
+                                window.matchMedia(
+                                  "(max-width: 767px)"
+                                ).matches
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
                             onClick={(event) => {
                               event.stopPropagation();
+
+                              if (
+                                performance.now() <
+                                suppressTaskMenuClickUntilRef.current
+                              ) {
+                                return;
+                              }
+
                               setOpenTaskMenuId(
                                 (current) =>
                                   current === task.id
                                     ? null
                                     : task.id
                               );
+
                               setOpenHabitMenuId(
                                 null
                               );
                             }}
-                            aria-label={`Task options for ${task.text}`}
+                            aria-label={`Task options for ${task.text}${taskCarryOverActive ? ", carry-over on" : ""}${!task.completed ? ", hold and drag to reorder" : ""}`}
                             aria-expanded={
                               openTaskMenuId ===
                               task.id
                             }
-                            className={`relative z-30 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white/35 transition active:bg-white/[0.06] md:hidden ${openTaskMenuId === task.id ? "bg-white/[0.05] text-white/65" : ""}`}
+                            className={`relative z-30 flex h-11 w-11 shrink-0 touch-none cursor-pointer items-center justify-center rounded-xl transition active:bg-white/[0.06] md:hidden ${taskCarryOverActive ? "text-[#8295E8]/70" : "text-white/35"} ${openTaskMenuId === task.id ? taskCarryOverActive ? "bg-white/[0.05] text-[#9EACEC]/85" : "bg-white/[0.05] text-white/65" : ""}`}
                           >
-                            {task.carryOver !== false &&
-                              !task.completed && (
-                                <svg
-                                  aria-hidden="true"
-                                  className="absolute left-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#8295E8]/70"
-                                  viewBox="0 0 20 20"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M15.5 9A5.75 5.75 0 1 0 14 13"
-                                    stroke="currentColor"
-                                    strokeWidth="1.45"
-                                    strokeLinecap="round"
-                                  />
-                                  <path
-                                    d="M15.5 4.75V9h-4.25"
-                                    stroke="currentColor"
-                                    strokeWidth="1.45"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
-
                             <span className="text-lg leading-none">
                               ⋯
                             </span>
@@ -5724,7 +6307,10 @@ export default function Planning({
                         {openTaskMenuId ===
                           task.id &&
                           !selectedDateIsPast && (
-                            <div className="flex basis-full items-center gap-1 border-t border-white/[0.06] pt-2 md:hidden">
+                            <div
+                              data-planning-context-menu
+                              className="flex basis-full items-center gap-1 border-t border-white/[0.06] pt-2 md:hidden"
+                            >
                               <button
                                 type="button"
                                 onClick={() =>
@@ -5743,10 +6329,6 @@ export default function Planning({
                               >
                                 Carry {task.carryOver !== false ? "on" : "off"}
                               </button>
-
-
-
-
 
                               <button
                                 type="button"
@@ -5919,6 +6501,12 @@ export default function Planning({
                 <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                   <input
                     autoFocus
+                    enterKeyHint="done"
+                    onFocus={(event) =>
+                      keepMobileInputVisible(
+                        event.currentTarget
+                      )
+                    }
                     value={
                       newHabit
                     }
@@ -6240,7 +6828,7 @@ export default function Planning({
                                 habitReorderMode
                               }
 
-                              className={`flex h-11 w-11 shrink-0 items-center justify-center md:h-5 md:w-5 ${
+                              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${
                                 selectedDateIsPast ||
                                 habitReorderMode
                                   ? "cursor-default"
@@ -6272,6 +6860,12 @@ export default function Planning({
                               {isEditing ? (
                                 <input
                                   autoFocus
+                                  enterKeyHint="done"
+                                  onFocus={(event) =>
+                                    keepMobileInputVisible(
+                                      event.currentTarget
+                                    )
+                                  }
                                   value={
                                     editHabitName
                                   }
@@ -6480,6 +7074,7 @@ export default function Planning({
                             {!habitReorderMode &&
                               !selectedDateIsPast && (
                                 <button
+                                  data-planning-context-menu
                                   type="button"
                                   onClick={(event) => {
                                     event.stopPropagation();
@@ -6508,7 +7103,10 @@ export default function Planning({
                               habit.id &&
                               !habitReorderMode &&
                               !selectedDateIsPast && (
-                                <div className="flex basis-full justify-end border-t border-white/[0.06] pt-2 md:hidden">
+                                <div
+                                  data-planning-context-menu
+                                  className="flex basis-full justify-end border-t border-white/[0.06] pt-2 md:hidden"
+                                >
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -6597,6 +7195,12 @@ export default function Planning({
                           <div className="min-w-0 flex-1">
                             <input
                               autoFocus
+                              enterKeyHint="done"
+                              onFocus={(event) =>
+                                keepMobileInputVisible(
+                                  event.currentTarget
+                                )
+                              }
                               value={
                                 editEventTitle
                               }
@@ -6662,6 +7266,11 @@ export default function Planning({
 
                                   <input
                                     type="time"
+                                    onFocus={(event) =>
+                                      keepMobileInputVisible(
+                                        event.currentTarget
+                                      )
+                                    }
                                     value={
                                       editEventTime
                                     }
@@ -7022,6 +7631,12 @@ export default function Planning({
                           <div className="min-w-0 flex-1">
                             <input
                               autoFocus
+                              enterKeyHint="done"
+                              onFocus={(event) =>
+                                keepMobileInputVisible(
+                                  event.currentTarget
+                                )
+                              }
                               value={editEventTitle}
                               onChange={(event) =>
                                 setEditEventTitle(
@@ -7044,6 +7659,11 @@ export default function Planning({
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <input
                                 type="time"
+                                onFocus={(event) =>
+                                  keepMobileInputVisible(
+                                    event.currentTarget
+                                  )
+                                }
                                 value={editEventTime}
                                 onChange={(event) =>
                                   setEditEventTime(
@@ -7155,7 +7775,7 @@ export default function Planning({
             dragOverlayRef
           }
 
-          className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl border border-white/15 bg-[#171a24] p-4 shadow-2xl shadow-black/40"
+          className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl border border-white/15 bg-[#171a24] p-3.5 shadow-2xl shadow-black/40 md:p-4"
 
           style={{
             top:
@@ -7177,16 +7797,19 @@ export default function Planning({
               "transform",
           }}
         >
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="flex h-5 w-5 shrink-0 rounded-full border border-white/20" />
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center md:h-5 md:w-5">
+              <span className="h-5 w-5 rounded-full border border-white/20" />
+            </span>
 
-            <span className="min-w-0 flex-1 whitespace-normal break-words leading-5 text-white/80 [overflow-wrap:anywhere]">
+            <span className="min-w-0 flex-1 overflow-hidden whitespace-normal break-words leading-5 text-white/80 [overflow-wrap:anywhere]">
               {
                 drag.text
               }
             </span>
 
-            <span className="h-7 w-7 shrink-0" />
+            <span className="hidden h-7 w-7 shrink-0 md:block" />
+            <span className="h-11 w-11 shrink-0 md:h-7 md:w-7" />
           </div>
         </div>
       )}
