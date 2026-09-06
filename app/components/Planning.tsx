@@ -154,6 +154,20 @@ function startOfWeek(date: Date) {
   return d;
 }
 
+function startOfMobileWeek(date: Date) {
+  const d = startOfDay(date);
+  const mondayOffset =
+    (d.getDay() + 6) %
+    7;
+
+  d.setDate(
+    d.getDate() -
+      mondayOffset
+  );
+
+  return d;
+}
+
 function isSameDay(a: Date, b: Date) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -611,10 +625,15 @@ export default function Planning({
       }
     );
 
-  const mobileDays =
+  const mobileWeekStart =
+    startOfMobileWeek(
+      selectedDate
+    );
+
+  const mobileWeekDays =
     Array.from(
       {
-        length: 5,
+        length: 7,
       },
       (
         _,
@@ -622,13 +641,12 @@ export default function Planning({
       ) => {
         const date =
           new Date(
-            selectedDate
+            mobileWeekStart
           );
 
         date.setDate(
-          selectedDate.getDate() +
-            index -
-            2
+          mobileWeekStart.getDate() +
+            index
         );
 
         return date;
@@ -646,7 +664,6 @@ export default function Planning({
     );
 
   /* ============================================================
-   * TASK LIST  /* ============================================================
    * TASK LIST
    * ============================================================
    */
@@ -1029,6 +1046,14 @@ export default function Planning({
       closeEditing();
       closeHabitControls();
 
+      setOpenTaskMenuId(
+        null
+      );
+
+      setOpenHabitMenuId(
+        null
+      );
+
       setHabitReorderMode(
         false
       );
@@ -1088,14 +1113,6 @@ export default function Planning({
       false
     );
 
-    setOpenTaskMenuId(
-      null
-    );
-
-    setOpenHabitMenuId(
-      null
-    );
-
     setSelectedDate(
       new Date(
         date
@@ -1123,7 +1140,7 @@ export default function Planning({
     );
   };
 
-  const moveDay = (
+  const moveMobileWeek = (
     amount: number
   ) => {
     const nextDate =
@@ -1133,7 +1150,8 @@ export default function Planning({
 
     nextDate.setDate(
       selectedDate.getDate() +
-        amount
+        amount *
+          7
     );
 
     setWeekStart(
@@ -3054,19 +3072,28 @@ export default function Planning({
     index:
       number
   ) => {
+    const target =
+      event.target as HTMLElement;
+
+    const mobileDragHandle =
+      target.closest(
+        "[data-mobile-task-drag-handle]"
+      );
+
     if (
       event.pointerType !==
-      "mouse"
+        "mouse" &&
+      !mobileDragHandle
     ) {
       return;
     }
 
-    const target =
-      event.target as HTMLElement;
-
     if (
-      target.closest(
-        "button"
+      (
+        target.closest(
+          "button"
+        ) &&
+        !mobileDragHandle
       ) ||
       target.closest(
         "input"
@@ -3090,6 +3117,10 @@ export default function Planning({
     ) {
       return;
     }
+
+    setOpenTaskMenuId(
+      null
+    );
 
     pendingDragRef.current =
       {
@@ -3673,108 +3704,6 @@ export default function Planning({
       );
     };
 
-  const moveTaskOnMobile = (
-    id: number,
-    direction: -1 | 1
-  ) => {
-    if (
-      selectedDateIsPast
-    ) {
-      return;
-    }
-
-    const ids =
-      unfinishedTasks.map(
-        (
-          task
-        ) =>
-          task.id
-      );
-
-    const index =
-      ids.indexOf(
-        id
-      );
-
-    const nextIndex =
-      index +
-      direction;
-
-    if (
-      index < 0 ||
-      nextIndex < 0 ||
-      nextIndex >=
-        ids.length
-    ) {
-      return;
-    }
-
-    [
-      ids[index],
-      ids[nextIndex],
-    ] = [
-      ids[nextIndex],
-      ids[index],
-    ];
-
-    commitPreviewOrder(
-      ids
-    );
-
-    setOpenTaskMenuId(
-      null
-    );
-  };
-
-  const moveHabitOnMobile = (
-    id: number,
-    direction: -1 | 1
-  ) => {
-    if (
-      selectedDateIsPast
-    ) {
-      return;
-    }
-
-    const ids =
-      selectedHabits.map(
-        (
-          habit
-        ) =>
-          habit.id
-      );
-
-    const index =
-      ids.indexOf(
-        id
-      );
-
-    const nextIndex =
-      index +
-      direction;
-
-    if (
-      index < 0 ||
-      nextIndex < 0 ||
-      nextIndex >=
-        ids.length
-    ) {
-      return;
-    }
-
-    [
-      ids[index],
-      ids[nextIndex],
-    ] = [
-      ids[nextIndex],
-      ids[index],
-    ];
-
-    commitHabitPreviewOrder(
-      ids
-    );
-  };
-
   const finishHabitDrag =
     () => {
       const current =
@@ -4095,8 +4024,6 @@ export default function Planning({
         number
     ) => {
       if (
-        event.pointerType !==
-        "mouse" ||
         !habitReorderMode ||
         selectedDateIsPast ||
         index <
@@ -4108,9 +4035,25 @@ export default function Planning({
       const target =
         event.target as HTMLElement;
 
-      if (
+      const mobileDragHandle =
         target.closest(
-          "button"
+          "[data-mobile-habit-drag-handle]"
+        );
+
+      if (
+        event.pointerType !==
+          "mouse" &&
+        !mobileDragHandle
+      ) {
+        return;
+      }
+
+      if (
+        (
+          target.closest(
+            "button"
+          ) &&
+          !mobileDragHandle
         ) ||
         target.closest(
           "input"
@@ -4118,6 +4061,10 @@ export default function Planning({
       ) {
         return;
       }
+
+      setOpenHabitMenuId(
+        null
+      );
 
       pendingHabitDragRef.current =
         {
@@ -4721,22 +4668,25 @@ export default function Planning({
         </div>
       </div>
 
-      {/* MOBILE DAYS */}
+      {/* MOBILE WEEK */}
 
-      <div className="mt-5 flex items-stretch gap-1.5 md:hidden">
+      <div
+        key={`mobile-${mobileWeekStart.toISOString()}`}
+        className={`mt-5 flex items-stretch gap-1.5 md:hidden ${weekDirection === "right" ? "week-right" : "week-left"}`}
+      >
         <button
           type="button"
           onClick={() =>
-            moveDay(-1)
+            moveMobileWeek(-1)
           }
-          aria-label="Previous day"
-          className="flex min-h-14 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/10 text-white/45 transition active:bg-white/[0.07]"
+          aria-label="Previous week"
+          className="flex min-h-14 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-white/40 transition active:bg-white/[0.07]"
         >
           ‹
         </button>
 
-        <div className="grid min-w-0 flex-1 grid-cols-5 gap-1.5">
-          {mobileDays.map(
+        <div className="grid min-w-0 flex-1 grid-cols-7 gap-0.5">
+          {mobileWeekDays.map(
             (
               date
             ) => {
@@ -4782,9 +4732,10 @@ export default function Planning({
                       date
                     )
                   }
-                  className={`relative min-h-14 min-w-0 cursor-pointer rounded-xl border px-1 py-2 text-center transition ${selected ? "border-[#5B7CFF]/70 bg-[#5B7CFF]/15" : "border-white/[0.08] bg-white/[0.025]"}`}
+                  aria-label={`${formatDate(date)}${current ? ", Today" : ""}${hasEvent ? ", event planned" : ""}`}
+                  className={`relative min-h-14 min-w-0 cursor-pointer rounded-xl border px-0.5 py-2 text-center transition ${selected ? "border-[#5B7CFF]/65 bg-[#5B7CFF]/[0.12]" : current ? "border-white/20 bg-white/[0.025]" : "border-transparent bg-white/[0.015] active:bg-white/[0.05]"}`}
                 >
-                  <span className="block text-[10px] font-medium uppercase tracking-wide text-white/35">
+                  <span className="block text-[9px] font-medium uppercase tracking-[0.04em] text-white/35">
                     {date.toLocaleDateString(
                       "en-US",
                       {
@@ -4794,14 +4745,25 @@ export default function Planning({
                     )}
                   </span>
 
-                  <span className={`mt-1 block text-base font-semibold ${selected ? "text-[#8295E8]" : "text-white/75"}`}>
+                  <span className={`mt-1 block text-sm font-semibold ${selected ? "text-[#8295E8]" : "text-white/70"}`}>
                     {date.getDate()}
                   </span>
 
-                  {(hasEvent || current) && (
-                    <span
-                      className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${hasEvent ? "bg-[#5B7CFF]" : "bg-white/30"}`}
-                    />
+                  {(hasEvent ||
+                    (
+                      current &&
+                      !selected
+                    )) && (
+                    <span className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+                      {hasEvent && (
+                        <span className="h-1 w-1 rounded-full bg-[#5B7CFF]" />
+                      )}
+
+                      {current &&
+                        !selected && (
+                          <span className="h-1 w-1 rounded-full bg-white/35" />
+                        )}
+                    </span>
                   )}
                 </button>
               );
@@ -4812,10 +4774,10 @@ export default function Planning({
         <button
           type="button"
           onClick={() =>
-            moveDay(1)
+            moveMobileWeek(1)
           }
-          aria-label="Next day"
-          className="flex min-h-14 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/10 text-white/45 transition active:bg-white/[0.07]"
+          aria-label="Next week"
+          className="flex min-h-14 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/[0.08] text-white/40 transition active:bg-white/[0.07]"
         >
           ›
         </button>
@@ -4944,23 +4906,42 @@ export default function Planning({
           {/* DAY HEADER */}
 
           <div className="flex items-start justify-between gap-3 md:items-end md:gap-4">
-            <div>
-              <p className="text-xs text-white/40 md:hidden">
-                {selectedDate.toLocaleDateString(
-                  "en-US",
-                  {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  }
+            <div className="min-w-0">
+              <h3 className="truncate text-lg font-semibold md:hidden">
+                {isSameDay(
+                  selectedDate,
+                  today
+                )
+                  ? "Today"
+                  : selectedDate.toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday:
+                          "short",
+                        month:
+                          "short",
+                        day:
+                          "numeric",
+                      }
+                    )}
+
+                {!isSameDay(
+                  selectedDate,
+                  today
+                ) && (
+                  <span className="ml-2 text-xs font-normal text-white/30">
+                    {selectedDate < today
+                      ? "Past"
+                      : "Upcoming"}
+                  </span>
                 )}
-              </p>
+              </h3>
 
               <p className="hidden text-sm text-white/40 md:block">
                 {formatDate(selectedDate)}
               </p>
 
-              <h3 className="mt-1 text-xl font-semibold md:text-2xl">
+              <h3 className="mt-1 hidden text-2xl font-semibold md:block">
                 {isSameDay(selectedDate, today)
                   ? "Today"
                   : selectedDate < today
@@ -4980,7 +4961,7 @@ export default function Planning({
                       setAddingHabit(false);
                       setAddingEvent(true);
                     }}
-                    className="min-h-10 cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white md:px-3 md:text-sm"
+                    className="min-h-11 cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-white/65 transition hover:bg-white/[0.08] hover:text-white md:px-3 md:text-sm"
                   >
                     + Event
                   </button>
@@ -4994,7 +4975,7 @@ export default function Planning({
                       setNewTaskCarryOver(true);
                       setAddingTask(true);
                     }}
-                    className="min-h-10 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 md:px-3 md:text-sm"
+                    className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 md:px-3 md:text-sm"
                   >
                     + Task
                   </button>
@@ -5003,7 +4984,7 @@ export default function Planning({
             )}
           </div>
 
-          {/* ADD TASK */}          {/* ADD TASK */}
+          {/* ADD TASK */}
 
           {addingTask &&
             !selectedDateIsPast && (
@@ -5067,7 +5048,7 @@ export default function Planning({
                         setNewTask("");
                         setNewTaskCarryOver(true);
                       }}
-                      className="cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+                      className="min-h-11 cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white sm:min-h-0"
                     >
                       Cancel
                     </button>
@@ -5075,7 +5056,7 @@ export default function Planning({
                     <button
                       type="button"
                       onClick={addTask}
-                      className="cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90"
+                      className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-4 py-2 text-sm font-medium transition hover:opacity-90 sm:min-h-0"
                     >
                       Add
                     </button>
@@ -5107,6 +5088,72 @@ export default function Planning({
                     className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-white/30 focus:border-[#5B7CFF]/50"
                   />
 
+                  <div className="flex min-w-0 gap-2 sm:hidden">
+                    <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] px-3.5">
+                      <span className="min-w-0">
+                        <span className="block text-[10px] uppercase tracking-[0.12em] text-white/25">
+                          Time
+                        </span>
+
+                        <span className="mt-0.5 block truncate text-sm text-white/70">
+                          {newEventTime ||
+                            "Optional"}
+                        </span>
+                      </span>
+
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4 shrink-0 text-white/30"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                      >
+                        <circle
+                          cx="10"
+                          cy="10"
+                          r="6.5"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                        />
+                        <path
+                          d="M10 6.5V10L12.5 11.5"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+
+                      <input
+                        type="time"
+                        value={
+                          newEventTime
+                        }
+                        onChange={(event) =>
+                          setNewEventTime(
+                            event.target.value
+                          )
+                        }
+                        aria-label="Optional event time"
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                    </label>
+
+                    {newEventTime && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewEventTime(
+                            ""
+                          )
+                        }
+                        aria-label="Clear event time"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-lg text-white/35 transition active:bg-white/[0.06] active:text-white/70"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
                   <input
                     type="time"
                     value={newEventTime}
@@ -5114,7 +5161,7 @@ export default function Planning({
                       setNewEventTime(event.target.value)
                     }
                     aria-label="Optional event time"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white/70 outline-none focus:border-[#5B7CFF]/50"
+                    className="hidden w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white/70 outline-none focus:border-[#5B7CFF]/50 sm:block"
                   />
                 </div>
 
@@ -5595,6 +5642,30 @@ export default function Planning({
                             />
                           </svg>
                         </button>
+                        {!task.completed &&
+                          !selectedDateIsPast &&
+                          editingTaskId !==
+                            task.id && (
+                            <span
+                              data-mobile-task-drag-handle
+                              aria-hidden="true"
+                              className="flex h-11 w-7 shrink-0 touch-none select-none items-center justify-center text-white/20 transition active:text-[#8295E8] md:hidden"
+                            >
+                              <svg
+                                className="h-4 w-3"
+                                viewBox="0 0 12 16"
+                                fill="none"
+                              >
+                                <circle cx="3" cy="3" r="1" fill="currentColor" />
+                                <circle cx="9" cy="3" r="1" fill="currentColor" />
+                                <circle cx="3" cy="8" r="1" fill="currentColor" />
+                                <circle cx="9" cy="8" r="1" fill="currentColor" />
+                                <circle cx="3" cy="13" r="1" fill="currentColor" />
+                                <circle cx="9" cy="13" r="1" fill="currentColor" />
+                              </svg>
+                            </span>
+                          )}
+
                         {!selectedDateIsPast && (
                           <button
                             type="button"
@@ -5673,46 +5744,9 @@ export default function Planning({
                                 Carry {task.carryOver !== false ? "on" : "off"}
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  moveTaskOnMobile(
-                                    task.id,
-                                    -1
-                                  )
-                                }
-                                disabled={
-                                  task.completed ||
-                                  unfinishedIndex <=
-                                    0
-                                }
-                                aria-label="Move task up"
-                                className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 disabled:text-white/10"
-                              >
-                                ↑
-                              </button>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  moveTaskOnMobile(
-                                    task.id,
-                                    1
-                                  )
-                                }
-                                disabled={
-                                  task.completed ||
-                                  unfinishedIndex <
-                                    0 ||
-                                  unfinishedIndex >=
-                                    unfinishedTasks.length -
-                                      1
-                                }
-                                aria-label="Move task down"
-                                className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 disabled:text-white/10"
-                              >
-                                ↓
-                              </button>
+
+
 
                               <button
                                 type="button"
@@ -5748,7 +5782,7 @@ export default function Planning({
                 <p className="mt-1 text-xs text-white/30">
                   <span className="md:hidden">
                     {habitReorderMode
-                      ? "Use arrows to reorder"
+                      ? "Drag with the grip"
                       : "Daily"}
                   </span>
                   <span className="hidden md:inline">
@@ -6349,21 +6383,42 @@ export default function Planning({
                             {/* REORDER INDICATOR */}
 
                             {habitReorderMode && (
-                              <div className="flex w-7 shrink-0 items-center justify-center text-white/25">
-                                <svg
-                                  width="15"
-                                  height="15"
-                                  viewBox="0 0 15 15"
-                                  fill="none"
+                              <>
+                                <div className="hidden w-7 shrink-0 items-center justify-center text-white/25 md:flex">
+                                  <svg
+                                    width="15"
+                                    height="15"
+                                    viewBox="0 0 15 15"
+                                    fill="none"
+                                  >
+                                    <circle cx="5" cy="4" r="0.8" fill="currentColor" />
+                                    <circle cx="10" cy="4" r="0.8" fill="currentColor" />
+                                    <circle cx="5" cy="7.5" r="0.8" fill="currentColor" />
+                                    <circle cx="10" cy="7.5" r="0.8" fill="currentColor" />
+                                    <circle cx="5" cy="11" r="0.8" fill="currentColor" />
+                                    <circle cx="10" cy="11" r="0.8" fill="currentColor" />
+                                  </svg>
+                                </div>
+
+                                <span
+                                  data-mobile-habit-drag-handle
+                                  aria-hidden="true"
+                                  className="flex h-11 w-9 shrink-0 touch-none select-none items-center justify-center rounded-xl text-[#8295E8]/60 active:bg-[#5B7CFF]/[0.08] active:text-[#8295E8] md:hidden"
                                 >
-                                  <circle cx="5" cy="4" r="0.8" fill="currentColor" />
-                                  <circle cx="10" cy="4" r="0.8" fill="currentColor" />
-                                  <circle cx="5" cy="7.5" r="0.8" fill="currentColor" />
-                                  <circle cx="10" cy="7.5" r="0.8" fill="currentColor" />
-                                  <circle cx="5" cy="11" r="0.8" fill="currentColor" />
-                                  <circle cx="10" cy="11" r="0.8" fill="currentColor" />
-                                </svg>
-                              </div>
+                                  <svg
+                                    className="h-4 w-3"
+                                    viewBox="0 0 12 16"
+                                    fill="none"
+                                  >
+                                    <circle cx="3" cy="3" r="1" fill="currentColor" />
+                                    <circle cx="9" cy="3" r="1" fill="currentColor" />
+                                    <circle cx="3" cy="8" r="1" fill="currentColor" />
+                                    <circle cx="9" cy="8" r="1" fill="currentColor" />
+                                    <circle cx="3" cy="13" r="1" fill="currentColor" />
+                                    <circle cx="9" cy="13" r="1" fill="currentColor" />
+                                  </svg>
+                                </span>
+                              </>
                             )}
 
                             {/* DELETE */}
@@ -6422,49 +6477,6 @@ export default function Planning({
                             )}
                           </>
                         )}
-                            {habitReorderMode && (
-                              <div className="ml-auto flex items-center gap-1 md:hidden">
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    moveHabitOnMobile(
-                                      habit.id,
-                                      -1
-                                    );
-                                  }}
-                                  disabled={
-                                    habitIndex <=
-                                    0
-                                  }
-                                  aria-label="Move habit up"
-                                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/45 disabled:text-white/10"
-                                >
-                                  ↑
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    moveHabitOnMobile(
-                                      habit.id,
-                                      1
-                                    );
-                                  }}
-                                  disabled={
-                                    habitIndex >=
-                                    selectedHabits.length -
-                                      1
-                                  }
-                                  aria-label="Move habit down"
-                                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/45 disabled:text-white/10"
-                                >
-                                  ↓
-                                </button>
-                              </div>
-                            )}
-
                             {!habitReorderMode &&
                               !selectedDateIsPast && (
                                 <button
@@ -6612,20 +6624,72 @@ export default function Planning({
                               className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-[#5B7CFF]/50"
                             />
 
-                            <div className="mt-2 grid grid-cols-1 gap-2 min-[390px]:grid-cols-[120px_minmax(0,1fr)]">
-                              <input
-                                type="time"
-                                value={
-                                  editEventTime
-                                }
-                                onChange={(event) =>
-                                  setEditEventTime(
-                                    event.target.value
-                                  )
-                                }
-                                aria-label="Event time"
-                                className="min-h-11 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-xs text-white/65 outline-none focus:border-[#5B7CFF]/50"
-                              />
+                            <div className="mt-2">
+                              <div className="flex min-w-0 gap-2">
+                                <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03] px-3">
+                                  <span className="min-w-0">
+                                    <span className="block text-[9px] uppercase tracking-[0.1em] text-white/25">
+                                      Time
+                                    </span>
+
+                                    <span className="mt-0.5 block truncate text-xs text-white/65">
+                                      {editEventTime ||
+                                        "Optional"}
+                                    </span>
+                                  </span>
+
+                                  <svg
+                                    aria-hidden="true"
+                                    className="h-3.5 w-3.5 shrink-0 text-white/30"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="6.5"
+                                      stroke="currentColor"
+                                      strokeWidth="1.4"
+                                    />
+                                    <path
+                                      d="M10 6.5V10L12.5 11.5"
+                                      stroke="currentColor"
+                                      strokeWidth="1.4"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+
+                                  <input
+                                    type="time"
+                                    value={
+                                      editEventTime
+                                    }
+                                    onChange={(event) =>
+                                      setEditEventTime(
+                                        event.target.value
+                                      )
+                                    }
+                                    aria-label="Event time"
+                                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                                  />
+                                </label>
+
+                                {editEventTime && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setEditEventTime(
+                                        ""
+                                      )
+                                    }
+                                    aria-label="Clear event time"
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] text-lg text-white/35 transition active:bg-white/[0.06] active:text-white/70"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
 
                               <button
                                 type="button"
@@ -6638,7 +6702,7 @@ export default function Planning({
                                 aria-pressed={
                                   editEventRepeatYearly
                                 }
-                                className={`min-h-11 rounded-lg border px-3 text-xs transition ${editEventRepeatYearly ? "border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.08] text-[#8295E8]" : "border-white/[0.08] text-white/40"}`}
+                                className={`mt-2 min-h-11 w-full rounded-lg border px-3 text-xs transition ${editEventRepeatYearly ? "border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.08] text-[#8295E8]" : "border-white/[0.08] text-white/40"}`}
                               >
                                 Yearly {editEventRepeatYearly ? "on" : "off"}
                               </button>
