@@ -422,6 +422,11 @@ export default function Planning({
     setHabitReorderMode,
   ] = useState(false);
 
+  const [
+    taskReorderMode,
+    setTaskReorderMode,
+  ] = useState(false);
+
   /* ============================================================
    * TASK EDITING
    * ============================================================
@@ -477,14 +482,6 @@ export default function Planning({
     useRef<
       PendingDragState | null
     >(null);
-
-  const taskLongPressTimerRef =
-    useRef<number | null>(
-      null
-    );
-
-  const suppressTaskMenuClickUntilRef =
-    useRef(0);
 
   const mobileWeekGestureRef =
     useRef<
@@ -1073,6 +1070,13 @@ export default function Planning({
       null
     );
 
+    setTaskReorderMode(
+
+      false
+
+    );
+
+
     setHabitReorderMode(
       false
     );
@@ -1156,6 +1160,13 @@ export default function Planning({
         null
       );
 
+      setTaskReorderMode(
+
+        false
+
+      );
+
+
       setHabitReorderMode(
         false
       );
@@ -1210,6 +1221,13 @@ export default function Planning({
     setOpenHabitMenuId(
       null
     );
+
+    setTaskReorderMode(
+
+      false
+
+    );
+
 
     setHabitReorderMode(
       false
@@ -1988,6 +2006,61 @@ export default function Planning({
     };
 
   /* ============================================================
+   * TASK REORDER MODE
+   * ============================================================
+   */
+
+  const toggleTaskReorderMode =
+    () => {
+      if (
+        selectedDateIsPast ||
+        unfinishedTasks.length <
+          2
+      ) {
+        return;
+      }
+
+      closeEditing();
+      closeHabitControls();
+      resetEventForm();
+
+      setAddingTask(
+        false
+      );
+
+      setNewTask(
+        ""
+      );
+
+      setAddingHabit(
+        false
+      );
+
+      setNewHabit(
+        ""
+      );
+
+      setOpenTaskMenuId(
+        null
+      );
+
+      setOpenHabitMenuId(
+        null
+      );
+
+      setHabitReorderMode(
+        false
+      );
+
+      setTaskReorderMode(
+        (
+          current
+        ) =>
+          !current
+      );
+    };
+
+  /* ============================================================
    * HABIT REORDER MODE
    * ============================================================
    */
@@ -2003,6 +2076,14 @@ export default function Planning({
       }
 
       closeHabitControls();
+
+      setTaskReorderMode(
+        false
+      );
+
+      setOpenTaskMenuId(
+        null
+      );
 
       setAddingHabit(
         false
@@ -3317,212 +3398,6 @@ export default function Planning({
     );
   };
 
-  const clearTaskLongPress =
-    () => {
-      if (
-        taskLongPressTimerRef.current !==
-        null
-      ) {
-        window.clearTimeout(
-          taskLongPressTimerRef.current
-        );
-
-        taskLongPressTimerRef.current =
-          null;
-      }
-
-      pendingDragRef.current =
-        null;
-    };
-
-  const handleTaskMenuPointerDown = (
-    event:
-      ReactPointerEvent<HTMLButtonElement>,
-    task:
-      Task,
-    index:
-      number
-  ) => {
-    event.stopPropagation();
-
-    if (
-      event.pointerType ===
-        "mouse" ||
-      task.completed ||
-      selectedDateIsPast ||
-      editingTaskId !==
-        null ||
-      index <
-        0
-    ) {
-      return;
-    }
-
-    clearTaskLongPress();
-
-    const trigger =
-      event.currentTarget;
-
-    const pending:
-      PendingDragState =
-      {
-        task,
-        index,
-        pointerId:
-          event.pointerId,
-        startX:
-          event.clientX,
-        startY:
-          event.clientY,
-        currentY:
-          event.clientY,
-      };
-
-    pendingDragRef.current =
-      pending;
-
-    try {
-      trigger.setPointerCapture(
-        event.pointerId
-      );
-    } catch {
-      // Safe fallback.
-    }
-
-    taskLongPressTimerRef.current =
-      window.setTimeout(
-        () => {
-          taskLongPressTimerRef.current =
-            null;
-
-          const latest =
-            pendingDragRef.current;
-
-          if (
-            !latest ||
-            latest.pointerId !==
-              pending.pointerId ||
-            latest.task.id !==
-              task.id
-          ) {
-            return;
-          }
-
-          pendingDragRef.current =
-            null;
-
-          setOpenTaskMenuId(
-            null
-          );
-
-          setOpenHabitMenuId(
-            null
-          );
-
-          suppressTaskMenuClickUntilRef.current =
-            performance.now() +
-            700;
-
-          try {
-            trigger.releasePointerCapture(
-              pending.pointerId
-            );
-          } catch {
-            // Safe fallback.
-          }
-
-          beginActualDrag(
-            latest,
-            latest.currentY
-          );
-        },
-        360
-      );
-  };
-
-  const handleTaskMenuPointerMove = (
-    event:
-      ReactPointerEvent<HTMLButtonElement>,
-    task:
-      Task
-  ) => {
-    const pending =
-      pendingDragRef.current;
-
-    if (
-      !pending ||
-      pending.pointerId !==
-        event.pointerId ||
-      pending.task.id !==
-        task.id
-    ) {
-      return;
-    }
-
-    event.stopPropagation();
-
-    pending.currentY =
-      event.clientY;
-
-    const distance =
-      Math.hypot(
-        event.clientX -
-          pending.startX,
-        event.clientY -
-          pending.startY
-      );
-
-    if (distance <= 10) {
-      return;
-    }
-
-    suppressTaskMenuClickUntilRef.current =
-      performance.now() +
-      350;
-
-    clearTaskLongPress();
-
-    try {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId
-      );
-    } catch {
-      // Safe fallback.
-    }
-  };
-
-  const handleTaskMenuPointerUp = (
-    event:
-      ReactPointerEvent<HTMLButtonElement>,
-    task:
-      Task
-  ) => {
-    const pending =
-      pendingDragRef.current;
-
-    if (
-      !pending ||
-      pending.pointerId !==
-        event.pointerId ||
-      pending.task.id !==
-        task.id
-    ) {
-      return;
-    }
-
-    event.stopPropagation();
-
-    clearTaskLongPress();
-
-    try {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId
-      );
-    } catch {
-      // Safe fallback.
-    }
-  };
-
   const handleTaskPointerDown = (
     event:
       ReactPointerEvent<HTMLDivElement>,
@@ -3531,19 +3406,31 @@ export default function Planning({
     index:
       number
   ) => {
+    const target =
+      event.target as HTMLElement;
+
+    const mobileDragHandle =
+      target.closest(
+        "[data-mobile-task-drag-handle]"
+      );
+
     if (
       event.pointerType !==
-        "mouse"
+        "mouse" &&
+      (
+        !taskReorderMode ||
+        !mobileDragHandle
+      )
     ) {
       return;
     }
 
-    const target =
-      event.target as HTMLElement;
-
     if (
-      target.closest(
-        "button"
+      (
+        target.closest(
+          "button"
+        ) &&
+        !mobileDragHandle
       ) ||
       target.closest(
         "input"
@@ -4657,15 +4544,6 @@ export default function Planning({
           null;
 
         if (
-          taskLongPressTimerRef.current !==
-          null
-        ) {
-          window.clearTimeout(
-            taskLongPressTimerRef.current
-          );
-        }
-
-        if (
           inputVisibilityTimerRef.current !==
           null
         ) {
@@ -4813,8 +4691,6 @@ export default function Planning({
         ) {
           return;
         }
-
-        clearTaskLongPress();
 
         setOpenTaskMenuId(
           null
@@ -5511,6 +5387,7 @@ export default function Planning({
                   <button
                     type="button"
                     onClick={() => {
+                      setTaskReorderMode(false);
                       setAddingTask(false);
                       setNewTask("");
                       setAddingHabit(false);
@@ -5526,6 +5403,7 @@ export default function Planning({
                   <button
                     type="button"
                     onClick={() => {
+                      setTaskReorderMode(false);
                       resetEventForm();
                       setNewTaskCarryOver(true);
                       setAddingTask(true);
@@ -5790,30 +5668,127 @@ export default function Planning({
           {/* TASK LIST */}
 
           <div className="mt-5 md:mt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-white/60">
-                Tasks
-              </p>
-
-              {selectedTasks.length >
-                0 && (
-                <p
-                  className={`text-xs transition-all duration-500 ${
-                    allTasksComplete
-                      ? "completion-glow font-medium text-[#5B7CFF]"
-                      : "text-white/30"
-                  }`}
-                >
-                  {
-                    visualTaskCompletedCount
-                  }
-                  /
-                  {
-                    selectedTasks.length
-                  }{" "}
-                  complete
+            <div className="group flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/60">
+                  Tasks
                 </p>
-              )}
+
+                {taskReorderMode && (
+                  <p className="mt-1 text-xs text-white/30 md:hidden">
+                    Drag with the grip
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedTasks.length >
+                  0 && (
+                  <p
+                    className={`text-xs transition-all duration-500 ${taskReorderMode ? "hidden md:block" : ""} ${
+                      allTasksComplete
+                        ? "completion-glow font-medium text-[#5B7CFF]"
+                        : "text-white/30"
+                    }`}
+                  >
+                    {
+                      visualTaskCompletedCount
+                    }
+                    /
+                    {
+                      selectedTasks.length
+                    }{" "}
+                    complete
+                  </p>
+                )}
+
+                {!selectedDateIsPast &&
+                  unfinishedTasks.length >
+                    1 && (
+                    <button
+                      type="button"
+                      onClick={
+                        toggleTaskReorderMode
+                      }
+                      title={
+                        taskReorderMode
+                          ? "Finish reordering"
+                          : "Reorder tasks"
+                      }
+                      aria-label={
+                        taskReorderMode
+                          ? "Finish reordering tasks"
+                          : "Reorder tasks"
+                      }
+                      aria-pressed={
+                        taskReorderMode
+                      }
+                      className={`flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border transition-all duration-200 md:hidden ${
+                        taskReorderMode
+                          ? "w-auto border-[#5B7CFF]/40 bg-[#5B7CFF]/10 px-3 text-[#5B7CFF]"
+                          : "w-11 border-transparent text-white/35 active:border-white/10 active:bg-white/5 active:text-white/70"
+                      }`}
+                    >
+                      {taskReorderMode ? (
+                        <>
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3.5 8.2L6.4 11L12.5 5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span className="text-xs font-medium">
+                            Done
+                          </span>
+                        </>
+                      ) : (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M5 2.75V13.25"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M2.9 4.8L5 2.7L7.1 4.8"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M11 13.25V2.75"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M8.9 11.2L11 13.3L13.1 11.2"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+              </div>
             </div>
 
             <div className="mt-3 space-y-2">
@@ -5974,17 +5949,26 @@ export default function Planning({
                             event.stopPropagation()
                           }
 
-                          onClick={() =>
+                          onClick={() => {
+                            if (
+                              taskReorderMode &&
+                              window.matchMedia(
+                                "(max-width: 767px)"
+                              ).matches
+                            ) {
+                              return;
+                            }
+
                             toggleTask(
                               task.id
-                            )
-                          }
+                            );
+                          }}
 
                           disabled={
                             selectedDateIsPast
                           }
 
-                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${
+                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${taskReorderMode ? "pointer-events-none opacity-40 md:pointer-events-auto md:opacity-100" : ""} ${
                             selectedDateIsPast
                               ? "cursor-default"
                               : "cursor-pointer"
@@ -6091,6 +6075,12 @@ export default function Planning({
                                     "(max-width: 767px)"
                                   ).matches
                                 ) {
+                                  if (
+                                    taskReorderMode
+                                  ) {
+                                    return;
+                                  }
+
                                   event.stopPropagation();
                                   startEditingTask(
                                     task
@@ -6232,53 +6222,38 @@ export default function Planning({
                             />
                           </svg>
                         </button>
-                        {!selectedDateIsPast && (
+                        {taskReorderMode &&
+                          !task.completed && (
+                          <button
+                            data-mobile-task-drag-handle
+                            type="button"
+                            aria-label={`Drag ${task.text} to reorder`}
+                            className="relative z-30 flex h-11 w-11 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl text-white/40 active:cursor-grabbing active:bg-white/[0.05] active:text-white/70 md:hidden"
+                          >
+                            <svg
+                              aria-hidden="true"
+                              width="18"
+                              height="22"
+                              viewBox="0 0 18 22"
+                              fill="currentColor"
+                            >
+                              <circle cx="6" cy="6" r="1.25" />
+                              <circle cx="12" cy="6" r="1.25" />
+                              <circle cx="6" cy="11" r="1.25" />
+                              <circle cx="12" cy="11" r="1.25" />
+                              <circle cx="6" cy="16" r="1.25" />
+                              <circle cx="12" cy="16" r="1.25" />
+                            </svg>
+                          </button>
+                        )}
+
+                        {!selectedDateIsPast &&
+                          !taskReorderMode && (
                           <button
                             data-planning-context-menu
                             type="button"
-                            onPointerDown={(event) =>
-                              handleTaskMenuPointerDown(
-                                event,
-                                task,
-                                unfinishedIndex
-                              )
-                            }
-                            onPointerMove={(event) =>
-                              handleTaskMenuPointerMove(
-                                event,
-                                task
-                              )
-                            }
-                            onPointerUp={(event) =>
-                              handleTaskMenuPointerUp(
-                                event,
-                                task
-                              )
-                            }
-                            onPointerCancel={(event) =>
-                              handleTaskMenuPointerUp(
-                                event,
-                                task
-                              )
-                            }
-                            onContextMenu={(event) => {
-                              if (
-                                window.matchMedia(
-                                  "(max-width: 767px)"
-                                ).matches
-                              ) {
-                                event.preventDefault();
-                              }
-                            }}
                             onClick={(event) => {
                               event.stopPropagation();
-
-                              if (
-                                performance.now() <
-                                suppressTaskMenuClickUntilRef.current
-                              ) {
-                                return;
-                              }
 
                               setOpenTaskMenuId(
                                 (current) =>
@@ -6291,12 +6266,12 @@ export default function Planning({
                                 null
                               );
                             }}
-                            aria-label={`Task options for ${task.text}${taskCarryOverActive ? ", carry-over on" : ""}${!task.completed ? ", hold and drag to reorder" : ""}`}
+                            aria-label={`Task options for ${task.text}${taskCarryOverActive ? ", carry-over on" : ""}`}
                             aria-expanded={
                               openTaskMenuId ===
                               task.id
                             }
-                            className={`relative z-30 flex h-11 w-11 shrink-0 touch-none cursor-pointer items-center justify-center rounded-xl transition active:bg-white/[0.06] md:hidden ${taskCarryOverActive ? "text-[#8295E8]/70" : "text-white/35"} ${openTaskMenuId === task.id ? taskCarryOverActive ? "bg-white/[0.05] text-[#9EACEC]/85" : "bg-white/[0.05] text-white/65" : ""}`}
+                            className={`relative z-30 flex h-11 w-11 shrink-0 touch-manipulation cursor-pointer items-center justify-center rounded-xl transition active:bg-white/[0.06] md:hidden ${taskCarryOverActive ? "text-[#8295E8]/70" : "text-white/35"} ${openTaskMenuId === task.id ? taskCarryOverActive ? "bg-white/[0.05] text-[#9EACEC]/85" : "bg-white/[0.05] text-white/65" : ""}`}
                           >
                             <span className="text-lg leading-none">
                               ⋯
@@ -6306,7 +6281,8 @@ export default function Planning({
 
                         {openTaskMenuId ===
                           task.id &&
-                          !selectedDateIsPast && (
+                          !selectedDateIsPast &&
+                          !taskReorderMode && (
                             <div
                               data-planning-context-menu
                               className="flex basis-full items-center gap-1 border-t border-white/[0.06] pt-2 md:hidden"
@@ -6480,11 +6456,15 @@ export default function Planning({
                   !addingHabit &&
                   !habitReorderMode && (
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        setTaskReorderMode(
+                          false
+                        );
+
                         setAddingHabit(
                           true
-                        )
-                      }
+                        );
+                      }}
                       className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-white/60 transition-all duration-200 hover:border-[#5B7CFF]/30 hover:bg-[#5B7CFF]/5 hover:text-white"
                     >
                       + Add habit
