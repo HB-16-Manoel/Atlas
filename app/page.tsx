@@ -21,6 +21,11 @@ import Planning, {
 } from "./components/Planning";
 
 import Progress from "./components/Progress";
+import Settings from "./components/Settings";
+import {
+  LEGACY_ATLAS_KEYS,
+  legacyAtlasRepository,
+} from "./lib/data/legacyAtlasRepository";
 
 function AtlasLogo({
   compact = false,
@@ -344,8 +349,8 @@ export default function AtlasApp() {
     () => {
       try {
         const saved =
-          localStorage.getItem(
-            "atlas-tasks"
+          legacyAtlasRepository.getRaw(
+            LEGACY_ATLAS_KEYS.tasks
           );
 
         if (
@@ -547,8 +552,8 @@ export default function AtlasApp() {
       }
 
       try {
-        localStorage.setItem(
-          "atlas-tasks",
+        legacyAtlasRepository.setRaw(
+          LEGACY_ATLAS_KEYS.tasks,
 
           JSON.stringify(
             tasks
@@ -575,8 +580,8 @@ export default function AtlasApp() {
     () => {
       try {
         const saved =
-          localStorage.getItem(
-            "atlas-habits"
+          legacyAtlasRepository.getRaw(
+            LEGACY_ATLAS_KEYS.habits
           );
 
         if (
@@ -648,8 +653,8 @@ export default function AtlasApp() {
       }
 
       try {
-        localStorage.setItem(
-          "atlas-habits",
+        legacyAtlasRepository.setRaw(
+          LEGACY_ATLAS_KEYS.habits,
 
           JSON.stringify(
             habits
@@ -676,8 +681,8 @@ export default function AtlasApp() {
     () => {
       try {
         const saved =
-          localStorage.getItem(
-            "atlas-events"
+          legacyAtlasRepository.getRaw(
+            LEGACY_ATLAS_KEYS.events
           );
 
         if (!saved) {
@@ -742,8 +747,8 @@ export default function AtlasApp() {
       }
 
       try {
-        localStorage.setItem(
-          "atlas-events",
+        legacyAtlasRepository.setRaw(
+          LEGACY_ATLAS_KEYS.events,
           JSON.stringify(events)
         );
       } catch {
@@ -764,8 +769,8 @@ export default function AtlasApp() {
     () => {
       try {
         const saved =
-          localStorage.getItem(
-            "atlas-journal"
+          legacyAtlasRepository.getRaw(
+            LEGACY_ATLAS_KEYS.journal
           );
 
         if (
@@ -828,8 +833,8 @@ export default function AtlasApp() {
       }
 
       try {
-        localStorage.setItem(
-          "atlas-journal",
+        legacyAtlasRepository.setRaw(
+          LEGACY_ATLAS_KEYS.journal,
 
           JSON.stringify(
             journalEntries
@@ -856,8 +861,8 @@ export default function AtlasApp() {
     () => {
       try {
         const saved =
-          localStorage.getItem(
-            "atlas-task-history"
+          legacyAtlasRepository.getRaw(
+            LEGACY_ATLAS_KEYS.taskHistory
           );
 
         if (
@@ -926,8 +931,8 @@ export default function AtlasApp() {
       }
 
       try {
-        localStorage.setItem(
-          "atlas-task-history",
+        legacyAtlasRepository.setRaw(
+          LEGACY_ATLAS_KEYS.taskHistory,
 
           JSON.stringify(
             taskHistory
@@ -1406,15 +1411,7 @@ export default function AtlasApp() {
 
           {activePage ===
             "Settings" && (
-            <div className="mt-8">
-              <h2 className="text-3xl font-semibold">
-                Settings
-              </h2>
-
-              <p className="mt-2 text-white/50">
-                Your settings will live here.
-              </p>
-            </div>
+            <Settings />
           )}
           </section>
         </div>
