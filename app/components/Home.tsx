@@ -19,6 +19,27 @@ import {
   type TaskHistoryEventLike,
 } from "../lib/atlasIntelligence";
 
+function InlineScript({
+  html,
+}: {
+  html: string;
+}) {
+  return (
+    <script
+      type={
+        typeof window ===
+        "undefined"
+          ? "text/javascript"
+          : "text/plain"
+      }
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{
+        __html: html,
+      }}
+    />
+  );
+}
+
 /* ============================================================
  * TYPES
  * ============================================================
@@ -589,7 +610,11 @@ export default function Home({
        * ====================================================== */}
 
       <header className="pb-1">
-        <p className="text-[13px] text-white/35 md:text-sm">
+        <p
+          id="atlas-local-date"
+          className="text-[13px] text-white/35 md:text-sm"
+          suppressHydrationWarning
+        >
           {today.toLocaleDateString(
             "en-US",
             {
@@ -605,11 +630,23 @@ export default function Home({
           )}
         </p>
 
-        <h2 className="mt-1 text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] md:mt-1.5 md:text-4xl">
+        <InlineScript
+          html={'{var n=document.getElementById("atlas-local-date");if(n)n.textContent=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}'}
+        />
+
+        <h2
+          id="atlas-local-greeting"
+          className="mt-1 text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] md:mt-1.5 md:text-4xl"
+          suppressHydrationWarning
+        >
           {
             greeting
           }
         </h2>
+
+        <InlineScript
+          html={'{var n=document.getElementById("atlas-local-greeting"),h=new Date().getHours();if(n)n.textContent=h<12?"Good morning.":h<18?"Good afternoon.":"Good evening."}'}
+        />
 
         <p className="mt-1.5 text-sm text-white/45 md:text-base">
           Here&apos;s what today looks like.
