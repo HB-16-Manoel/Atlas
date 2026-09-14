@@ -3,8 +3,19 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
+import type { AtlasSyncStatus } from "../hooks/useAtlasData";
 
-export default function Settings() {
+type SettingsProps = {
+  dataSource: "cloud" | "legacy-local" | null;
+  syncStatus: AtlasSyncStatus;
+  syncMessage: string;
+};
+
+export default function Settings({
+  dataSource,
+  syncStatus,
+  syncMessage,
+}: SettingsProps) {
   const { user, loading, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -21,8 +32,21 @@ export default function Settings() {
             <p className="text-sm text-white/55">Signed in as</p>
             <p className="mt-1 break-all font-medium text-white/90">{user.email}</p>
             <div className="mt-4 rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.06] p-3">
-              <p className="text-sm text-white/70">Cloud setup ready · Local data not migrated</p>
-              <p className="mt-1 text-xs leading-5 text-white/40">Atlas is still using this device&apos;s existing data.</p>
+              <p className="text-sm text-white/70">
+                {syncStatus === "syncing" || syncStatus === "loading"
+                  ? "Syncing with Atlas Cloud…"
+                  : syncStatus === "conflict"
+                    ? "Sync needs attention"
+                    : syncStatus === "error"
+                      ? "Cloud connection problem"
+                      : "Synced with Atlas Cloud"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-white/40">
+                {syncMessage ||
+                  (dataSource === "cloud"
+                    ? "This account uses the same fresh cloud data on every signed-in device."
+                    : "Your legacy data remains only on this device.")}
+              </p>
             </div>
             <button
               type="button"

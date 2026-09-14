@@ -34,6 +34,12 @@ export type JournalEnergy =
 export type JournalEntry = {
   date: string;
 
+  cloudId?: string;
+
+  revision?: number;
+
+  cloudUpdatedAt?: string;
+
   text: string;
 
   mood:
@@ -388,6 +394,9 @@ export default function Journal({
 
         const newEntry:
           JournalEntry = {
+          cloudId:
+            crypto.randomUUID(),
+
           date:
             selectedDate,
 

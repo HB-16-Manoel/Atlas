@@ -21,17 +21,26 @@ import { calculateDailyScore } from "../lib/dailyScore";
 
 export type Task = {
   id: number;
+  cloudId?: string;
+  revision?: number;
+  cloudUpdatedAt?: string;
   text: string;
   completed: boolean;
+  completedAt?: string;
   date: string;
   order: number;
   carryOver?: boolean;
   carriedFrom?: string;
   carriedTo?: string;
+  carriedFromId?: string;
+  carriedToId?: string;
 };
 
 export type AtlasEvent = {
   id: number;
+  cloudId?: string;
+  revision?: number;
+  cloudUpdatedAt?: string;
   title: string;
   date: string;
   time?: string;
@@ -40,10 +49,21 @@ export type AtlasEvent = {
 
 export type Habit = {
   id: number;
+  cloudId?: string;
+  revision?: number;
+  cloudUpdatedAt?: string;
   name: string;
   order: number;
   createdAt: string;
   completedDates: string[];
+  completionMeta?: Record<
+    string,
+    {
+      id: string;
+      revision: number;
+      deletedAt?: string;
+    }
+  >;
 };
 
 type DragPhase = "dragging" | "settling";
@@ -1492,6 +1512,9 @@ export default function Planning({
           id:
             Date.now(),
 
+          cloudId:
+            crypto.randomUUID(),
+
           text,
 
           completed:
@@ -1563,6 +1586,8 @@ export default function Planning({
           ...current,
           {
             id: Date.now(),
+            cloudId:
+              crypto.randomUUID(),
             title,
             date:
               selectedDateKey,
@@ -1708,6 +1733,9 @@ export default function Planning({
         {
           id:
             Date.now(),
+
+          cloudId:
+            crypto.randomUUID(),
 
           name,
 
