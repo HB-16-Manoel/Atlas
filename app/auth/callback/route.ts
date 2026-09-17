@@ -4,6 +4,7 @@ import { createClient } from "../../lib/supabase/server";
 export async function GET(request: Request) {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const providerError = searchParams.get("error_description") ?? searchParams.get("error");
   const requestedNext = searchParams.get("next") ?? "/";
   const next = requestedNext.startsWith("/") ? requestedNext : "/";
 
@@ -17,5 +18,8 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=callback`);
+  const loginUrl = new URL("/auth/login", origin);
+  loginUrl.searchParams.set("error", "callback");
+  if (providerError) loginUrl.searchParams.set("reason", providerError);
+  return NextResponse.redirect(loginUrl);
 }
