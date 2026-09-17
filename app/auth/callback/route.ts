@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { atlasAuthOrigin } from "../../lib/auth/urls";
 import { createClient } from "../../lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -12,13 +13,11 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
-      return NextResponse.redirect(forwardedHost ? `${forwardedProto}://${forwardedHost}${next}` : `${origin}${next}`);
+      return NextResponse.redirect(`${atlasAuthOrigin(origin)}${next}`);
     }
   }
 
-  const loginUrl = new URL("/auth/login", origin);
+  const loginUrl = new URL("/auth/login", atlasAuthOrigin(origin));
   loginUrl.searchParams.set("error", "callback");
   if (providerError) loginUrl.searchParams.set("reason", providerError);
   return NextResponse.redirect(loginUrl);
