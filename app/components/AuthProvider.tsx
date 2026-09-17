@@ -21,14 +21,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getUser().then(async ({ data, error }) => {
+      if (!active) return;
+
+      if (error || !data.user) {
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
       if (active) {
-        setSession(data.session);
+        setSession(sessionData.session);
         setLoading(false);
       }
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "INITIAL_SESSION") return;
       setSession(nextSession);
       setLoading(false);
     });
