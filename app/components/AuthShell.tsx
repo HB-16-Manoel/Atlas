@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { atlasAuthOrigin } from "../lib/auth/urls";
 import { createClient } from "../lib/supabase/client";
 
 type Mode = "login" | "sign-up" | "forgot" | "update";
@@ -15,7 +16,7 @@ const copy = {
 } satisfies Record<Mode, { title: string; subtitle: string; submit: string }>;
 
 function siteUrl() {
-  return window.location.origin;
+  return atlasAuthOrigin(window.location.origin);
 }
 
 function friendlyAuthError(error: unknown) {
@@ -55,6 +56,17 @@ function PasswordField({
 }) {
   const [visible, setVisible] = useState(false);
 
+  const visibilityIcon = visible ? (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.3A10.8 10.8 0 0 1 12 4c5.5 0 9 5.5 9 5.5a15 15 0 0 1-2.2 2.7M6.5 6.5C4.3 8 3 9.5 3 9.5S6.5 15 12 15c.8 0 1.6-.1 2.3-.3" />
+    </svg>
+  ) : (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-5.5 9-5.5 9 5.5 9 5.5-3.5 5.5-9 5.5S3 12 3 12Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  );
+
   return (
     <label className="block text-sm text-white/65">
       {label}
@@ -66,16 +78,16 @@ function PasswordField({
           autoComplete={autoComplete}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-12 w-full rounded-xl border border-white/10 bg-[#10121B] px-4 pr-16 text-white outline-none transition-colors focus:border-[#5B7CFF]/60"
+          className="min-h-12 w-full rounded-xl border border-white/10 bg-[#10121B] px-4 pr-14 text-white outline-none transition-colors focus:border-[#5B7CFF]/60"
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 min-w-14 rounded-r-xl px-3 text-xs font-medium text-white/45 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#5B7CFF]"
+          className="absolute inset-y-0 right-0 flex min-w-12 items-center justify-center rounded-r-xl px-3 text-white/45 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#5B7CFF]"
         >
-          {visible ? "Hide" : "Show"}
+          {visibilityIcon}
         </button>
       </span>
     </label>
@@ -100,8 +112,8 @@ export default function AuthShell({ mode }: { mode: Mode }) {
 
   useEffect(() => {
     if (mode === "update") {
-      void supabase.auth.getSession().then(({ data }) => {
-        if (!data.session) setError("This password-reset link is invalid or has expired. Request a new one.");
+      void supabase.auth.getUser().then(({ data, error: userError }) => {
+        if (userError || !data.user) setError("This password-reset link is invalid or has expired. Request a new one.");
       });
     }
   }, [mode, supabase]);
@@ -140,7 +152,9 @@ export default function AuthShell({ mode }: { mode: Mode }) {
       } else {
         const { error: authError } = await supabase.auth.updateUser({ password });
         if (authError) throw authError;
-        setMessage("Password updated. You can return to Atlas.");
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) throw refreshError;
+        window.location.replace("/");
       }
     } catch (authError) {
       setError(friendlyAuthError(authError));
@@ -206,7 +220,7 @@ export default function AuthShell({ mode }: { mode: Mode }) {
 
         {mode === "login" && <div className="mt-5 flex items-center justify-between text-sm"><Link href="/auth/forgot-password" className="text-white/45 hover:text-white/75">Forgot password?</Link><Link href="/auth/sign-up" className="text-[#7892FF] hover:text-[#91A5FF]">Create account</Link></div>}
         {mode === "sign-up" && <p className="mt-5 text-center text-sm text-white/45">Already have an account? <Link href="/auth/login" className="text-[#7892FF]">Log in</Link></p>}
-        {(mode === "forgot" || mode === "update") && <p className="mt-5 text-center text-sm"><Link href={mode === "forgot" ? "/auth/login" : "/"} className="text-white/45 hover:text-white/75">{mode === "forgot" ? "Back to login" : "Return to Atlas"}</Link></p>}
+        {mode === "forgot" && <p className="mt-5 text-center text-sm"><Link href="/auth/login" className="text-white/45 hover:text-white/75">Back to login</Link></p>}
       </section>
     </main>
   );
