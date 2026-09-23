@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { atlasAuthOrigin } from "../lib/auth/urls";
+import { atlasAuthOrigin, atlasGoogleOAuthCallback } from "../lib/auth/urls";
 import { createClient } from "../lib/supabase/client";
 
 type Mode = "login" | "sign-up" | "forgot" | "update";
@@ -169,7 +169,7 @@ export default function AuthShell({ mode }: { mode: Mode }) {
     try {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${siteUrl()}/auth/callback?next=/` },
+        options: { redirectTo: atlasGoogleOAuthCallback(window.location.origin) },
       });
       if (authError) throw authError;
     } catch (authError) {

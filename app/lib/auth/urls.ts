@@ -9,3 +9,7 @@ export function atlasAuthOrigin(currentOrigin: string) {
 
   return ATLAS_PRODUCTION_ORIGIN;
 }
+
+export function atlasGoogleOAuthCallback(currentOrigin: string) {
+  return `${atlasAuthOrigin(currentOrigin)}/auth/callback`;
+}
