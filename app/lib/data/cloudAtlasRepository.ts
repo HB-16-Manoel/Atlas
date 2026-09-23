@@ -6,6 +6,7 @@ import type {
   Habit,
   Task,
 } from "../../components/Planning";
+import { withFreshJwtRecovery } from "./freshJwtRecovery";
 
 export type CloudTaskHistoryEvent = {
   id: string;
@@ -172,18 +173,25 @@ export function createCloudAtlasRepository(
   supabase: SupabaseClient,
   userId: string
 ) {
+  function loadSnapshotRows() {
+    return Promise.all([
+      supabase.from("tasks").select("*").eq("user_id", userId).is("deleted_at", null).order("task_date").order("position"),
+      supabase.from("habits").select("*").eq("user_id", userId).is("deleted_at", null).order("position"),
+      // Tombstones are loaded as metadata so re-checking a date revives the
+      // existing row instead of racing a unique constraint with a new UUID.
+      supabase.from("habit_completions").select("*").eq("user_id", userId).order("completion_date"),
+      supabase.from("events").select("*").eq("user_id", userId).is("deleted_at", null).order("event_date"),
+      supabase.from("journal_entries").select("*").eq("user_id", userId).is("deleted_at", null).order("entry_date"),
+      supabase.from("task_activity").select("*").eq("user_id", userId).is("deleted_at", null).order("occurred_at"),
+    ]);
+  }
+
   async function loadSnapshot(): Promise<AtlasSnapshot> {
     const [tasksResult, habitsResult, completionsResult, eventsResult, journalResult, activityResult] =
-      await Promise.all([
-        supabase.from("tasks").select("*").eq("user_id", userId).is("deleted_at", null).order("task_date").order("position"),
-        supabase.from("habits").select("*").eq("user_id", userId).is("deleted_at", null).order("position"),
-        // Tombstones are loaded as metadata so re-checking a date revives the
-        // existing row instead of racing a unique constraint with a new UUID.
-        supabase.from("habit_completions").select("*").eq("user_id", userId).order("completion_date"),
-        supabase.from("events").select("*").eq("user_id", userId).is("deleted_at", null).order("event_date"),
-        supabase.from("journal_entries").select("*").eq("user_id", userId).is("deleted_at", null).order("entry_date"),
-        supabase.from("task_activity").select("*").eq("user_id", userId).is("deleted_at", null).order("occurred_at"),
-      ]);
+      await withFreshJwtRecovery(
+        loadSnapshotRows,
+        (results) => results.map((result) => result.error)
+      );
 
     for (const result of [
       tasksResult,
