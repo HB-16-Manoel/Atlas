@@ -508,6 +508,50 @@ export default function Journal({
       );
     };
 
+  const moveCalendarRange = (
+    amount: number
+  ) => {
+    let nextEnd =
+      addDays(
+        calendarEndObject,
+        amount * 7
+      );
+
+    if (
+      nextEnd >
+      today
+    ) {
+      nextEnd =
+        today;
+    }
+
+    let nextSelected =
+      addDays(
+        selectedDateObject,
+        amount * 7
+      );
+
+    if (
+      nextSelected >
+      nextEnd
+    ) {
+      nextSelected =
+        nextEnd;
+    }
+
+    setCalendarEnd(
+      formatDateKey(
+        nextEnd
+      )
+    );
+
+    setSelectedDate(
+      formatDateKey(
+        nextSelected
+      )
+    );
+  };
+
   /* ============================================================
    * OPTIONS
    * ============================================================
@@ -548,13 +592,556 @@ export default function Journal({
         Boolean
       ).length;
 
+  const hasSavedSignals =
+    Boolean(
+      selectedEntry?.mood ||
+      selectedEntry?.energy ||
+      selectedEntry?.rating
+    );
+
   /* ============================================================
    * UI
    * ============================================================
    */
 
   return (
-    <div className="w-full min-w-0 md:h-[calc(100vh-5rem)] md:overflow-hidden">
+    <>
+      {/* ====================================================
+       * MOBILE JOURNAL
+       * ==================================================== */}
+
+      <div className="min-w-0 md:hidden">
+        <header className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-white/40">
+              Journal
+            </p>
+
+            <h2 className="mt-1 truncate text-xl font-semibold leading-tight text-white">
+              {selectedDateObject.toLocaleDateString(
+                "en-US",
+                {
+                  month:
+                    "long",
+                  year:
+                    "numeric",
+                }
+              )}
+            </h2>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1">
+            {!isToday && (
+              <button
+                type="button"
+                onClick={
+                  goToToday
+                }
+                className="h-11 shrink-0 rounded-xl border border-white/10 px-2.5 text-xs text-white/55 transition active:bg-white/[0.07] active:text-white"
+              >
+                Today
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                moveCalendarRange(
+                  -1
+                )
+              }
+              aria-label="Previous seven days"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-lg text-white/40 transition active:bg-white/[0.07] active:text-white/70"
+            >
+              ‹
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                moveCalendarRange(
+                  1
+                )
+              }
+              disabled={
+                calendarEnd >=
+                todayKey
+              }
+              aria-label="Next seven days"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-lg text-white/40 transition active:bg-white/[0.07] active:text-white/70 disabled:opacity-20"
+            >
+              ›
+            </button>
+          </div>
+        </header>
+
+        <div className="mt-5 grid w-full grid-cols-7 gap-1">
+          {calendarDates.map(
+            (
+              date
+            ) => {
+              const dateKey =
+                formatDateKey(
+                  date
+                );
+
+              const selected =
+                dateKey ===
+                selectedDate;
+
+              const current =
+                dateKey ===
+                todayKey;
+
+              const dateEntry =
+                entries.find(
+                  (
+                    entry
+                  ) =>
+                    entry.date ===
+                    dateKey
+                );
+
+              const hasEntry =
+                Boolean(
+                  dateEntry &&
+                  (
+                    dateEntry.text.trim() ||
+                    dateEntry.mood ||
+                    dateEntry.energy ||
+                    dateEntry.rating
+                  )
+                );
+
+              return (
+                <button
+                  key={
+                    dateKey
+                  }
+                  type="button"
+                  onClick={() =>
+                    setSelectedDate(
+                      dateKey
+                    )
+                  }
+                  aria-current={
+                    selected
+                      ? "date"
+                      : undefined
+                  }
+                  aria-label={`${date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}${current ? ", Today" : ""}${hasEntry ? ", journal entry saved" : ""}`}
+                  className={`relative min-h-14 min-w-0 rounded-xl border px-0.5 py-2 text-center transition active:bg-white/[0.06] ${
+                    selected
+                      ? "border-[#5B7CFF]/65 bg-[#5B7CFF]/[0.12]"
+                      : current
+                        ? "border-white/20 bg-white/[0.025]"
+                        : "border-transparent bg-white/[0.015]"
+                  }`}
+                >
+                  <span className="block text-[9px] font-medium uppercase tracking-[0.04em] text-white/35">
+                    {date.toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday:
+                          "narrow",
+                      }
+                    )}
+                  </span>
+
+                  <span
+                    className={`mt-1 block text-sm font-semibold ${
+                      selected
+                        ? "text-[#8295E8]"
+                        : "text-white/70"
+                    }`}
+                  >
+                    {
+                      date.getDate()
+                    }
+                  </span>
+
+                  {(hasEntry ||
+                    (
+                      current &&
+                      !selected
+                    )) && (
+                    <span className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+                      {hasEntry && (
+                        <span className="h-1 w-1 rounded-full bg-[#5B7CFF]" />
+                      )}
+
+                      {current &&
+                        !selected && (
+                          <span className="h-1 w-1 rounded-full bg-white/35" />
+                        )}
+                    </span>
+                  )}
+                </button>
+              );
+            }
+          )}
+        </div>
+
+        <main className="mt-5 min-w-0">
+          <section className="border-b border-white/[0.065] pb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/25">
+                  {isToday
+                    ? "Today"
+                    : "Journal entry"}
+                </p>
+
+                <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-white">
+                  {selectedDateObject.toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday:
+                        "long",
+                      month:
+                        "short",
+                      day:
+                        "numeric",
+                    }
+                  )}
+                </h3>
+              </div>
+
+              <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-white/35">
+                {
+                  statusLabel
+                }
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                  Score
+                </p>
+
+                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white/85">
+                  {dailyScore ?? "—"}
+                </p>
+              </div>
+
+              <div className="min-w-0 border-l border-white/[0.06] pl-2">
+                <p className="truncate text-[9px] uppercase tracking-[0.08em] text-white/22">
+                  Follow
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white/70">
+                  {followThrough !==
+                  null
+                    ? `${followThrough}%`
+                    : "—"}
+                </p>
+              </div>
+
+              <div className="min-w-0 border-l border-white/[0.06] pl-2">
+                <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                  Tasks
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white/70">
+                  {completedTasks} / {dayTasks.length}
+                </p>
+              </div>
+
+              <div className="min-w-0 border-l border-white/[0.06] pl-2">
+                <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                  Habits
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white/70">
+                  {completedHabits} / {activeHabits.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.05]">
+              <div
+                className="h-full rounded-full bg-[#5B7CFF] transition-[width] duration-500"
+                style={{
+                  width:
+                    `${followThrough ?? 0}%`,
+                }}
+              />
+            </div>
+          </section>
+
+          {isToday ? (
+            <>
+              <section className="border-b border-white/[0.065] py-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-medium text-white/50">
+                    Daily signals
+                  </p>
+
+                  <span className="text-[10px] text-white/20">
+                    Optional
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2">
+                    <span className="text-[11px] text-white/30">
+                      Mood
+                    </span>
+
+                    <div className="grid grid-cols-5 gap-1">
+                      {moods.map(
+                        (
+                          mood
+                        ) => (
+                          <button
+                            key={
+                              mood
+                            }
+                            type="button"
+                            onClick={() =>
+                              updateEntry({
+                                mood:
+                                  selectedEntry?.mood ===
+                                  mood
+                                    ? null
+                                    : mood,
+                              })
+                            }
+                            aria-pressed={
+                              selectedEntry?.mood ===
+                              mood
+                            }
+                            className={`min-h-10 min-w-0 rounded-lg border px-0.5 text-[10px] font-medium transition ${
+                              selectedEntry?.mood ===
+                              mood
+                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
+                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                            }`}
+                          >
+                            {
+                              mood
+                            }
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2">
+                    <span className="text-[11px] text-white/30">
+                      Energy
+                    </span>
+
+                    <div className="grid grid-cols-4 gap-1">
+                      {energyLevels.map(
+                        (
+                          energy
+                        ) => (
+                          <button
+                            key={
+                              energy
+                            }
+                            type="button"
+                            onClick={() =>
+                              updateEntry({
+                                energy:
+                                  selectedEntry?.energy ===
+                                  energy
+                                    ? null
+                                    : energy,
+                              })
+                            }
+                            aria-pressed={
+                              selectedEntry?.energy ===
+                              energy
+                            }
+                            className={`min-h-10 min-w-0 rounded-lg border px-1 text-[10px] font-medium transition ${
+                              selectedEntry?.energy ===
+                              energy
+                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
+                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                            }`}
+                          >
+                            {
+                              energy
+                            }
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2">
+                    <span className="text-[11px] text-white/30">
+                      Rating
+                    </span>
+
+                    <div className="grid grid-cols-5 gap-1">
+                      {[1, 2, 3, 4, 5].map(
+                        (
+                          rating
+                        ) => (
+                          <button
+                            key={
+                              rating
+                            }
+                            type="button"
+                            onClick={() =>
+                              updateEntry({
+                                rating:
+                                  selectedEntry?.rating ===
+                                  rating
+                                    ? null
+                                    : rating,
+                              })
+                            }
+                            aria-pressed={
+                              selectedEntry?.rating ===
+                              rating
+                            }
+                            className={`min-h-10 min-w-0 rounded-lg border text-[11px] font-medium transition ${
+                              selectedEntry?.rating ===
+                              rating
+                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
+                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                            }`}
+                          >
+                            {
+                              rating
+                            }
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-white/50">
+                    Reflection
+                  </p>
+
+                  <div className="flex items-center gap-2 text-[10px] text-white/20">
+                    <span>
+                      Saved automatically
+                    </span>
+
+                    <span aria-hidden="true">
+                      ·
+                    </span>
+
+                    <span>
+                      {wordCount} words
+                    </span>
+                  </div>
+                </div>
+
+                <textarea
+                  aria-label="Your reflection"
+                  autoCapitalize="sentences"
+                  spellCheck
+                  rows={
+                    5
+                  }
+                  value={
+                    selectedEntry?.text ??
+                    ""
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateEntry({
+                      text:
+                        event.target.value,
+                    })
+                  }
+                  placeholder="What stood out about today?"
+                  className="mt-2 min-h-32 max-h-[60vh] w-full resize-none overflow-y-auto rounded-xl border border-white/[0.07] bg-white/[0.018] px-3.5 py-3 text-base leading-7 text-white/75 outline-none transition [field-sizing:content] placeholder:text-white/16 focus:border-[#5B7CFF]/35 focus:bg-white/[0.025]"
+                />
+              </section>
+            </>
+          ) : (
+            <>
+              <section className="border-b border-white/[0.065] py-4">
+                <p className="text-xs font-medium text-white/45">
+                  Daily signals
+                </p>
+
+                {hasSavedSignals ? (
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                        Mood
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-white/65">
+                        {selectedEntry?.mood ?? "—"}
+                      </p>
+                    </div>
+
+                    <div className="border-l border-white/[0.06] pl-3">
+                      <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                        Energy
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-white/65">
+                        {selectedEntry?.energy ?? "—"}
+                      </p>
+                    </div>
+
+                    <div className="border-l border-white/[0.06] pl-3">
+                      <p className="text-[9px] uppercase tracking-[0.08em] text-white/22">
+                        Rating
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-white/65">
+                        {selectedEntry?.rating
+                          ? `${selectedEntry.rating} / 5`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-white/22">
+                    No personal signals recorded.
+                  </p>
+                )}
+              </section>
+
+              <section className="pt-4">
+                <p className="text-xs font-medium text-white/45">
+                  Reflection
+                </p>
+
+                {selectedEntry?.text.trim() ? (
+                  <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-white/70">
+                    {
+                      selectedEntry.text
+                    }
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-white/22">
+                    No reflection recorded for this day.
+                  </p>
+                )}
+
+                <p className="mt-3 text-[10px] text-white/16">
+                  Past entries are read-only.
+                </p>
+              </section>
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* ====================================================
+       * DESKTOP JOURNAL
+       * ==================================================== */}
+
+      <div className="hidden w-full min-w-0 md:block md:h-[calc(100vh-5rem)] md:overflow-hidden">
       <div className="flex min-w-0 flex-col md:h-full md:min-h-0">
 
         {/* ======================================================
@@ -1299,6 +1886,7 @@ export default function Journal({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
