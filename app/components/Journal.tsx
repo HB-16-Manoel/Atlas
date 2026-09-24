@@ -554,30 +554,32 @@ export default function Journal({
    */
 
   return (
-    <div className="h-[calc(100vh-5rem)] w-full overflow-hidden">
-      <div className="flex h-full min-h-0 flex-col">
+    <div className="w-full min-w-0 md:h-[calc(100vh-5rem)] md:overflow-hidden">
+      <div className="flex min-w-0 flex-col md:h-full md:min-h-0">
 
         {/* ======================================================
          * HEADER
          * ====================================================== */}
 
-        <div className="flex shrink-0 items-end justify-between">
+        <div className="flex shrink-0 items-end justify-between gap-4">
           <div>
             <p className="text-sm text-white/35">
               Capture the context behind your day
             </p>
 
-            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.025em]">
+            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
               Journal
             </h2>
           </div>
 
           <button
+            type="button"
+
             onClick={
               goToToday
             }
 
-            className={`rounded-lg border px-3.5 py-2 text-xs transition ${
+            className={`min-h-11 shrink-0 rounded-xl border px-3.5 py-2 text-xs transition md:min-h-0 md:rounded-lg ${
               isToday
                 ? "border-[#5B7CFF]/25 bg-[#5B7CFF]/10 text-[#91A6FF]"
                 : "border-white/[0.07] bg-white/[0.025] text-white/40 hover:bg-white/[0.045] hover:text-white/65"
@@ -591,7 +593,7 @@ export default function Journal({
          * CALENDAR — SEPARATE DAY CARDS
          * ====================================================== */}
 
-        <div className="mt-5 grid shrink-0 grid-cols-7 gap-2.5">
+        <div className="mt-4 grid min-w-0 shrink-0 grid-cols-7 gap-1 md:mt-5 md:gap-2.5">
           {calendarDates.map(
             (
               date
@@ -631,8 +633,16 @@ export default function Journal({
 
               return (
                 <button
+                  type="button"
+
                   key={
                     dateKey
+                  }
+
+                  aria-current={
+                    selected
+                      ? "date"
+                      : undefined
                   }
 
                   onClick={() =>
@@ -641,14 +651,14 @@ export default function Journal({
                     )
                   }
 
-                  className={`relative rounded-xl border px-3 py-3 text-center transition-all duration-200 ${
+                  className={`relative min-w-0 rounded-lg border px-0.5 py-2.5 text-center transition-all duration-200 md:rounded-xl md:px-3 md:py-3 ${
                     selected
                       ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/10 shadow-[0_0_24px_rgba(91,124,255,0.035)]"
                       : "border-white/[0.07] bg-white/[0.022] hover:border-white/[0.11] hover:bg-white/[0.04]"
                   }`}
                 >
                   <p
-                    className={`text-[10px] font-medium uppercase tracking-[0.13em] ${
+                    className={`truncate text-[9px] font-medium uppercase tracking-[0.08em] md:text-[10px] md:tracking-[0.13em] ${
                       selected
                         ? "text-[#91A6FF]"
                         : "text-white/28"
@@ -664,7 +674,7 @@ export default function Journal({
                   </p>
 
                   <p
-                    className={`mt-1 text-lg font-medium ${
+                    className={`mt-1 text-base font-medium md:text-lg ${
                       selected
                         ? "text-white"
                         : "text-white/72"
@@ -675,7 +685,7 @@ export default function Journal({
                     }
                   </p>
 
-                  <div className="mt-2 flex h-1.5 items-center justify-center">
+                  <div className="mt-1.5 flex h-1.5 items-center justify-center md:mt-2">
                     {hasEntry ? (
                       <div className="h-1.5 w-1.5 rounded-full bg-[#6F8CFF]" />
                     ) : dateIsToday ? (
@@ -694,25 +704,25 @@ export default function Journal({
          * MAIN CONTENT
          * ====================================================== */}
 
-        <div className="mt-4 grid min-h-0 flex-1 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="mt-4 grid min-w-0 grid-cols-1 items-start gap-4 md:min-h-0 md:flex-1 xl:grid-cols-[minmax(0,1fr)_310px]">
 
           {/* ====================================================
            * JOURNAL ENTRY
            * ==================================================== */}
 
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+          <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] md:h-full md:min-h-0">
 
             {/* ENTRY HEADER */}
 
-            <div className="flex shrink-0 items-start justify-between px-6 pb-4 pt-5">
-              <div>
+            <div className="flex shrink-0 items-start justify-between gap-3 px-4 pb-4 pt-4 md:px-6 md:pt-5">
+              <div className="min-w-0">
                 <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/25">
                   {isToday
                     ? "Today’s reflection"
                     : "Journal entry"}
                 </p>
 
-                <h3 className="mt-1.5 text-xl font-semibold tracking-[-0.025em]">
+                <h3 className="mt-1.5 text-lg font-semibold tracking-[-0.025em] md:text-xl">
                   {selectedDateObject.toLocaleDateString(
                     "en-US",
                     {
@@ -739,8 +749,10 @@ export default function Journal({
 
               {/* DAY NAVIGATION */}
 
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2">
                 <button
+                  type="button"
+
                   onClick={() =>
                     moveDay(
                       -1
@@ -749,12 +761,14 @@ export default function Journal({
 
                   aria-label="Previous day"
 
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.02] text-sm text-white/35 transition hover:bg-white/[0.05] hover:text-white/65"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.02] text-base text-white/40 transition hover:bg-white/[0.05] hover:text-white/65 md:h-9 md:w-9 md:rounded-lg md:text-sm"
                 >
                   ←
                 </button>
 
                 <button
+                  type="button"
+
                   onClick={() =>
                     moveDay(
                       1
@@ -767,27 +781,27 @@ export default function Journal({
 
                   aria-label="Next day"
 
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.02] text-sm text-white/35 transition hover:bg-white/[0.05] hover:text-white/65 disabled:cursor-default disabled:opacity-15"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.02] text-base text-white/40 transition hover:bg-white/[0.05] hover:text-white/65 disabled:cursor-default disabled:opacity-15 md:h-9 md:w-9 md:rounded-lg md:text-sm"
                 >
                   →
                 </button>
               </div>
             </div>
 
-            <div className="mx-6 h-px shrink-0 bg-white/[0.055]" />
+            <div className="mx-4 h-px shrink-0 bg-white/[0.055] md:mx-6" />
 
             {/* ==================================================
              * TODAY — EDITABLE
              * ================================================== */}
 
             {isToday ? (
-              <div className="flex min-h-0 flex-1 flex-col px-6 pb-5">
+              <div className="flex min-w-0 flex-col px-4 pb-4 md:min-h-0 md:flex-1 md:px-6 md:pb-5">
 
                 {/* ==================================================
                  * MOOD / ENERGY / RATING
                  * ================================================== */}
 
-                <div className="grid shrink-0 grid-cols-1 gap-5 py-5 lg:grid-cols-[1.05fr_0.95fr_0.8fr]">
+                <div className="grid shrink-0 grid-cols-1 gap-5 py-4 md:py-5 lg:grid-cols-[1.05fr_0.95fr_0.8fr]">
 
                   {/* MOOD */}
 
@@ -802,12 +816,14 @@ export default function Journal({
                       </span>
                     </div>
 
-                    <div className="mt-2.5 flex flex-wrap gap-2">
+                    <div className="mt-2.5 grid grid-cols-3 gap-2 md:flex md:flex-wrap">
                       {moods.map(
                         (
                           mood
                         ) => (
                           <button
+                            type="button"
+
                             key={
                               mood
                             }
@@ -822,7 +838,12 @@ export default function Journal({
                               })
                             }
 
-                            className={`rounded-lg border px-3.5 py-2 text-xs font-medium transition ${
+                            aria-pressed={
+                              selectedEntry?.mood ===
+                              mood
+                            }
+
+                            className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-medium transition md:min-h-0 md:rounded-lg md:px-3.5 ${
                               selectedEntry?.mood ===
                               mood
                                 ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/12 text-[#A0B2FF]"
@@ -851,12 +872,14 @@ export default function Journal({
                       </span>
                     </div>
 
-                    <div className="mt-2.5 flex flex-wrap gap-2">
+                    <div className="mt-2.5 grid grid-cols-2 gap-2 md:flex md:flex-wrap">
                       {energyLevels.map(
                         (
                           energy
                         ) => (
                           <button
+                            type="button"
+
                             key={
                               energy
                             }
@@ -871,7 +894,12 @@ export default function Journal({
                               })
                             }
 
-                            className={`rounded-lg border px-3.5 py-2 text-xs font-medium transition ${
+                            aria-pressed={
+                              selectedEntry?.energy ===
+                              energy
+                            }
+
+                            className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-medium transition md:min-h-0 md:rounded-lg md:px-3.5 ${
                               selectedEntry?.energy ===
                               energy
                                 ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/12 text-[#A0B2FF]"
@@ -900,7 +928,7 @@ export default function Journal({
                       </span>
                     </div>
 
-                    <div className="mt-2.5 flex gap-2">
+                    <div className="mt-2.5 grid grid-cols-5 gap-2 md:flex">
                       {[
                         1,
                         2,
@@ -912,6 +940,8 @@ export default function Journal({
                           rating
                         ) => (
                           <button
+                            type="button"
+
                             key={
                               rating
                             }
@@ -926,7 +956,12 @@ export default function Journal({
                               })
                             }
 
-                            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium transition ${
+                            aria-pressed={
+                              selectedEntry?.rating ===
+                              rating
+                            }
+
+                            className={`flex h-11 min-w-0 items-center justify-center rounded-xl border text-xs font-medium transition md:h-9 md:w-9 md:rounded-lg ${
                               selectedEntry?.rating ===
                               rating
                                 ? "border-[#5B7CFF]/40 bg-[#5B7CFF]/12 text-[#A0B2FF]"
@@ -947,7 +982,7 @@ export default function Journal({
                  * WRITING
                  * ================================================== */}
 
-                <div className="flex min-h-0 flex-1 flex-col border-t border-white/[0.055] pt-4">
+                <div className="flex min-w-0 flex-col border-t border-white/[0.055] pt-4 md:min-h-0 md:flex-1">
                   <div className="mb-2">
                     <p className="text-xs font-medium text-white/35">
                       Your reflection
@@ -955,6 +990,16 @@ export default function Journal({
                   </div>
 
                   <textarea
+                    aria-label="Your reflection"
+
+                    autoCapitalize="sentences"
+
+                    spellCheck
+
+                    rows={
+                      10
+                    }
+
                     value={
                       selectedEntry?.text ??
                       ""
@@ -972,16 +1017,20 @@ export default function Journal({
                     placeholder="Write whatever feels important — what happened, what went well, what felt difficult, what you're thinking about..."
 
                     className="
-                      min-h-0
-                      flex-1
+                      min-h-[17rem]
+                      w-full
+                      scroll-mt-24
                       resize-none
                       bg-transparent
-                      pr-4
-                      text-[15px]
+                      text-base
                       leading-7
                       text-white/75
                       outline-none
                       placeholder:text-white/16
+                      md:min-h-0
+                      md:flex-1
+                      md:pr-4
+                      md:text-[15px]
                     "
                   />
 
@@ -1004,11 +1053,11 @@ export default function Journal({
                * PAST DAY — READ ONLY
                * ================================================== */
 
-              <div className="flex min-h-0 flex-1 flex-col px-6 pb-5">
+              <div className="flex min-w-0 flex-col px-4 pb-4 md:min-h-0 md:flex-1 md:px-6 md:pb-5">
 
                 {/* SAVED SIGNALS */}
 
-                <div className="grid shrink-0 grid-cols-3 gap-6 py-5">
+                <div className="grid shrink-0 grid-cols-3 gap-3 py-4 md:gap-6 md:py-5">
                   <div>
                     <p className="text-xs font-medium text-white/30">
                       Mood
@@ -1055,7 +1104,7 @@ export default function Journal({
                     Reflection
                   </p>
 
-                  <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="mt-3 min-h-[10rem] flex-1 md:min-h-0 md:overflow-y-auto md:pr-3 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
                     {selectedEntry?.text.trim() ? (
                       <p className="whitespace-pre-wrap text-[15px] leading-7 text-white/70">
                         {
@@ -1063,7 +1112,7 @@ export default function Journal({
                         }
                       </p>
                     ) : (
-                      <div className="flex h-full items-center justify-center">
+                      <div className="flex min-h-[10rem] items-center justify-center md:h-full md:min-h-0">
                         <div className="text-center">
                           <p className="text-sm text-white/22">
                             No journal entry was written for this day.
@@ -1085,13 +1134,13 @@ export default function Journal({
            * RIGHT COLUMN
            * ==================================================== */}
 
-          <div className="space-y-4 self-start">
+          <div className="min-w-0 space-y-4 self-start">
 
             {/* ==================================================
              * DAY CONTEXT
              * ================================================== */}
 
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/25">
@@ -1211,7 +1260,7 @@ export default function Journal({
              * ATLAS CONTEXT
              * ================================================== */}
 
-            <div className="rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] p-5">
+            <div className="rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] p-4 md:p-5">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
                   <svg
