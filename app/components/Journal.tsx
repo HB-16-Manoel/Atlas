@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  useRef,
   useState,
   type Dispatch,
+  type PointerEvent as ReactPointerEvent,
   type SetStateAction,
 } from "react";
 
@@ -69,6 +71,14 @@ type JournalProps = {
       JournalEntry[]
     >
   >;
+};
+
+type MobileWeekGestureState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
 };
 
 /* ============================================================
@@ -180,6 +190,16 @@ export default function Journal({
   ] =
     useState(
       todayKey
+    );
+
+  const mobileWeekGestureRef =
+    useRef<MobileWeekGestureState | null>(
+      null
+    );
+
+  const suppressMobileDateClickRef =
+    useRef(
+      false
     );
 
   /* ============================================================
@@ -552,6 +572,127 @@ export default function Journal({
     );
   };
 
+  const handleMobileWeekPointerDown = (
+    event:
+      ReactPointerEvent<HTMLDivElement>
+  ) => {
+    if (
+      event.pointerType ===
+        "mouse"
+    ) {
+      return;
+    }
+
+    mobileWeekGestureRef.current =
+      {
+        pointerId:
+          event.pointerId,
+        startX:
+          event.clientX,
+        startY:
+          event.clientY,
+        currentX:
+          event.clientX,
+        currentY:
+          event.clientY,
+      };
+  };
+
+  const handleMobileWeekPointerMove = (
+    event:
+      ReactPointerEvent<HTMLDivElement>
+  ) => {
+    const gesture =
+      mobileWeekGestureRef.current;
+
+    if (
+      !gesture ||
+      gesture.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    gesture.currentX =
+      event.clientX;
+    gesture.currentY =
+      event.clientY;
+
+    const dx =
+      gesture.currentX -
+      gesture.startX;
+    const dy =
+      gesture.currentY -
+      gesture.startY;
+
+    if (
+      Math.abs(dx) >
+        12 &&
+      Math.abs(dx) >
+        Math.abs(dy) *
+          1.2
+    ) {
+      event.preventDefault();
+    }
+  };
+
+  const releaseMobileWeekGesture = (
+    event:
+      ReactPointerEvent<HTMLDivElement>,
+    cancelled = false
+  ) => {
+    const gesture =
+      mobileWeekGestureRef.current;
+
+    mobileWeekGestureRef.current =
+      null;
+
+    if (
+      cancelled ||
+      !gesture ||
+      gesture.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    const dx =
+      event.clientX -
+      gesture.startX;
+    const dy =
+      event.clientY -
+      gesture.startY;
+
+    if (
+      Math.abs(dx) <
+        52 ||
+      Math.abs(dx) <=
+        Math.abs(dy) *
+          1.25
+    ) {
+      return;
+    }
+
+    suppressMobileDateClickRef.current =
+      true;
+
+    window.setTimeout(
+      () => {
+        suppressMobileDateClickRef.current =
+          false;
+      },
+      400
+    );
+
+    event.preventDefault();
+
+    moveCalendarRange(
+      dx < 0
+        ? 1
+        : -1
+    );
+  };
+
   /* ============================================================
    * OPTIONS
    * ============================================================
@@ -675,8 +816,28 @@ export default function Journal({
           </div>
         </header>
 
-        <div className="mt-5 grid w-full grid-cols-7 gap-1">
-          {calendarDates.map(
+        <div
+          onPointerDown={
+            handleMobileWeekPointerDown
+          }
+          onPointerMove={
+            handleMobileWeekPointerMove
+          }
+          onPointerUp={(event) =>
+            releaseMobileWeekGesture(
+              event
+            )
+          }
+          onPointerCancel={(event) =>
+            releaseMobileWeekGesture(
+              event,
+              true
+            )
+          }
+          className="mt-5 touch-pan-y"
+        >
+          <div className="grid w-full grid-cols-7 gap-1">
+            {calendarDates.map(
             (
               date
             ) => {
@@ -719,11 +880,17 @@ export default function Journal({
                     dateKey
                   }
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (
+                      suppressMobileDateClickRef.current
+                    ) {
+                      return;
+                    }
+
                     setSelectedDate(
                       dateKey
-                    )
-                  }
+                    );
+                  }}
                   aria-current={
                     selected
                       ? "date"
@@ -779,7 +946,8 @@ export default function Journal({
                 </button>
               );
             }
-          )}
+            )}
+          </div>
         </div>
 
         <main className="mt-5 min-w-0">
@@ -872,24 +1040,20 @@ export default function Journal({
 
           {isToday ? (
             <>
-              <section className="border-b border-white/[0.065] py-4">
-                <div className="mb-3 flex items-center justify-between">
+              <section className="pb-2.5 pt-3.5">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-medium text-white/50">
                     Daily signals
                   </p>
-
-                  <span className="text-[10px] text-white/20">
-                    Optional
-                  </span>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-1.5">
                   <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2">
                     <span className="text-[11px] text-white/30">
                       Mood
                     </span>
 
-                    <div className="grid grid-cols-5 gap-1">
+                    <div className="grid grid-cols-5 gap-0.5 rounded-xl bg-white/[0.018] p-0.5">
                       {moods.map(
                         (
                           mood
@@ -912,11 +1076,11 @@ export default function Journal({
                               selectedEntry?.mood ===
                               mood
                             }
-                            className={`min-h-10 min-w-0 rounded-lg border px-0.5 text-[10px] font-medium transition ${
+                            className={`min-h-10 min-w-0 rounded-[0.6rem] px-0.5 text-[10px] font-medium transition ${
                               selectedEntry?.mood ===
                               mood
-                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
-                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                                ? "bg-[#5B7CFF]/15 text-[#A0B2FF] shadow-[inset_0_0_0_1px_rgba(91,124,255,0.28)]"
+                                : "text-white/32 active:bg-white/[0.045] active:text-white/55"
                             }`}
                           >
                             {
@@ -933,7 +1097,7 @@ export default function Journal({
                       Energy
                     </span>
 
-                    <div className="grid grid-cols-4 gap-1">
+                    <div className="grid grid-cols-4 gap-0.5 rounded-xl bg-white/[0.018] p-0.5">
                       {energyLevels.map(
                         (
                           energy
@@ -956,11 +1120,11 @@ export default function Journal({
                               selectedEntry?.energy ===
                               energy
                             }
-                            className={`min-h-10 min-w-0 rounded-lg border px-1 text-[10px] font-medium transition ${
+                            className={`min-h-10 min-w-0 rounded-[0.6rem] px-1 text-[10px] font-medium transition ${
                               selectedEntry?.energy ===
                               energy
-                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
-                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                                ? "bg-[#5B7CFF]/15 text-[#A0B2FF] shadow-[inset_0_0_0_1px_rgba(91,124,255,0.28)]"
+                                : "text-white/32 active:bg-white/[0.045] active:text-white/55"
                             }`}
                           >
                             {
@@ -977,7 +1141,7 @@ export default function Journal({
                       Rating
                     </span>
 
-                    <div className="grid grid-cols-5 gap-1">
+                    <div className="grid grid-cols-5 gap-0.5 rounded-xl bg-white/[0.018] p-0.5">
                       {[1, 2, 3, 4, 5].map(
                         (
                           rating
@@ -1000,11 +1164,11 @@ export default function Journal({
                               selectedEntry?.rating ===
                               rating
                             }
-                            className={`min-h-10 min-w-0 rounded-lg border text-[11px] font-medium transition ${
+                            className={`min-h-10 min-w-0 rounded-[0.6rem] text-[11px] font-medium transition ${
                               selectedEntry?.rating ===
                               rating
-                                ? "border-[#5B7CFF]/45 bg-[#5B7CFF]/15 text-[#A0B2FF]"
-                                : "border-white/[0.065] bg-white/[0.018] text-white/38 active:bg-white/[0.05]"
+                                ? "bg-[#5B7CFF]/15 text-[#A0B2FF] shadow-[inset_0_0_0_1px_rgba(91,124,255,0.28)]"
+                                : "text-white/32 active:bg-white/[0.045] active:text-white/55"
                             }`}
                           >
                             {
@@ -1018,9 +1182,9 @@ export default function Journal({
                 </div>
               </section>
 
-              <section className="pt-4">
+              <section className="pt-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-white/50">
+                  <p className="text-sm font-medium text-white/65">
                     Reflection
                   </p>
 
@@ -1059,7 +1223,7 @@ export default function Journal({
                     })
                   }
                   placeholder="What stood out about today?"
-                  className="mt-2 min-h-32 max-h-[60vh] w-full resize-none overflow-y-auto rounded-xl border border-white/[0.07] bg-white/[0.018] px-3.5 py-3 text-base leading-7 text-white/75 outline-none transition [field-sizing:content] placeholder:text-white/16 focus:border-[#5B7CFF]/35 focus:bg-white/[0.025]"
+                  className="mt-2.5 min-h-44 max-h-[60vh] w-full resize-none overflow-y-auto rounded-xl border border-white/[0.075] bg-white/[0.022] px-3.5 py-3.5 text-base leading-7 text-white/75 outline-none transition [field-sizing:content] placeholder:text-white/18 focus:border-[#5B7CFF]/35 focus:bg-white/[0.028]"
                 />
               </section>
             </>
