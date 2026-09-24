@@ -2252,6 +2252,19 @@ export default function Progress({
         null
     );
 
+  const selectedTrendPoint =
+    hoveredTrendKey
+      ? trendData.find(
+          (
+            point
+          ) =>
+            point.key ===
+            hoveredTrendKey &&
+            point.score !==
+              null
+        ) ?? null
+      : null;
+
   const periodAverage =
     averageNumbers(
       scoredTrendPoints.map(
@@ -2960,6 +2973,21 @@ export default function Progress({
       return;
     }
 
+    if (
+      window.matchMedia(
+        "(max-width: 767px)"
+      ).matches
+    ) {
+      target.scrollIntoView({
+        behavior:
+          "smooth",
+        block:
+          "start",
+      });
+
+      return;
+    }
+
     container.scrollTo({
       top:
         target.offsetTop,
@@ -2981,15 +3009,16 @@ export default function Progress({
       }
 
       className="
-        -m-10
-        h-screen
-        snap-y
-        snap-mandatory
-        scroll-smooth
-        overflow-y-auto
-        overscroll-contain
-        [scrollbar-width:none]
-        [&::-webkit-scrollbar]:hidden
+        min-w-0
+        md:-m-10
+        md:h-screen
+        md:snap-y
+        md:snap-mandatory
+        md:scroll-smooth
+        md:overflow-y-auto
+        md:overscroll-contain
+        md:[scrollbar-width:none]
+        md:[&::-webkit-scrollbar]:hidden
       "
     >
       {/* ======================================================
@@ -3003,26 +3032,26 @@ export default function Progress({
 
         className="
           flex
-          min-h-screen
-          snap-start
-          snap-always
           flex-col
-          px-10
-          py-5
+          md:min-h-screen
+          md:snap-start
+          md:snap-always
+          md:px-10
+          md:py-5
         "
       >
-        <div className="flex items-end justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-0">
           <div>
             <p className="text-sm text-white/35">
               Your performance over time
             </p>
 
-            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.025em]">
+            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
               Progress
             </h2>
           </div>
 
-          <div className="flex items-center rounded-xl border border-white/[0.07] bg-white/[0.025] p-1">
+          <div className="grid w-full grid-cols-4 items-center rounded-xl border border-white/[0.07] bg-white/[0.025] p-1 md:flex md:w-auto">
             {[
               "Week",
               "Month",
@@ -3038,12 +3067,17 @@ export default function Progress({
                   }
 
                   onClick={() =>
-                    setActivePeriod(
-                      period as ProgressPeriod
-                    )
+                    {
+                      setActivePeriod(
+                        period as ProgressPeriod
+                      );
+                      setHoveredTrendKey(
+                        null
+                      );
+                    }
                   }
 
-                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  className={`min-h-10 rounded-lg px-1.5 py-2 text-[11px] font-medium transition-all duration-200 md:min-h-0 md:px-3.5 md:py-1.5 md:text-xs ${
                     activePeriod ===
                     period
                       ? "bg-white/[0.09] text-white"
@@ -3061,15 +3095,15 @@ export default function Progress({
 
         {/* OVERALL PROGRESS */}
 
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-6 pb-4 pt-4">
-          <div className="flex items-start justify-between">
+        <div className="mt-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 pb-4 pt-4 md:px-6">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
                 Overall progress
               </p>
 
               <div className="mt-2.5 flex items-end gap-3">
-                <span className="text-5xl font-semibold tracking-[-0.045em]">
+                <span className="text-4xl font-semibold tracking-[-0.045em] md:text-5xl">
                   {
                     overallScore ??
                     "—"
@@ -3084,7 +3118,7 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="text-right">
+            <div className="shrink-0 text-right">
               <p className="text-xs text-white/30">
                 Daily Score
               </p>
@@ -3097,7 +3131,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-4 h-[180px]">
+          <div className="relative mt-4 h-[165px] md:h-[180px]">
             <div className="absolute inset-0 flex flex-col justify-between">
               {[
                 "100",
@@ -3204,9 +3238,28 @@ export default function Progress({
                   (
                     point
                   ) => (
-                    <div
+                    <button
+                      type="button"
                       key={
                         point.key
+                      }
+
+                      aria-label={
+                        point.score ===
+                        null
+                          ? `${point.fullLabel}: no score`
+                          : `${point.fullLabel}: Daily Score ${point.score}`
+                      }
+
+                      onClick={() =>
+                        point.score !==
+                        null &&
+                        setHoveredTrendKey(
+                          hoveredTrendKey ===
+                            point.key
+                            ? null
+                            : point.key
+                        )
                       }
 
                       onMouseEnter={() =>
@@ -3221,13 +3274,13 @@ export default function Progress({
                         )
                       }
 
-                      className="group relative flex-1"
+                      className="group relative flex-1 focus-visible:outline-none"
                     >
                       {hoveredTrendKey ===
                         point.key &&
                         point.score !==
                           null && (
-                          <div className="pointer-events-none absolute left-1/2 top-2 z-20 w-max -translate-x-1/2 rounded-lg border border-white/[0.1] bg-[#171A26] px-3 py-2 shadow-xl shadow-black/30">
+                          <div className="pointer-events-none absolute left-1/2 top-2 z-20 hidden w-max -translate-x-1/2 rounded-lg border border-white/[0.1] bg-[#171A26] px-3 py-2 shadow-xl shadow-black/30 md:block">
                             <p className="text-[10px] text-white/30">
                               {
                                 point.fullLabel
@@ -3241,7 +3294,7 @@ export default function Progress({
                             </p>
                           </div>
                         )}
-                    </div>
+                    </button>
                   )
                 )}
               </div>
@@ -3279,19 +3332,33 @@ export default function Progress({
               )
             )}
           </div>
+
+          {selectedTrendPoint && (
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 md:hidden">
+              <span className="text-xs text-white/40">
+                {
+                  selectedTrendPoint.fullLabel
+                }
+              </span>
+
+              <span className="text-sm font-semibold text-white">
+                Daily Score {selectedTrendPoint.score}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-4 grid grid-cols-[1.12fr_0.88fr] gap-5">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1.12fr_0.88fr] md:gap-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-white/30">
                   Patterns
                 </p>
 
-                <h3 className="mt-1 text-xl font-medium">
+                <h3 className="mt-1 text-lg font-medium md:text-xl">
                   What&apos;s shaping your week
                 </h3>
 
@@ -3326,13 +3393,13 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4">
+            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 md:gap-x-8 md:gap-y-4">
               <div>
                 <p className="text-sm text-white/35">
                   Strongest day
                 </p>
 
-                <p className="mt-2 text-2xl font-semibold text-white/90">
+                <p className="mt-2 text-xl font-semibold text-white/90 md:text-2xl">
                   {
                     strongestDay?.name ??
                     "—"
@@ -3351,7 +3418,7 @@ export default function Progress({
                   Most reliable habit
                 </p>
 
-                <p className="mt-2 truncate text-2xl font-semibold text-white/90">
+                <p className="mt-2 break-words text-xl font-semibold text-white/90 md:truncate md:text-2xl">
                   {
                     mostReliableHabit?.name ??
                     "—"
@@ -3370,7 +3437,7 @@ export default function Progress({
                   Biggest improvement
                 </p>
 
-                <p className="mt-2 text-2xl font-semibold text-white/90">
+                <p className="mt-2 text-xl font-semibold text-white/90 md:text-2xl">
                   {biggestImprovement.category ===
                   "Neither"
                     ? "No clear gain"
@@ -3400,7 +3467,7 @@ export default function Progress({
                   Weakest day
                 </p>
 
-                <p className="mt-2 text-2xl font-semibold text-white/90">
+                <p className="mt-2 text-xl font-semibold text-white/90 md:text-2xl">
                   {
                     weakestDay?.name ??
                     "—"
@@ -3418,7 +3485,7 @@ export default function Progress({
 
           {/* COMPLETION */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
               Completion
             </p>
@@ -3514,7 +3581,7 @@ export default function Progress({
             )
           }
 
-          className="mx-auto mt-4 flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-white/25 transition hover:bg-white/[0.03] hover:text-white/45"
+          className="mx-auto mt-5 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/35 transition hover:bg-white/[0.03] hover:text-white/45 md:mt-4 md:min-h-0 md:py-1.5 md:text-white/25"
         >
           <span>
             Consistency
@@ -3548,14 +3615,15 @@ export default function Progress({
 
         className="
           flex
-          h-screen
-          shrink-0
-          snap-start
-          snap-always
           flex-col
-          overflow-hidden
-          px-10
-          py-3
+          pt-8
+          md:h-screen
+          md:shrink-0
+          md:snap-start
+          md:snap-always
+          md:overflow-hidden
+          md:px-10
+          md:py-3
         "
       >
         <div className="flex items-start justify-between">
@@ -3564,7 +3632,7 @@ export default function Progress({
               How reliably you&apos;re showing up
             </p>
 
-            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.025em]">
+            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
               Consistency
             </h2>
           </div>
@@ -3576,7 +3644,7 @@ export default function Progress({
               )
             }
 
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/25 transition hover:bg-white/[0.03] hover:text-white/50"
+            className="hidden items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/25 transition hover:bg-white/[0.03] hover:text-white/50 md:flex"
           >
             <svg
               width="10"
@@ -3599,14 +3667,14 @@ export default function Progress({
 
         {/* DAYS ON TRACK */}
 
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
-          <div className="flex items-start justify-between">
+        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-0">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
                 Days on track
               </p>
 
-              <h3 className="mt-1 text-xl font-medium">
+              <h3 className="mt-1 text-lg font-medium md:text-xl">
                 This week
               </h3>
 
@@ -3615,8 +3683,8 @@ export default function Progress({
               </p>
             </div>
 
-            <div className="text-right">
-              <div className="flex items-baseline justify-end gap-1.5">
+            <div className="text-left md:text-right">
+              <div className="flex items-baseline gap-1.5 md:justify-end">
                 <span className="text-3xl font-semibold">
                   {
                     onTrackDays
@@ -3642,7 +3710,7 @@ export default function Progress({
           </div>
 
           <div className="relative mt-5">
-            <div className="absolute left-[7%] right-[7%] top-[45px] h-px bg-white/[0.07]" />
+            <div className="absolute left-[7%] right-[7%] top-[41px] h-px bg-white/[0.07] md:top-[45px]" />
 
             <div className="relative grid grid-cols-7">
               {consistencyData.map(
@@ -3670,7 +3738,7 @@ export default function Progress({
 
                       className="relative flex flex-col items-center"
                     >
-                      <p className="text-xs font-medium text-white/35">
+                      <p className="text-[10px] font-medium text-white/35 sm:text-xs">
                         {
                           item.shortDay
                         }
@@ -3695,7 +3763,25 @@ export default function Progress({
                           )
                         }
 
-                        className={`relative z-10 mt-3 flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${style.outer} ${
+                        onClick={() => {
+                          if (
+                            canHover
+                          ) {
+                            setHoveredDay(
+                              isHovered
+                                ? null
+                                : item
+                            );
+                          }
+                        }}
+
+                        aria-label={`${item.day}: ${style.label}`}
+
+                        aria-pressed={
+                          isHovered
+                        }
+
+                        className={`relative z-10 mt-3 flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8199FF]/60 md:h-9 md:w-9 ${style.outer} ${
                           canHover
                             ? "cursor-default hover:scale-110 hover:border-[#5B7CFF]/60"
                             : "cursor-default"
@@ -3712,7 +3798,7 @@ export default function Progress({
                       </button>
 
                       <p
-                        className={`mt-3 text-xs ${style.text}`}
+                        className={`mt-3 hidden text-xs sm:block ${style.text}`}
                       >
                         {
                           style.label
@@ -3722,7 +3808,7 @@ export default function Progress({
                       {isHovered &&
                         item.state !==
                           "future" && (
-                          <div className="absolute bottom-[74px] left-1/2 z-30 w-[205px] -translate-x-1/2 rounded-xl border border-white/[0.1] bg-[#171A26] p-4 shadow-2xl shadow-black/40">
+                          <div className="absolute bottom-[74px] left-1/2 z-30 hidden w-[205px] -translate-x-1/2 rounded-xl border border-white/[0.1] bg-[#171A26] p-4 shadow-2xl shadow-black/40 md:block">
                             <div className="flex items-start justify-between">
                               <div>
                                 <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-white/25">
@@ -3826,16 +3912,64 @@ export default function Progress({
                 }
               )}
             </div>
+
+            {hoveredDay &&
+              hoveredDay.state !==
+                "future" && (
+                <div className="mt-4 rounded-xl border border-white/[0.07] bg-[#171A26]/70 p-3.5 md:hidden">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-white/30">
+                        {
+                          hoveredDay.day
+                        }
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-white/80">
+                        {
+                          getConsistencyStyle(
+                            hoveredDay.state
+                          ).label
+                        }
+                      </p>
+                    </div>
+
+                    <span className="text-sm font-semibold text-white">
+                      Score {hoveredDay.dailyScore ?? "—"}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-3 text-xs">
+                    <div>
+                      <p className="text-white/30">Tasks</p>
+                      <p className="mt-1 font-medium text-white/70">
+                        {hoveredDay.tasksTotal > 0
+                          ? `${hoveredDay.tasksCompleted} / ${hoveredDay.tasksTotal}`
+                          : "—"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-white/30">Habits</p>
+                      <p className="mt-1 font-medium text-white/70">
+                        {hoveredDay.habitsTotal > 0
+                          ? `${hoveredDay.habitsCompleted} / ${hoveredDay.habitsTotal}`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
 
         {/* TASKS VS HABITS + 4-WEEK CONSISTENCY */}
 
-        <div className="mt-4 grid grid-cols-[1.35fr_0.65fr] gap-5">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1.35fr_0.65fr] md:gap-5">
           {/* TASKS VS HABITS */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
-            <div className="flex items-start justify-between">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-0">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
                   Tasks vs habits
@@ -3865,7 +3999,7 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="relative mt-4 h-[140px]">
+            <div className="relative mt-4 h-[165px] md:h-[140px]">
               <div className="absolute inset-0 flex flex-col justify-between pb-6">
                 {[
                   "100",
@@ -3896,7 +4030,7 @@ export default function Progress({
                 )}
               </div>
 
-              <div className="absolute bottom-6 left-9 right-0 top-0 grid grid-cols-7 gap-4">
+              <div className="absolute bottom-6 left-8 right-0 top-0 grid grid-cols-7 gap-1.5 md:left-9 md:gap-4">
                 {balanceData.map(
                   (
                     item
@@ -3960,7 +4094,7 @@ export default function Progress({
                         {item.tasks !==
                         null ? (
                           <div
-                            className="w-3 rounded-t-[4px] bg-white/45 transition-[height,opacity] duration-500 ease-out group-hover:bg-white/60"
+                            className="w-2 rounded-t-[4px] bg-white/45 transition-[height,opacity] duration-500 ease-out group-hover:bg-white/60 sm:w-3"
 
                             style={{
                               height:
@@ -3968,13 +4102,13 @@ export default function Progress({
                             }}
                           />
                         ) : (
-                          <div className="w-3" />
+                          <div className="w-2 sm:w-3" />
                         )}
 
                         {item.habits !==
                         null ? (
                           <div
-                            className="w-3 rounded-t-[4px] bg-[#5B7CFF] transition-[height,opacity] duration-500 ease-out group-hover:bg-[#7894FF]"
+                            className="w-2 rounded-t-[4px] bg-[#5B7CFF] transition-[height,opacity] duration-500 ease-out group-hover:bg-[#7894FF] sm:w-3"
 
                             style={{
                               height:
@@ -3982,7 +4116,7 @@ export default function Progress({
                             }}
                           />
                         ) : (
-                          <div className="w-3" />
+                          <div className="w-2 sm:w-3" />
                         )}
                       </div>
                     </div>
@@ -3990,7 +4124,7 @@ export default function Progress({
                 )}
               </div>
 
-              <div className="absolute bottom-0 left-9 right-0 grid grid-cols-7 gap-4">
+              <div className="absolute bottom-0 left-8 right-0 grid grid-cols-7 gap-1.5 md:left-9 md:gap-4">
                 {balanceData.map(
                   (
                     item
@@ -4026,7 +4160,7 @@ export default function Progress({
 
           {/* 4 WEEK CONSISTENCY */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
               Consistency
             </p>
@@ -4140,8 +4274,8 @@ export default function Progress({
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
 
-        <div className="mt-2 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-5 py-3">
-          <div className="flex items-start gap-4">
+        <div className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-4 py-4 md:mt-2 md:px-5 md:py-3">
+          <div className="flex items-start gap-3 md:gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
               <svg
                 width="16"
@@ -4166,7 +4300,7 @@ export default function Progress({
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
                 <p className="text-xs font-medium uppercase tracking-[0.15em] text-[#8EA4FF]/70">
                   Atlas insight
                 </p>
