@@ -387,36 +387,38 @@ export default function AtlasApp() {
             </div>
 
             <div className="flex flex-1 items-start pt-[clamp(3rem,8vh,5rem)]">
-              <nav aria-label="Primary navigation" className="w-full space-y-1">
-                {mobilePages.map(
-                  (
-                    page
-                  ) => (
-                    <DesktopNavItem
-                      key={page}
-                      page={page}
-                      active={activePage === page}
-                      onSelect={() =>
-                        setActivePage(
-                          page
-                        )
-                      }
-                    />
-                  )
-                )}
-              </nav>
-            </div>
+              <div className="w-full">
+                <nav aria-label="Primary navigation" className="space-y-1">
+                  {mobilePages.map(
+                    (
+                      page
+                    ) => (
+                      <DesktopNavItem
+                        key={page}
+                        page={page}
+                        active={activePage === page}
+                        onSelect={() =>
+                          setActivePage(
+                            page
+                          )
+                        }
+                      />
+                    )
+                  )}
+                </nav>
 
-            <div className="mt-auto border-t border-white/[0.07] pt-4">
-              <DesktopNavItem
-                page="Settings"
-                active={activePage === "Settings"}
-                onSelect={() =>
-                  setActivePage(
-                    "Settings"
-                  )
-                }
-              />
+                <div className="mt-8 border-t border-white/[0.07] pt-4">
+                  <DesktopNavItem
+                    page="Settings"
+                    active={activePage === "Settings"}
+                    onSelect={() =>
+                      setActivePage(
+                        "Settings"
+                      )
+                    }
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </aside>
