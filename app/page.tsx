@@ -100,6 +100,8 @@ const mobilePages: MobilePage[] = [
   "Journal",
 ];
 
+type DesktopPage = MobilePage | "Settings";
+
 function MobileNavIcon({
   page,
 }: {
@@ -193,6 +195,34 @@ function MobileNavIcon({
   );
 }
 
+function DesktopNavIcon({
+  page,
+}: {
+  page: DesktopPage;
+}) {
+  if (page !== "Settings") {
+    return <MobileNavIcon page={page} />;
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"
+      />
+    </svg>
+  );
+}
+
 /* ============================================================
  * MAIN ATLAS APP
  * ============================================================
@@ -267,12 +297,7 @@ export default function AtlasApp() {
           <AtlasWordmark />
 
           <nav className="mt-6 space-y-2">
-            {[
-              "Home",
-              "Planning",
-              "Progress",
-              "Journal",
-            ].map(
+            {mobilePages.map(
               (
                 page
               ) => (
@@ -287,13 +312,19 @@ export default function AtlasApp() {
                     )
                   }
 
-                  className={`w-full cursor-pointer rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+                  aria-current={activePage === page ? "page" : undefined}
+                  className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
                     activePage ===
                     page
                       ? "bg-white/10 text-white"
                       : "text-white/60 hover:bg-white/5 hover:text-white"
                   }`}
                 >
+                  <span
+                    className={activePage === page ? "text-[#7892FF]" : "text-current"}
+                  >
+                    <DesktopNavIcon page={page} />
+                  </span>
                   {
                     page
                   }
@@ -310,13 +341,19 @@ export default function AtlasApp() {
                 )
               }
 
-              className={`w-full cursor-pointer rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+              aria-current={activePage === "Settings" ? "page" : undefined}
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
                 activePage ===
                 "Settings"
                   ? "bg-white/10 text-white"
                   : "text-white/60 hover:bg-white/5 hover:text-white"
               }`}
             >
+              <span
+                className={activePage === "Settings" ? "text-[#7892FF]" : "text-current"}
+              >
+                <DesktopNavIcon page="Settings" />
+              </span>
               Settings
             </button>
           </div>
