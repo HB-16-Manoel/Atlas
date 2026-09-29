@@ -200,8 +200,61 @@ function DesktopNavIcon({
 }: {
   page: DesktopPage;
 }) {
-  if (page !== "Settings") {
+  if (page === "Home" || page === "Planning") {
     return <MobileNavIcon page={page} />;
+  }
+
+  if (page === "Progress") {
+    return (
+      <svg
+        aria-hidden="true"
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="m3 17 6-6 4 4 8-8"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15 7h6v6"
+        />
+      </svg>
+    );
+  }
+
+  if (page === "Journal") {
+    return (
+      <svg
+        aria-hidden="true"
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 20h9"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="m15 5 3 3"
+        />
+      </svg>
+    );
   }
 
   return (
@@ -220,6 +273,40 @@ function DesktopNavIcon({
         d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"
       />
     </svg>
+  );
+}
+
+function DesktopNavItem({
+  page,
+  active,
+  onSelect,
+}: {
+  page: DesktopPage;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-current={active ? "page" : undefined}
+      className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/65 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] active:bg-white/[0.07] ${
+        active
+          ? "bg-white/[0.06] text-white"
+          : "text-white/50 hover:bg-white/[0.035] hover:text-white/85"
+      }`}
+    >
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center transition-colors duration-200 ${
+          active
+            ? "text-[#7F98FF]"
+            : "text-white/38 group-hover:text-white/70"
+        }`}
+      >
+        <DesktopNavIcon page={page} />
+      </span>
+      <span>{page}</span>
+    </button>
   );
 }
 
@@ -293,96 +380,43 @@ export default function AtlasApp() {
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="relative hidden h-dvh w-64 shrink-0 overflow-hidden border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(91,124,255,0.13),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.018),transparent_30%)]"
-          />
-
-          <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-5 pt-6">
+        <aside className="hidden h-dvh w-60 shrink-0 border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
+          <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-6">
             <div className="px-2">
               <AtlasWordmark />
             </div>
 
-            <nav aria-label="Primary navigation" className="mt-8 space-y-1.5">
-              {mobilePages.map(
-                (
-                  page
-                ) => {
-                  const isActive = activePage === page;
-
-                  return (
-                    <button
-                      key={
-                        page
-                      }
-                      type="button"
-                      onClick={() =>
+            <div className="flex flex-1 items-start pt-[clamp(3rem,8vh,5rem)]">
+              <nav aria-label="Primary navigation" className="w-full space-y-1">
+                {mobilePages.map(
+                  (
+                    page
+                  ) => (
+                    <DesktopNavItem
+                      key={page}
+                      page={page}
+                      active={activePage === page}
+                      onSelect={() =>
                         setActivePage(
                           page
                         )
                       }
-                      aria-current={isActive ? "page" : undefined}
-                      className={`group relative flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] ${
-                        isActive
-                          ? "bg-gradient-to-r from-[#5B7CFF]/18 to-[#5B7CFF]/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(120,146,255,0.14),0_12px_28px_-20px_rgba(91,124,255,0.9)]"
-                          : "text-white/55 hover:bg-white/[0.045] hover:text-white/90"
-                      }`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`absolute left-0 h-5 w-0.5 rounded-full bg-[#7892FF] shadow-[0_0_14px_rgba(91,124,255,0.8)] transition-opacity duration-200 ${
-                          isActive ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] duration-200 ${
-                          isActive
-                            ? "bg-[#5B7CFF]/16 text-[#8EA4FF] shadow-[inset_0_0_0_1px_rgba(120,146,255,0.12)]"
-                            : "text-white/40 group-hover:bg-white/[0.04] group-hover:text-white/75"
-                        }`}
-                      >
-                        <DesktopNavIcon page={page} />
-                      </span>
-                      <span>{page}</span>
-                    </button>
-                  );
-                }
-              )}
-            </nav>
+                    />
+                  )
+                )}
+              </nav>
+            </div>
 
             <div className="mt-auto border-t border-white/[0.07] pt-4">
-              <button
-                type="button"
-                onClick={() =>
+              <DesktopNavItem
+                page="Settings"
+                active={activePage === "Settings"}
+                onSelect={() =>
                   setActivePage(
                     "Settings"
                   )
                 }
-                aria-current={activePage === "Settings" ? "page" : undefined}
-                className={`group relative flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] ${
-                  activePage === "Settings"
-                    ? "bg-gradient-to-r from-[#5B7CFF]/18 to-[#5B7CFF]/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(120,146,255,0.14),0_12px_28px_-20px_rgba(91,124,255,0.9)]"
-                    : "text-white/55 hover:bg-white/[0.045] hover:text-white/90"
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`absolute left-0 h-5 w-0.5 rounded-full bg-[#7892FF] shadow-[0_0_14px_rgba(91,124,255,0.8)] transition-opacity duration-200 ${
-                    activePage === "Settings" ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] duration-200 ${
-                    activePage === "Settings"
-                      ? "bg-[#5B7CFF]/16 text-[#8EA4FF] shadow-[inset_0_0_0_1px_rgba(120,146,255,0.12)]"
-                      : "text-white/40 group-hover:bg-white/[0.04] group-hover:text-white/75"
-                  }`}
-                >
-                  <DesktopNavIcon page="Settings" />
-                </span>
-                <span>Settings</span>
-              </button>
+              />
             </div>
           </div>
         </aside>
