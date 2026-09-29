@@ -293,69 +293,97 @@ export default function AtlasApp() {
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="hidden w-60 shrink-0 border-r border-white/10 p-6 md:block">
-          <AtlasWordmark />
+        <aside className="relative hidden h-dvh w-64 shrink-0 overflow-hidden border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(91,124,255,0.13),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.018),transparent_30%)]"
+          />
 
-          <nav className="mt-6 space-y-2">
-            {mobilePages.map(
-              (
-                page
-              ) => (
-                <button
-                  key={
-                    page
-                  }
+          <div className="relative flex min-h-0 flex-1 flex-col px-5 pb-5 pt-6">
+            <div className="px-2">
+              <AtlasWordmark />
+            </div>
 
-                  onClick={() =>
-                    setActivePage(
-                      page
-                    )
-                  }
+            <nav aria-label="Primary navigation" className="mt-8 space-y-1.5">
+              {mobilePages.map(
+                (
+                  page
+                ) => {
+                  const isActive = activePage === page;
 
-                  aria-current={activePage === page ? "page" : undefined}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
-                    activePage ===
-                    page
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  return (
+                    <button
+                      key={
+                        page
+                      }
+                      type="button"
+                      onClick={() =>
+                        setActivePage(
+                          page
+                        )
+                      }
+                      aria-current={isActive ? "page" : undefined}
+                      className={`group relative flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] ${
+                        isActive
+                          ? "bg-gradient-to-r from-[#5B7CFF]/18 to-[#5B7CFF]/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(120,146,255,0.14),0_12px_28px_-20px_rgba(91,124,255,0.9)]"
+                          : "text-white/55 hover:bg-white/[0.045] hover:text-white/90"
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`absolute left-0 h-5 w-0.5 rounded-full bg-[#7892FF] shadow-[0_0_14px_rgba(91,124,255,0.8)] transition-opacity duration-200 ${
+                          isActive ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] duration-200 ${
+                          isActive
+                            ? "bg-[#5B7CFF]/16 text-[#8EA4FF] shadow-[inset_0_0_0_1px_rgba(120,146,255,0.12)]"
+                            : "text-white/40 group-hover:bg-white/[0.04] group-hover:text-white/75"
+                        }`}
+                      >
+                        <DesktopNavIcon page={page} />
+                      </span>
+                      <span>{page}</span>
+                    </button>
+                  );
+                }
+              )}
+            </nav>
+
+            <div className="mt-auto border-t border-white/[0.07] pt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  setActivePage(
+                    "Settings"
+                  )
+                }
+                aria-current={activePage === "Settings" ? "page" : undefined}
+                className={`group relative flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] ${
+                  activePage === "Settings"
+                    ? "bg-gradient-to-r from-[#5B7CFF]/18 to-[#5B7CFF]/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(120,146,255,0.14),0_12px_28px_-20px_rgba(91,124,255,0.9)]"
+                    : "text-white/55 hover:bg-white/[0.045] hover:text-white/90"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`absolute left-0 h-5 w-0.5 rounded-full bg-[#7892FF] shadow-[0_0_14px_rgba(91,124,255,0.8)] transition-opacity duration-200 ${
+                    activePage === "Settings" ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] duration-200 ${
+                    activePage === "Settings"
+                      ? "bg-[#5B7CFF]/16 text-[#8EA4FF] shadow-[inset_0_0_0_1px_rgba(120,146,255,0.12)]"
+                      : "text-white/40 group-hover:bg-white/[0.04] group-hover:text-white/75"
                   }`}
                 >
-                  <span
-                    className={activePage === page ? "text-[#7892FF]" : "text-current"}
-                  >
-                    <DesktopNavIcon page={page} />
-                  </span>
-                  {
-                    page
-                  }
-                </button>
-              )
-            )}
-          </nav>
-
-          <div className="mt-10">
-            <button
-              onClick={() =>
-                setActivePage(
-                  "Settings"
-                )
-              }
-
-              aria-current={activePage === "Settings" ? "page" : undefined}
-              className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
-                activePage ===
-                "Settings"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <span
-                className={activePage === "Settings" ? "text-[#7892FF]" : "text-current"}
-              >
-                <DesktopNavIcon page="Settings" />
-              </span>
-              Settings
-            </button>
+                  <DesktopNavIcon page="Settings" />
+                </span>
+                <span>Settings</span>
+              </button>
+            </div>
           </div>
         </aside>
 
