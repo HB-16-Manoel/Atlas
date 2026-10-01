@@ -45,8 +45,10 @@ function AtlasLogo({
 
 function AtlasWordmark({
   compact = false,
+  collapsible = false,
 }: {
   compact?: boolean;
+  collapsible?: boolean;
 }) {
   return (
     <div
@@ -63,11 +65,15 @@ function AtlasWordmark({
 
       <span
         aria-label="Atlas"
-        className={
+        className={`${
           compact
             ? "text-[15px] font-semibold leading-none tracking-[0.13em]"
             : "text-[22px] font-semibold leading-none tracking-[0.15em]"
-        }
+        } ${
+          collapsible
+            ? "max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity] duration-[180ms] group-hover/sidebar:max-w-24 group-hover/sidebar:opacity-100 group-focus-within/sidebar:max-w-24 group-focus-within/sidebar:opacity-100 motion-reduce:transition-none"
+            : ""
+        }`}
       >
         <span
           aria-hidden="true"
@@ -290,7 +296,9 @@ function DesktopNavItem({
       type="button"
       onClick={onSelect}
       aria-current={active ? "page" : undefined}
-      className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/65 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] active:bg-white/[0.07] ${
+      aria-label={page}
+      title={page}
+      className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-2 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,padding] duration-[180ms] group-hover/sidebar:px-3 group-focus-within/sidebar:px-3 focus-visible:ring-2 focus-visible:ring-[#7892FF]/65 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] active:bg-white/[0.07] motion-reduce:transition-none ${
         active
           ? "bg-white/[0.06] text-white"
           : "text-white/50 hover:bg-white/[0.035] hover:text-white/85"
@@ -305,7 +313,9 @@ function DesktopNavItem({
       >
         <DesktopNavIcon page={page} />
       </span>
-      <span>{page}</span>
+      <span className="whitespace-nowrap opacity-0 transition-opacity duration-[180ms] group-hover/sidebar:opacity-100 group-focus-within/sidebar:opacity-100 motion-reduce:transition-none">
+        {page}
+      </span>
     </button>
   );
 }
@@ -380,43 +390,48 @@ export default function AtlasApp() {
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="hidden h-dvh w-52 shrink-0 border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
-          <div className="flex min-h-0 flex-1 flex-col px-4 pb-5 pt-6">
-            <div className="whitespace-nowrap px-1">
-              <AtlasWordmark />
-            </div>
+        <aside
+          aria-label="Desktop navigation"
+          className="relative hidden h-dvh w-[68px] shrink-0 md:sticky md:top-0 md:block"
+        >
+          <div className="group/sidebar absolute inset-y-0 left-0 z-50 flex w-[68px] flex-col overflow-hidden border-r border-white/[0.08] bg-[#0D0F18] transition-[width] duration-[180ms] ease-out hover:w-52 focus-within:w-52 motion-reduce:transition-none">
+            <div className="flex min-h-0 flex-1 flex-col pb-5 pt-6">
+              <div className="overflow-hidden whitespace-nowrap px-0.5 transition-[padding] duration-[180ms] group-hover/sidebar:px-4 group-focus-within/sidebar:px-4 motion-reduce:transition-none">
+                <AtlasWordmark collapsible />
+              </div>
 
-            <div className="flex flex-1 items-start pt-[clamp(3rem,8vh,5rem)]">
-              <div className="w-full">
-                <nav aria-label="Primary navigation" className="space-y-1">
-                  {mobilePages.map(
-                    (
-                      page
-                    ) => (
-                      <DesktopNavItem
-                        key={page}
-                        page={page}
-                        active={activePage === page}
-                        onSelect={() =>
-                          setActivePage(
-                            page
-                          )
-                        }
-                      />
-                    )
-                  )}
-                </nav>
-
-                <div className="mt-8 border-t border-white/[0.07] pt-4">
-                  <DesktopNavItem
-                    page="Settings"
-                    active={activePage === "Settings"}
-                    onSelect={() =>
-                      setActivePage(
-                        "Settings"
+              <div className="flex flex-1 items-start pt-[clamp(3rem,8vh,5rem)]">
+                <div className="w-full px-3 transition-[padding] duration-[180ms] group-hover/sidebar:px-4 group-focus-within/sidebar:px-4 motion-reduce:transition-none">
+                  <nav aria-label="Primary navigation" className="space-y-1">
+                    {mobilePages.map(
+                      (
+                        page
+                      ) => (
+                        <DesktopNavItem
+                          key={page}
+                          page={page}
+                          active={activePage === page}
+                          onSelect={() =>
+                            setActivePage(
+                              page
+                            )
+                          }
+                        />
                       )
-                    }
-                  />
+                    )}
+                  </nav>
+
+                  <div className="mt-8 border-t border-white/[0.07] pt-4">
+                    <DesktopNavItem
+                      page="Settings"
+                      active={activePage === "Settings"}
+                      onSelect={() =>
+                        setActivePage(
+                          "Settings"
+                        )
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
