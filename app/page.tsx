@@ -382,7 +382,7 @@ export default function AtlasApp() {
 
         <aside className="hidden h-dvh w-52 shrink-0 border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
           <div className="flex min-h-0 flex-1 flex-col px-4 pb-5 pt-6">
-            <div className="px-1">
+            <div className="whitespace-nowrap px-1">
               <AtlasWordmark />
             </div>
 
