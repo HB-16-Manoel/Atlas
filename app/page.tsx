@@ -217,12 +217,12 @@ function DesktopNavIcon({
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="m3 17 6-6 4 4 8-8"
+          d="M4 5v14h16"
         />
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M15 7h6v6"
+          d="m7 15 4-4 3 3 5-6"
         />
       </svg>
     );
@@ -380,9 +380,9 @@ export default function AtlasApp() {
          * SIDEBAR
          * ==================================================== */}
 
-        <aside className="hidden h-dvh w-60 shrink-0 border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
-          <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-6">
-            <div className="px-2">
+        <aside className="hidden h-dvh w-52 shrink-0 border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col">
+          <div className="flex min-h-0 flex-1 flex-col px-4 pb-5 pt-6">
+            <div className="px-1">
               <AtlasWordmark />
             </div>
 
