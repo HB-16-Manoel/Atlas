@@ -49,10 +49,10 @@ function AtlasLogo({
 
 function AtlasWordmark({
   compact = false,
-  sidebarExpanded,
+  sidebar = false,
 }: {
   compact?: boolean;
-  sidebarExpanded?: boolean;
+  sidebar?: boolean;
 }) {
   return (
     <div
@@ -65,24 +65,16 @@ function AtlasWordmark({
       <AtlasLogo
         compact={compact}
         decorative
-        sidebar={sidebarExpanded !== undefined}
+        sidebar={sidebar}
       />
 
       <span
         aria-label="Atlas"
-        className={`${
+        className={
           compact
             ? "text-[15px] font-semibold leading-none tracking-[0.13em]"
             : "text-[22px] font-semibold leading-none tracking-[0.15em]"
-        } ${
-          sidebarExpanded !== undefined
-            ? `overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-[170ms] motion-reduce:transition-none ${
-                sidebarExpanded
-                  ? "max-w-24 opacity-100"
-                  : "max-w-0 opacity-0"
-              }`
-            : ""
-        }`}
+        }
       >
         <span
           aria-hidden="true"
@@ -294,12 +286,10 @@ function DesktopNavIcon({
 function DesktopNavItem({
   page,
   active,
-  expanded,
   onSelect,
 }: {
   page: DesktopPage;
   active: boolean;
-  expanded: boolean;
   onSelect: () => void;
 }) {
   return (
@@ -309,11 +299,7 @@ function DesktopNavItem({
       aria-current={active ? "page" : undefined}
       aria-label={page}
       title={page}
-      className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color,padding] duration-[170ms] focus-visible:ring-2 focus-visible:ring-[#7892FF]/65 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] active:bg-white/[0.07] motion-reduce:transition-none ${
-        expanded
-          ? "px-3"
-          : "px-2"
-      } ${
+      className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-left text-[14px] font-medium tracking-[-0.01em] outline-none transition-[background-color,color] duration-200 focus-visible:ring-2 focus-visible:ring-[#7892FF]/65 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0F18] active:bg-white/[0.07] ${
         active
           ? "bg-white/[0.06] text-white"
           : "text-white/50 hover:bg-white/[0.035] hover:text-white/85"
@@ -328,13 +314,7 @@ function DesktopNavItem({
       >
         <DesktopNavIcon page={page} />
       </span>
-      <span
-        className={`whitespace-nowrap transition-opacity duration-[140ms] motion-reduce:transition-none ${
-          expanded
-            ? "opacity-100"
-            : "opacity-0"
-        }`}
-      >
+      <span className="whitespace-nowrap">
         {page}
       </span>
     </button>
@@ -348,59 +328,14 @@ function DesktopSidebar({
   activePage: string;
   onSelect: (page: DesktopPage) => void;
 }) {
-  const [
-    hovered,
-    setHovered,
-  ] = useState(false);
-  const [
-    keyboardFocused,
-    setKeyboardFocused,
-  ] = useState(false);
-  const expanded =
-    hovered ||
-    keyboardFocused;
-
   return (
     <aside
       aria-label="Desktop navigation"
-      data-expanded={expanded}
-      onPointerEnter={() =>
-        setHovered(true)
-      }
-      onPointerLeave={() =>
-        setHovered(false)
-      }
-      onPointerDownCapture={() =>
-        setKeyboardFocused(false)
-      }
-      onFocusCapture={(event) =>
-        setKeyboardFocused(
-          event.target instanceof HTMLElement &&
-            event.target.matches(":focus-visible")
-        )
-      }
-      onBlurCapture={(event) => {
-        const nextTarget =
-          event.relatedTarget;
-
-        if (
-          !(nextTarget instanceof Node) ||
-          !event.currentTarget.contains(
-            nextTarget
-          )
-        ) {
-          setKeyboardFocused(false);
-        }
-      }}
-      className={`hidden h-dvh shrink-0 overflow-hidden border-r border-white/[0.08] bg-[#0D0F18] transition-[width] duration-[170ms] ease-out motion-reduce:transition-none md:sticky md:top-0 md:flex md:flex-col ${
-        expanded
-          ? "w-52"
-          : "w-[76px]"
-      }`}
+      className="hidden h-dvh w-52 shrink-0 overflow-hidden border-r border-white/[0.08] bg-[#0D0F18] md:sticky md:top-0 md:flex md:flex-col"
     >
       <div className="flex min-h-0 flex-1 flex-col px-4 pb-5 pt-6">
         <div className="overflow-hidden whitespace-nowrap">
-          <AtlasWordmark sidebarExpanded={expanded} />
+          <AtlasWordmark sidebar />
         </div>
 
         <div className="flex flex-1 items-start pt-[clamp(3rem,8vh,5rem)]">
@@ -414,7 +349,6 @@ function DesktopSidebar({
                     key={page}
                     page={page}
                     active={activePage === page}
-                    expanded={expanded}
                     onSelect={() =>
                       onSelect(
                         page
@@ -429,7 +363,6 @@ function DesktopSidebar({
               <DesktopNavItem
                 page="Settings"
                 active={activePage === "Settings"}
-                expanded={expanded}
                 onSelect={() =>
                   onSelect(
                     "Settings"
