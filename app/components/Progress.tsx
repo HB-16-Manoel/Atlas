@@ -11,6 +11,7 @@ import type {
 } from "./Planning";
 
 import { calculateDailyScore } from "../lib/dailyScore";
+import Goals from "./Goals";
 
 /* ============================================================
  * TYPES
@@ -54,22 +55,6 @@ type ConsistencyDay = {
   completionPercent: number | null;
 
   dailyScore: number | null;
-};
-
-type DailyBalance = {
-  day: string;
-  dateKey: string;
-
-  tasks: number | null;
-  habits: number | null;
-
-  tasksCompleted: number;
-  tasksTotal: number;
-
-  habitsCompleted: number;
-  habitsTotal: number;
-
-  future: boolean;
 };
 
 type PatternDayResult = {
@@ -1976,110 +1961,6 @@ function getAtlasInsight(
   };
 }
 
-/* ============================================================
- * CONSISTENCY STYLE
- * ============================================================
- */
-
-function getConsistencyStyle(
-  state: ConsistencyState
-) {
-  if (
-    state ===
-    "strong"
-  ) {
-    return {
-      outer:
-        "border-[#5B7CFF]/45 bg-[#5B7CFF]/10",
-
-      inner:
-        "bg-[#6F8CFF]",
-
-      label:
-        "On track",
-
-      text:
-        "text-white/60",
-    };
-  }
-
-  if (
-    state ===
-    "partial"
-  ) {
-    return {
-      outer:
-        "border-[#5B7CFF]/25 bg-[#5B7CFF]/[0.045]",
-
-      inner:
-        "bg-[#5B7CFF]/40",
-
-      label:
-        "Partial",
-
-      text:
-        "text-white/40",
-    };
-  }
-
-  if (
-    state ===
-    "missed"
-  ) {
-    return {
-      outer:
-        "border-white/[0.1] bg-white/[0.025]",
-
-      inner:
-        "bg-white/15",
-
-      label:
-        "Missed",
-
-      text:
-        "text-white/30",
-    };
-  }
-
-  if (
-    state ===
-    "empty"
-  ) {
-    return {
-      outer:
-        "border-white/[0.07] bg-white/[0.015]",
-
-      inner:
-        "bg-white/15",
-
-      label:
-        "No plan",
-
-      text:
-        "text-white/20",
-    };
-  }
-
-  return {
-    outer:
-      "border-white/[0.06] bg-transparent",
-
-    inner:
-      "border border-white/10 bg-transparent",
-
-    label:
-      "Upcoming",
-
-    text:
-      "text-white/20",
-  };
-}
-
-/* ============================================================
- * PROGRESS
- * ============================================================
- */
-
 export default function Progress({
   tasks = [],
   habits = [],
@@ -2090,14 +1971,6 @@ export default function Progress({
   ] =
     useState<ProgressPeriod>(
       "Week"
-    );
-
-  const [
-    hoveredDay,
-    setHoveredDay,
-  ] =
-    useState<ConsistencyDay | null>(
-      null
     );
 
   const [
@@ -2118,7 +1991,7 @@ export default function Progress({
       null
     );
 
-  const consistencyRef =
+  const goalsRef =
     useRef<HTMLElement | null>(
       null
     );
@@ -2462,219 +2335,6 @@ export default function Progress({
       : 0;
 
   /* ============================================================
-   * REAL TASKS VS HABITS
-   * ============================================================
-   */
-
-  const balanceData: DailyBalance[] =
-    fullWeekDays.map(
-      (
-        date
-      ) => {
-        const dateKey =
-          formatDateKey(
-            date
-          );
-
-        const future =
-          date >
-          today;
-
-        const dayTasks =
-          tasks.filter(
-            (
-              task
-            ) =>
-              task.date ===
-              dateKey
-          );
-
-        const dayCompletedTasks =
-          dayTasks.filter(
-            (
-              task
-            ) =>
-              task.completed
-          ).length;
-
-        const taskPercent =
-          future ||
-          dayTasks.length ===
-            0
-            ? null
-            : Math.round(
-                (dayCompletedTasks /
-                  dayTasks.length) *
-                  100
-              );
-
-        const activeHabits =
-          habits.filter(
-            (
-              habit
-            ) =>
-              habit.createdAt <=
-              dateKey
-          );
-
-        const dayCompletedHabits =
-          activeHabits.filter(
-            (
-              habit
-            ) =>
-              habit.completedDates.includes(
-                dateKey
-              )
-          ).length;
-
-        const habitPercent =
-          future ||
-          activeHabits.length ===
-            0
-            ? null
-            : Math.round(
-                (dayCompletedHabits /
-                  activeHabits.length) *
-                  100
-              );
-
-        return {
-          day:
-            date.toLocaleDateString(
-              "en-US",
-              {
-                weekday:
-                  "short",
-              }
-            ),
-
-          dateKey,
-
-          tasks:
-            taskPercent,
-
-          habits:
-            habitPercent,
-
-          tasksCompleted:
-            dayCompletedTasks,
-
-          tasksTotal:
-            dayTasks.length,
-
-          habitsCompleted:
-            dayCompletedHabits,
-
-          habitsTotal:
-            activeHabits.length,
-
-          future,
-        };
-      }
-    );
-
-  const taskDaysWithData =
-    balanceData.filter(
-      (
-        day
-      ) =>
-        !day.future &&
-        day.tasks !==
-          null
-    );
-
-  const habitDaysWithData =
-    balanceData.filter(
-      (
-        day
-      ) =>
-        !day.future &&
-        day.habits !==
-          null
-    );
-
-  const averageTaskCompletion =
-    taskDaysWithData.length >
-    0
-      ? Math.round(
-          taskDaysWithData.reduce(
-            (
-              total,
-              day
-            ) =>
-              total +
-              (day.tasks ??
-                0),
-            0
-          ) /
-            taskDaysWithData.length
-        )
-      : null;
-
-  const averageHabitCompletion =
-    habitDaysWithData.length >
-    0
-      ? Math.round(
-          habitDaysWithData.reduce(
-            (
-              total,
-              day
-            ) =>
-              total +
-              (day.habits ??
-                0),
-            0
-          ) /
-            habitDaysWithData.length
-        )
-      : null;
-
-  let balanceSummary =
-    "No completion data yet this week.";
-
-  if (
-    averageTaskCompletion !==
-      null &&
-    averageHabitCompletion !==
-      null
-  ) {
-    const difference =
-      averageHabitCompletion -
-      averageTaskCompletion;
-
-    if (
-      difference >=
-      5
-    ) {
-      balanceSummary =
-        `Habits are ahead of tasks this week by ${difference} points.`;
-    } else if (
-      difference <=
-      -5
-    ) {
-      balanceSummary =
-        `Tasks are ahead of habits this week by ${Math.abs(
-          difference
-        )} points.`;
-    } else {
-      balanceSummary =
-        "Tasks and habits are moving at about the same pace this week.";
-    }
-  } else if (
-    averageHabitCompletion !==
-    null
-  ) {
-    balanceSummary =
-      "Habit activity is being tracked this week.";
-  } else if (
-    averageTaskCompletion !==
-    null
-  ) {
-    balanceSummary =
-      "Task activity is being tracked this week.";
-  }
-
-  /* ============================================================
    * REAL DAYS ON TRACK
    * ============================================================
    */
@@ -2955,7 +2615,7 @@ export default function Progress({
   const scrollToSection = (
     section:
       | "overview"
-      | "consistency"
+      | "goals"
   ) => {
     const container =
       scrollRef.current;
@@ -2964,7 +2624,7 @@ export default function Progress({
       section ===
       "overview"
         ? overviewRef.current
-        : consistencyRef.current;
+        : goalsRef.current;
 
     if (
       !container ||
@@ -3013,7 +2673,7 @@ export default function Progress({
         md:-m-10
         md:h-screen
         md:snap-y
-        md:snap-mandatory
+        md:snap-proximity
         md:scroll-smooth
         md:overflow-y-auto
         md:overscroll-contain
@@ -3047,10 +2707,14 @@ export default function Progress({
             </p>
 
             <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
-              Progress
+              Analytics
             </h2>
           </div>
 
+          <nav aria-label="Progress sections" className="flex gap-2 md:hidden">
+            <button type="button" onClick={() => scrollToSection("overview")} className="min-h-11 rounded-lg border border-white/10 px-3 text-sm text-white/70">Analytics</button>
+            <button type="button" onClick={() => scrollToSection("goals")} className="min-h-11 rounded-lg border border-white/10 px-3 text-sm text-white/70">Goals</button>
+          </nav>
           <div className="grid w-full grid-cols-4 items-center rounded-xl border border-white/[0.07] bg-white/[0.025] p-1 md:flex md:w-auto">
             {[
               "Week",
@@ -3574,702 +3238,13 @@ export default function Progress({
           </div>
         </div>
 
-        <button
-          onClick={() =>
-            scrollToSection(
-              "consistency"
-            )
-          }
-
-          className="mx-auto mt-5 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/35 transition hover:bg-white/[0.03] hover:text-white/45 md:mt-4 md:min-h-0 md:py-1.5 md:text-white/25"
-        >
-          <span>
-            Consistency
-          </span>
-
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 10 10"
-            fill="none"
-          >
-            <path
-              d="M2 3.5L5 6.5L8 3.5"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      </section>
-
-      {/* ======================================================
-       * CONSISTENCY
-       * ====================================================== */}
-
-      <section
-        ref={
-          consistencyRef
-        }
-
-        className="
-          flex
-          flex-col
-          pt-8
-          md:h-screen
-          md:shrink-0
-          md:snap-start
-          md:snap-always
-          md:overflow-hidden
-          md:px-10
-          md:py-3
-        "
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-white/35">
-              How reliably you&apos;re showing up
-            </p>
-
-            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
-              Consistency
-            </h2>
-          </div>
-
-          <button
-            onClick={() =>
-              scrollToSection(
-                "overview"
-              )
-            }
-
-            className="hidden items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/25 transition hover:bg-white/[0.03] hover:text-white/50 md:flex"
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-            >
-              <path
-                d="M2 6.5L5 3.5L8 6.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-
-            Overview
-          </button>
+        <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm md:grid-cols-4 md:gap-4">
+          <div><p className="text-xs text-white/35">Days on track · this week</p><p className="mt-1 text-lg font-semibold">{onTrackDays} <span className="text-xs font-normal text-white/35">/ {plannedDayCount}</span></p></div>
+          <div><p className="text-xs text-white/35">Last 4 weeks</p><p className="mt-1 text-lg font-semibold">{last28OnTrack} <span className="text-xs font-normal text-white/35">/ {last28PlannedDays.length} planned</span></p></div>
+          <div><p className="text-xs text-white/35">Current streak</p><p className="mt-1 text-lg font-semibold">{currentStreak} <span className="text-xs font-normal text-white/35">days</span></p></div>
+          <div><p className="text-xs text-white/35">Best streak · 4 weeks</p><p className="mt-1 text-lg font-semibold">{bestStreak} <span className="text-xs font-normal text-white/35">days</span></p></div>
+          <p className="col-span-2 text-xs text-white/30 md:col-span-4">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
         </div>
-
-        {/* DAYS ON TRACK */}
-
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-0">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
-                Days on track
-              </p>
-
-              <h3 className="mt-1 text-lg font-medium md:text-xl">
-                This week
-              </h3>
-
-              <p className="mt-1.5 text-sm text-white/35">
-                How consistently you followed through on what you planned.
-              </p>
-            </div>
-
-            <div className="text-left md:text-right">
-              <div className="flex items-baseline gap-1.5 md:justify-end">
-                <span className="text-3xl font-semibold">
-                  {
-                    onTrackDays
-                  }
-                </span>
-
-                <span className="text-sm text-white/30">
-                  /{" "}
-                  {
-                    plannedDayCount
-                  }{" "}
-                  {plannedDayCount ===
-                  1
-                    ? "day"
-                    : "days"}
-                </span>
-              </div>
-
-              <p className="mt-1.5 text-xs text-white/25">
-                Current week
-              </p>
-            </div>
-          </div>
-
-          <div className="relative mt-5">
-            <div className="absolute left-[7%] right-[7%] top-[41px] h-px bg-white/[0.07] md:top-[45px]" />
-
-            <div className="relative grid grid-cols-7">
-              {consistencyData.map(
-                (
-                  item
-                ) => {
-                  const style =
-                    getConsistencyStyle(
-                      item.state
-                    );
-
-                  const isHovered =
-                    hoveredDay?.dateKey ===
-                    item.dateKey;
-
-                  const canHover =
-                    item.state !==
-                      "future";
-
-                  return (
-                    <div
-                      key={
-                        item.dateKey
-                      }
-
-                      className="relative flex flex-col items-center"
-                    >
-                      <p className="text-[10px] font-medium text-white/35 sm:text-xs">
-                        {
-                          item.shortDay
-                        }
-                      </p>
-
-                      <button
-                        type="button"
-
-                        onMouseEnter={() => {
-                          if (
-                            canHover
-                          ) {
-                            setHoveredDay(
-                              item
-                            );
-                          }
-                        }}
-
-                        onMouseLeave={() =>
-                          setHoveredDay(
-                            null
-                          )
-                        }
-
-                        onClick={() => {
-                          if (
-                            canHover
-                          ) {
-                            setHoveredDay(
-                              isHovered
-                                ? null
-                                : item
-                            );
-                          }
-                        }}
-
-                        aria-label={`${item.day}: ${style.label}`}
-
-                        aria-pressed={
-                          isHovered
-                        }
-
-                        className={`relative z-10 mt-3 flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8199FF]/60 md:h-9 md:w-9 ${style.outer} ${
-                          canHover
-                            ? "cursor-default hover:scale-110 hover:border-[#5B7CFF]/60"
-                            : "cursor-default"
-                        }`}
-                      >
-                        <div
-                          className={`rounded-full ${
-                            item.state ===
-                            "empty"
-                              ? "h-1.5 w-1.5 bg-white/15"
-                              : `h-3 w-3 ${style.inner}`
-                          }`}
-                        />
-                      </button>
-
-                      <p
-                        className={`mt-3 hidden text-xs sm:block ${style.text}`}
-                      >
-                        {
-                          style.label
-                        }
-                      </p>
-
-                      {isHovered &&
-                        item.state !==
-                          "future" && (
-                          <div className="absolute bottom-[74px] left-1/2 z-30 hidden w-[205px] -translate-x-1/2 rounded-xl border border-white/[0.1] bg-[#171A26] p-4 shadow-2xl shadow-black/40 md:block">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-white/25">
-                                  {
-                                    item.day
-                                  }
-                                </p>
-
-                                <p className="mt-1 text-sm font-medium text-white/80">
-                                  {
-                                    style.label
-                                  }
-                                </p>
-                              </div>
-
-                              <div
-                                className={`mt-1 rounded-full ${
-                                  item.state ===
-                                  "empty"
-                                    ? "h-2 w-2 bg-white/15"
-                                    : `h-2.5 w-2.5 ${style.inner}`
-                                }`}
-                              />
-                            </div>
-
-                            <div className="mt-4 space-y-2.5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-white/35">
-                                  Tasks
-                                </span>
-
-                                <span className="text-xs font-medium text-white/70">
-                                  {
-                                    item.tasksTotal >
-                                    0
-                                      ? `${item.tasksCompleted} / ${item.tasksTotal}`
-                                      : "—"
-                                  }
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-white/35">
-                                  Habits
-                                </span>
-
-                                <span className="text-xs font-medium text-white/70">
-                                  {
-                                    item.habitsTotal >
-                                    0
-                                      ? `${item.habitsCompleted} / ${item.habitsTotal}`
-                                      : "—"
-                                  }
-                                </span>
-                              </div>
-
-                              {item.completionPercent !==
-                                null && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-white/35">
-                                    Follow-through
-                                  </span>
-
-                                  <span className="text-xs font-medium text-white/70">
-                                    {
-                                      item.completionPercent
-                                    }
-                                    %
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="border-t border-white/[0.06] pt-2.5">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-white/35">
-                                    Daily Score
-                                  </span>
-
-                                  <span
-                                    className={`text-sm font-semibold ${
-                                      item.dailyScore ===
-                                      null
-                                        ? "text-white/25"
-                                        : "text-white"
-                                    }`}
-                                  >
-                                    {
-                                      item.dailyScore ??
-                                      "—"
-                                    }
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/[0.08] bg-[#171A26]" />
-                          </div>
-                        )}
-                    </div>
-                  );
-                }
-              )}
-            </div>
-
-            {hoveredDay &&
-              hoveredDay.state !==
-                "future" && (
-                <div className="mt-4 rounded-xl border border-white/[0.07] bg-[#171A26]/70 p-3.5 md:hidden">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-white/30">
-                        {
-                          hoveredDay.day
-                        }
-                      </p>
-
-                      <p className="mt-1 text-sm font-medium text-white/80">
-                        {
-                          getConsistencyStyle(
-                            hoveredDay.state
-                          ).label
-                        }
-                      </p>
-                    </div>
-
-                    <span className="text-sm font-semibold text-white">
-                      Score {hoveredDay.dailyScore ?? "—"}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-3 text-xs">
-                    <div>
-                      <p className="text-white/30">Tasks</p>
-                      <p className="mt-1 font-medium text-white/70">
-                        {hoveredDay.tasksTotal > 0
-                          ? `${hoveredDay.tasksCompleted} / ${hoveredDay.tasksTotal}`
-                          : "—"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-white/30">Habits</p>
-                      <p className="mt-1 font-medium text-white/70">
-                        {hoveredDay.habitsTotal > 0
-                          ? `${hoveredDay.habitsCompleted} / ${hoveredDay.habitsTotal}`
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-          </div>
-        </div>
-
-        {/* TASKS VS HABITS + 4-WEEK CONSISTENCY */}
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1.35fr_0.65fr] md:gap-5">
-          {/* TASKS VS HABITS */}
-
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-0">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
-                  Tasks vs habits
-                </p>
-
-                <h3 className="mt-1 text-lg font-medium">
-                  What shaped each day
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-[3px] bg-white/45" />
-
-                  <span className="text-[10px] text-white/30">
-                    Tasks
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-[3px] bg-[#5B7CFF]" />
-
-                  <span className="text-[10px] text-white/30">
-                    Habits
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative mt-4 h-[165px] md:h-[140px]">
-              <div className="absolute inset-0 flex flex-col justify-between pb-6">
-                {[
-                  "100",
-                  "75",
-                  "50",
-                  "25",
-                  "0",
-                ].map(
-                  (
-                    value
-                  ) => (
-                    <div
-                      key={
-                        value
-                      }
-
-                      className="flex items-center gap-3"
-                    >
-                      <span className="w-6 text-[9px] text-white/15">
-                        {
-                          value
-                        }
-                      </span>
-
-                      <div className="h-px flex-1 bg-white/[0.04]" />
-                    </div>
-                  )
-                )}
-              </div>
-
-              <div className="absolute bottom-6 left-8 right-0 top-0 grid grid-cols-7 gap-1.5 md:left-9 md:gap-4">
-                {balanceData.map(
-                  (
-                    item
-                  ) => (
-                    <div
-                      key={
-                        item.dateKey
-                      }
-
-                      className="group relative flex min-w-0 flex-col items-center justify-end"
-                    >
-                      {!item.future &&
-                        (item.tasks !==
-                          null ||
-                          item.habits !==
-                            null) && (
-                          <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-3 hidden w-[160px] -translate-x-1/2 rounded-xl border border-white/[0.1] bg-[#171A26] p-3 shadow-xl shadow-black/30 group-hover:block">
-                            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/25">
-                              {
-                                item.day
-                              }
-                            </p>
-
-                            <div className="mt-2.5 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-white/35">
-                                  Tasks
-                                </span>
-
-                                <span className="text-xs font-medium text-white/70">
-                                  {
-                                    item.tasksTotal >
-                                    0
-                                      ? `${item.tasksCompleted} / ${item.tasksTotal}`
-                                      : "—"
-                                  }
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-white/35">
-                                  Habits
-                                </span>
-
-                                <span className="text-xs font-medium text-white/70">
-                                  {
-                                    item.habitsTotal >
-                                    0
-                                      ? `${item.habitsCompleted} / ${item.habitsTotal}`
-                                      : "—"
-                                  }
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/[0.08] bg-[#171A26]" />
-                          </div>
-                        )}
-
-                      <div className="flex h-full items-end justify-center gap-1.5">
-                        {item.tasks !==
-                        null ? (
-                          <div
-                            className="w-2 rounded-t-[4px] bg-white/45 transition-[height,opacity] duration-500 ease-out group-hover:bg-white/60 sm:w-3"
-
-                            style={{
-                              height:
-                                `${item.tasks}%`,
-                            }}
-                          />
-                        ) : (
-                          <div className="w-2 sm:w-3" />
-                        )}
-
-                        {item.habits !==
-                        null ? (
-                          <div
-                            className="w-2 rounded-t-[4px] bg-[#5B7CFF] transition-[height,opacity] duration-500 ease-out group-hover:bg-[#7894FF] sm:w-3"
-
-                            style={{
-                              height:
-                                `${item.habits}%`,
-                            }}
-                          />
-                        ) : (
-                          <div className="w-2 sm:w-3" />
-                        )}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-
-              <div className="absolute bottom-0 left-8 right-0 grid grid-cols-7 gap-1.5 md:left-9 md:gap-4">
-                {balanceData.map(
-                  (
-                    item
-                  ) => (
-                    <p
-                      key={
-                        item.dateKey
-                      }
-
-                      className={`text-center text-[10px] ${
-                        item.future
-                          ? "text-white/10"
-                          : "text-white/25"
-                      }`}
-                    >
-                      {
-                        item.day
-                      }
-                    </p>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 border-t border-white/[0.06] pt-4">
-              <p className="text-xs text-white/35">
-                {
-                  balanceSummary
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* 4 WEEK CONSISTENCY */}
-
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
-              Consistency
-            </p>
-
-            <h3 className="mt-1 text-lg font-medium">
-              Last 4 weeks
-            </h3>
-
-            <div className="mt-6">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-semibold">
-                  {
-                    last28OnTrack
-                  }
-                </span>
-
-                <span className="text-sm text-white/30">
-                  /{" "}
-                  {
-                    last28PlannedDays.length
-                  }
-                </span>
-              </div>
-
-              <p className="mt-1.5 text-xs text-white/30">
-                planned days on track
-              </p>
-
-              {previous28PlannedDays.length >
-              0 ? (
-                <p
-                  className={`mt-2 text-xs font-medium ${
-                    consistencyDifference >
-                    0
-                      ? "text-[#8199FF]"
-                      : "text-white/35"
-                  }`}
-                >
-                  {consistencyDifference >
-                  0
-                    ? `↑ ${consistencyDifference} vs previous 4 weeks`
-                    : consistencyDifference <
-                        0
-                      ? `↓ ${Math.abs(
-                          consistencyDifference
-                        )} vs previous 4 weeks`
-                      : "Same as previous 4 weeks"}
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-white/25">
-                  No earlier comparison yet
-                </p>
-              )}
-            </div>
-
-            <div className="mt-6 border-t border-white/[0.06] pt-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/50">
-                    Current streak
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-white/25">
-                    Consecutive on-track days
-                  </p>
-                </div>
-
-                <p className="text-lg font-semibold">
-                  {
-                    currentStreak
-                  }{" "}
-                  <span className="text-xs font-normal text-white/30">
-                    {currentStreak ===
-                    1
-                      ? "day"
-                      : "days"}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-white/[0.06] pt-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/50">
-                    Best streak
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-white/25">
-                    Last 4 weeks
-                  </p>
-                </div>
-
-                <p className="text-lg font-semibold">
-                  {
-                    bestStreak
-                  }{" "}
-                  <span className="text-xs font-normal text-white/30">
-                    {bestStreak ===
-                    1
-                      ? "day"
-                      : "days"}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ======================================================
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
@@ -4326,6 +3301,39 @@ export default function Progress({
             </div>
           </div>
         </div>
+
+        <button
+          onClick={() =>
+            scrollToSection(
+              "goals"
+            )
+          }
+
+          className="mx-auto mt-5 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/35 transition hover:bg-white/[0.03] hover:text-white/45 md:mt-4 md:min-h-0 md:py-1.5 md:text-white/25"
+        >
+          <span>
+            Goals
+          </span>
+
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 10 10"
+            fill="none"
+          >
+            <path
+              d="M2 3.5L5 6.5L8 3.5"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </section>
+
+      <section ref={goalsRef} className="scroll-mt-4 pt-8 md:snap-start md:px-10 md:py-8">
+        <Goals tasks={tasks} habits={habits} onAnalytics={() => scrollToSection("overview")} />
       </section>
     </div>
   );
