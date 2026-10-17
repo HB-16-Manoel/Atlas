@@ -2650,10 +2650,9 @@ export default function Progress({
 
     container.scrollTo({
       top:
-        target.offsetTop,
+        target.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop,
 
-      behavior:
-        "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
     });
   };
 
@@ -2664,21 +2663,26 @@ export default function Progress({
 
   return (
     <div
+      data-progress-scroll
+      role="region"
+      aria-label="Progress sections"
+      tabIndex={0}
       ref={
         scrollRef
       }
 
       className="
         min-w-0
-        md:-m-10
-        md:h-screen
+        md:relative
+        md:h-full
+        md:min-h-0
         md:snap-y
         md:snap-proximity
         md:scroll-smooth
         md:overflow-y-auto
         md:overscroll-contain
-        md:[scrollbar-width:none]
-        md:[&::-webkit-scrollbar]:hidden
+        md:[scrollbar-gutter:stable]
+        focus-visible:outline focus-visible:outline-[#5B7CFF]/50
       "
     >
       {/* ======================================================
@@ -2693,9 +2697,8 @@ export default function Progress({
         className="
           flex
           flex-col
-          md:min-h-screen
+          md:min-h-full
           md:snap-start
-          md:snap-always
           md:px-10
           md:py-5
         "
@@ -3014,7 +3017,7 @@ export default function Progress({
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1.12fr_0.88fr] md:gap-5">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4 xl:grid-cols-[1.2fr_0.9fr_0.9fr]">
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
             <div className="flex items-start justify-between">
               <div>
@@ -3236,9 +3239,20 @@ export default function Progress({
               </p>
             </div>
           </div>
+          <div className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 md:block md:col-span-2 xl:col-span-1">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">Consistency</p>
+            <h3 className="mt-1 text-lg font-medium">Showing up</h3>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+              <div><dt className="text-xs text-white/40">On track · this week</dt><dd className="mt-2 text-xl font-semibold">{onTrackDays}<span className="ml-1 text-xs font-normal text-white/35">/ {plannedDayCount}</span></dd></div>
+              <div><dt className="text-xs text-white/40">Last 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{last28OnTrack}<span className="ml-1 text-xs font-normal text-white/35">/ {last28PlannedDays.length}</span></dd></div>
+              <div><dt className="text-xs text-white/40">Current streak</dt><dd className="mt-2 text-xl font-semibold">{currentStreak}<span className="ml-1 text-xs font-normal text-white/35">days</span></dd></div>
+              <div><dt className="text-xs text-white/40">Best · 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/35">days</span></dd></div>
+            </dl>
+            <p className="mt-4 border-t border-white/[0.06] pt-3 text-xs text-white/30">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+          </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm md:grid-cols-4 md:gap-4">
+        <div className="mt-4 grid grid-cols-2 md:hidden gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm md:grid-cols-4 md:gap-4">
           <div><p className="text-xs text-white/35">Days on track · this week</p><p className="mt-1 text-lg font-semibold">{onTrackDays} <span className="text-xs font-normal text-white/35">/ {plannedDayCount}</span></p></div>
           <div><p className="text-xs text-white/35">Last 4 weeks</p><p className="mt-1 text-lg font-semibold">{last28OnTrack} <span className="text-xs font-normal text-white/35">/ {last28PlannedDays.length} planned</span></p></div>
           <div><p className="text-xs text-white/35">Current streak</p><p className="mt-1 text-lg font-semibold">{currentStreak} <span className="text-xs font-normal text-white/35">days</span></p></div>
@@ -3332,7 +3346,7 @@ export default function Progress({
         </button>
       </section>
 
-      <section ref={goalsRef} className="scroll-mt-4 pt-8 md:snap-start md:px-10 md:py-8">
+      <section ref={goalsRef} className="scroll-mt-4 pt-8 md:min-h-full md:snap-start md:px-10 md:py-6">
         <Goals tasks={tasks} habits={habits} onAnalytics={() => scrollToSection("overview")} />
       </section>
     </div>
