@@ -19,6 +19,15 @@ const user = {
   user_metadata: {},
   created_at: now,
 };
+const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url")}.${Buffer.from(JSON.stringify({ sub: userId, aud: "authenticated", role: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url")}.isolated-test`;
+const session = {
+  access_token: jwt,
+  refresh_token: "isolated-test",
+  token_type: "bearer",
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  user,
+};
 const tables = {
   tasks: [
     {
@@ -82,6 +91,10 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, api);
   if (url.pathname === "/auth/v1/user") {
     res.end(JSON.stringify(user));
+    return;
+  }
+  if (url.pathname === "/auth/v1/token") {
+    res.end(JSON.stringify(session));
     return;
   }
   const name = url.pathname.split("/").at(-1);
@@ -178,22 +191,6 @@ try {
     viewport: { width: 1440, height: 900 },
     reducedMotion: "reduce",
   });
-  const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url")}.${Buffer.from(JSON.stringify({ sub: userId, aud: "authenticated", role: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url")}.isolated-test`;
-  const session = {
-    access_token: jwt,
-    refresh_token: "isolated-test",
-    token_type: "bearer",
-    expires_in: 3600,
-    expires_at: Math.floor(Date.now() / 1000) + 3600,
-    user,
-  };
-  await context.addCookies([
-    {
-      name: "sb-127-auth-token",
-      value: `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`,
-      url: origin,
-    },
-  ]);
   page = await context.newPage();
   page.setDefaultTimeout(10000);
   page.on("console", (message) => {
@@ -201,7 +198,19 @@ try {
   });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.goto(origin);
+  await page.goto(`${origin}/auth/login`);
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await page.locator('input[type="password"]').fill("Isolated-test-password");
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.waitForURL(`${origin}/`);
+  assert.equal(
+    new URL(page.url()).origin,
+    origin,
+    "password login stays on the same origin",
+  );
+  console.log(
+    "PASS: email/password login and authenticated data initialization",
+  );
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await page.getByRole("button", { name: "New goal", exact: true }).waitFor();
   const scroller = page.locator("[data-progress-scroll]");
@@ -433,7 +442,9 @@ try {
     await pause(150);
     const before = await bounds();
     if (process.env.ATLAS_TEST_SCREENSHOTS && width === 1440)
-      await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-desktop.png` });
+      await page.screenshot({
+        path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-desktop.png`,
+      });
     assert.equal(
       before.height,
       height,
@@ -448,6 +459,49 @@ try {
       `${label}: no horizontal overflow`,
     );
     assert.ok(before.top <= 1, `${label}: Analytics button returns to top`);
+    const analytics = page.locator('[data-progress-section="analytics"]');
+    const insight = page.locator("[data-atlas-insight]");
+    const analyticsHeight = await analytics.evaluate(
+      (element) => element.scrollHeight,
+    );
+    const snapType = await scroller.evaluate(
+      (element) => getComputedStyle(element).scrollSnapType,
+    );
+    if (analyticsHeight > height + 1)
+      assert.equal(
+        snapType,
+        "none",
+        `${label}: overflowing Analytics must not snap`,
+      );
+    await scroller.hover();
+    // Small deltas model progressive wheel/trackpad scrolling through Analytics,
+    // rather than one large jump that could hide a skipped Insight card.
+    let insightVisible = false;
+    for (let step = 0; step < 40; step++) {
+      const rect = await insight.boundingBox();
+      if (rect.y >= 0 && rect.y + rect.height <= height) {
+        insightVisible = true;
+        break;
+      }
+      await page.mouse.wheel(0, 70);
+      await pause(50);
+    }
+    assert.equal(
+      insightVisible,
+      true,
+      `${label}: all of Atlas Insight is reachable before Goals`,
+    );
+    const goalsRect = await page
+      .locator('[data-progress-section="goals"]')
+      .boundingBox();
+    assert.ok(
+      goalsRect.y >= 0,
+      `${label}: scrolling to Insight must not skip Analytics`,
+    );
+    if (process.env.ATLAS_TEST_SCREENSHOTS && width === 1366)
+      await page.screenshot({
+        path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-insight-reachable.png`,
+      });
     await page.getByRole("button", { name: "Goals", exact: true }).click();
     await pause(150);
     const after = await bounds();
@@ -505,6 +559,31 @@ try {
       `${name}: graph period changes`,
     );
   }
+  // Clear the cookie session before opening a fresh callback page. Reuse the
+  // browser context so this also runs in constrained single-process Chromium.
+  const callbackContext = context;
+  await callbackContext.clearCookies();
+  await callbackContext.addCookies([
+    {
+      name: "sb-127-auth-token-code-verifier",
+      value: `base64-${Buffer.from(JSON.stringify("isolated-verifier")).toString("base64url")}`,
+      url: origin,
+    },
+  ]);
+  const callbackPage = await callbackContext.newPage();
+  await callbackPage.goto(`${origin}/auth/callback?code=isolated-code&next=/`);
+  await callbackPage.waitForURL(`${origin}/`);
+  await callbackPage
+    .getByRole("button", { name: "Progress", exact: true })
+    .click();
+  await callbackPage
+    .getByRole("article", { name: "Read books", exact: true })
+    .waitFor();
+  assert.equal(new URL(callbackPage.url()).origin, origin);
+  await callbackPage.close();
+  console.log(
+    "PASS: callback exchange, session cookies, AuthProvider and cloud Goals initialization",
+  );
   assert.equal(pageErrors.length, 0, pageErrors.join("\n"));
   assert.ok(
     requests.some(
@@ -519,10 +598,18 @@ try {
     "PASS: goal creation/editing (both types), validation/server errors, status/selects, milestones, linking, persistence, modal focus/Escape/Cancel, section controls/wheel, six desktop viewport sizes, chart filters.",
   );
 } catch (error) {
-  console.error("UI at failure:", await page?.locator("body").innerText());
+  console.error(
+    "UI at failure:",
+    page && !page.isClosed()
+      ? await page
+          .locator("body")
+          .innerText()
+          .catch(() => "unavailable")
+      : "page closed",
+  );
   console.error(
     "Mock requests:",
-    requests.map(({ method, table }) => ({ method, table })),
+    requests.slice(-20).map(({ method, table }) => ({ method, table })),
   );
   throw error;
 } finally {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -1996,6 +1997,22 @@ export default function Progress({
       null
     );
 
+  const [analyticsOverflows, setAnalyticsOverflows] = useState(true);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    const analytics = overviewRef.current;
+    if (!container || !analytics) return;
+    const observer = new ResizeObserver(() => {
+      // Native snapping can skip the tail of an oversized section. Use ordinary
+      // scrolling whenever Analytics needs more than one available viewport.
+      setAnalyticsOverflows(analytics.scrollHeight > container.clientHeight + 1);
+    });
+    observer.observe(container);
+    observer.observe(analytics);
+    return () => observer.disconnect();
+  }, []);
+
   /* ============================================================
    * TODAY / CURRENT CALENDAR WEEK
    * ============================================================
@@ -2664,6 +2681,7 @@ export default function Progress({
   return (
     <div
       data-progress-scroll
+      data-analytics-overflow={analyticsOverflows}
       role="region"
       aria-label="Progress sections"
       tabIndex={0}
@@ -2678,6 +2696,8 @@ export default function Progress({
         md:min-h-0
         md:snap-y
         md:snap-proximity
+        md:data-[analytics-overflow=true]:snap-none
+        motion-reduce:scroll-auto
         md:scroll-smooth
         md:overflow-y-auto
         md:overscroll-contain
@@ -2690,6 +2710,7 @@ export default function Progress({
        * ====================================================== */}
 
       <section
+        data-progress-section="analytics"
         ref={
           overviewRef
         }
@@ -3017,7 +3038,7 @@ export default function Progress({
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4 xl:grid-cols-[1.2fr_0.9fr_0.9fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
             <div className="flex items-start justify-between">
               <div>
@@ -3239,16 +3260,20 @@ export default function Progress({
               </p>
             </div>
           </div>
-          <div className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 md:block md:col-span-2 xl:col-span-1">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">Consistency</p>
-            <h3 className="mt-1 text-lg font-medium">Showing up</h3>
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+          <div className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 md:block md:col-span-2">
+            <div className="flex items-start gap-6">
+            <div className="w-36 shrink-0">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">Consistency</p>
+              <h3 className="mt-1 text-lg font-medium">Showing up</h3>
+            </div>
+            <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
               <div><dt className="text-xs text-white/40">On track · this week</dt><dd className="mt-2 text-xl font-semibold">{onTrackDays}<span className="ml-1 text-xs font-normal text-white/35">/ {plannedDayCount}</span></dd></div>
               <div><dt className="text-xs text-white/40">Last 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{last28OnTrack}<span className="ml-1 text-xs font-normal text-white/35">/ {last28PlannedDays.length}</span></dd></div>
               <div><dt className="text-xs text-white/40">Current streak</dt><dd className="mt-2 text-xl font-semibold">{currentStreak}<span className="ml-1 text-xs font-normal text-white/35">days</span></dd></div>
               <div><dt className="text-xs text-white/40">Best · 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/35">days</span></dd></div>
             </dl>
-            <p className="mt-4 border-t border-white/[0.06] pt-3 text-xs text-white/30">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+            </div>
+            <p className="mt-3 border-t border-white/[0.06] pt-3 text-xs text-white/30">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
           </div>
         </div>
 
@@ -3263,7 +3288,7 @@ export default function Progress({
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
 
-        <div className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-4 py-4 md:mt-2 md:px-5 md:py-3">
+        <div data-atlas-insight className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-4 py-4 md:mt-2 md:px-5 md:py-3">
           <div className="flex items-start gap-3 md:gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
               <svg
@@ -3346,7 +3371,7 @@ export default function Progress({
         </button>
       </section>
 
-      <section ref={goalsRef} className="scroll-mt-4 pt-8 md:min-h-full md:snap-start md:px-10 md:py-6">
+      <section data-progress-section="goals" ref={goalsRef} className="scroll-mt-4 pt-8 md:min-h-full md:snap-start md:px-10 md:py-6">
         <Goals tasks={tasks} habits={habits} onAnalytics={() => scrollToSection("overview")} />
       </section>
     </div>
