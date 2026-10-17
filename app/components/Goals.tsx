@@ -60,8 +60,10 @@ export default function Goals({ tasks, habits, onAnalytics }: { tasks: Task[]; h
   const activeTasks = tasks.filter((task) => task.cloudId);
   const activeHabits = habits.filter((habit) => habit.cloudId);
 
-  if (loading) return <p className="py-8 text-sm text-white/50" role="status">Loading goals…</p>;
-  if (!userId) return <div className="rounded-xl border border-white/10 p-5 text-sm text-white/50">Sign in to create and sync goals across devices.</div>;
+  if (loading || !userId) return <div className="space-y-5 pb-24 md:pb-10">
+    <div className="flex items-center justify-between gap-3"><div><p className="text-sm text-white/35">Your outcomes and next steps</p><h2 className="mt-1 text-[1.75rem] font-semibold tracking-tight md:text-3xl">Goals</h2></div><button type="button" className={buttonClass} onClick={onAnalytics}>Analytics ↑</button></div>
+    <div role={loading ? "status" : undefined} className="rounded-xl border border-white/10 p-5 text-sm text-white/50">{loading ? "Loading goals…" : "Sign in to create and sync goals across devices."}</div>
+  </div>;
 
   return <div className="space-y-5 pb-24 md:pb-10">
     <div className="flex items-center justify-between gap-3">
