@@ -428,6 +428,7 @@ try {
       viewport: innerHeight,
     }));
   for (const [width, height, label] of [
+    [1920, 1280, "tall desktop"],
     [1920, 1080, "1080p"],
     [1536, 864, "1536x864"],
     [1440, 900, "900p"],
@@ -437,10 +438,8 @@ try {
     [960, 540, "1080p at 200% CSS viewport"],
   ]) {
     await page.setViewportSize({ width, height });
-    await page
-      .getByRole("button", { name: "Analytics", exact: true })
-      .click();
-    await pause(150);
+    await scroller.evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
+    await pause(200);
     const before = await bounds();
     if (process.env.ATLAS_TEST_SCREENSHOTS && width === 1440)
       await page.screenshot({
@@ -459,34 +458,34 @@ try {
       before.scrollWidth <= before.width + 1,
       `${label}: no horizontal overflow`,
     );
-    assert.ok(before.top <= 1, `${label}: Analytics button returns to top`);
-    const analytics = page.locator('[data-progress-section="analytics"]');
+    assert.ok(before.top <= 1, `${label}: Analytics begins at top`);
     const insight = page.locator("[data-atlas-insight]");
-    const analyticsHeight = await analytics.evaluate(
-      (element) => element.scrollHeight,
-    );
     if (width === 1536) {
-      assert.ok(
-        analyticsHeight <= height,
-        `1536x864: complete Analytics section must fit the viewport (was ${analyticsHeight}px)`,
-      );
       const consistencyRect = await page.locator("[data-consistency-card]").boundingBox();
       const insightRect = await page.locator("[data-atlas-insight]").boundingBox();
       assert.ok(consistencyRect.y + consistencyRect.height <= insightRect.y, "Consistency and Atlas Insight must not overlap");
-      assert.ok(insightRect.y + insightRect.height <= height, "Atlas Insight must be fully visible without scrolling");
       if (process.env.ATLAS_TEST_SCREENSHOTS)
         await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-1536x864.png` });
     }
     const snapType = await scroller.evaluate(
       (element) => getComputedStyle(element).scrollSnapType,
     );
-    if (analyticsHeight > height + 1)
-      assert.equal(
-        snapType,
-        "none",
-        `${label}: overflowing Analytics must not snap`,
-      );
+    assert.equal(snapType, "y mandatory", `${label}: section scrolling snaps to a section`);
+    assert.equal(await page.getByRole("button", { name: "Analytics", exact: true }).count(), 0, "desktop has no return control");
     await scroller.hover();
+    if (label === "tall desktop") {
+      await page.mouse.wheel(0, 270);
+      await pause(650);
+      const settled = await bounds();
+      const goalsTop = await page.locator('[data-progress-section="goals"]').evaluate(
+        (element) => element.offsetTop,
+      );
+      assert.ok(
+        settled.top <= 2 || Math.abs(settled.top - goalsTop) <= 2,
+        "wheel idle position settles on a section boundary",
+      );
+      await scroller.evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
+    }
     const consistency = page.locator("[data-consistency-card]");
     let consistencyVisible = false;
     for (let step = 0; step < 40; step++) {
@@ -533,13 +532,13 @@ try {
     assert.ok(after.top > 0, `${label}: Goals control scrolls down`);
     await scroller.hover();
     await page.mouse.wheel(0, -10000);
-    await pause(300);
+    await pause(550);
     assert.ok(
       (await bounds()).top <= 1,
       `${label}: wheel returns to Analytics`,
     );
     await page.mouse.wheel(0, 10000);
-    await pause(300);
+    await pause(550);
     assert.ok((await bounds()).top > 0, `${label}: wheel reaches Goals`);
     await openGoal();
     const modalBounds = await dialog.boundingBox();
@@ -570,7 +569,7 @@ try {
     await page.keyboard.press("Escape");
     console.log(`PASS: ${label}`);
   }
-  await page.getByRole("button", { name: "Analytics", exact: true }).click();
+  await scroller.evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
   for (const [name, text] of [
     ["Week", "Last 7 days"],
     ["Month", "Last 30 days"],
@@ -588,10 +587,10 @@ try {
   const editedMilestoneCard = page.getByRole("article", { name: "Edited milestone outcome", exact: true });
   await editedMilestoneCard.locator("summary").filter({ hasText: "Details" }).click();
   page.once("dialog", (dialog) => dialog.dismiss());
-  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).first().click();
+  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).last().click();
   assert.equal(tables.goals[0].deleted_at, null, "cancel keeps the goal");
   page.once("dialog", (dialog) => dialog.accept());
-  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).first().click();
+  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).last().click();
   await editedMilestoneCard.waitFor({ state: "hidden" });
   assert.ok(tables.goals[0].deleted_at, "confirmed deletion persists");
   console.log("PASS: visible deletion control, cancel and confirmed delete");
