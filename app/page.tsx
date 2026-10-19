@@ -508,7 +508,7 @@ export default function AtlasApp() {
             activePage === "Home"
               ? "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:px-10 md:py-4"
               : activePage === "Progress"
-                ? "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:p-10"
+                ? "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:h-dvh md:min-h-0 md:flex-none md:overflow-hidden md:p-0"
                 : "px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 sm:px-5 md:p-10"
           }`}
         >
