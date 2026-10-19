@@ -90,9 +90,9 @@ export default function Goals({
             Goals
           </h2>
         </div>
-        <div className="flex gap-2">
-          <button type="button" className={buttonClass} onClick={onAnalytics}>
-            Analytics ↑
+        <div className="flex gap-2 md:items-center">
+          <button type="button" className={`${buttonClass} md:!min-h-8 md:!border-transparent md:!bg-transparent md:!px-2 md:!text-xs md:!text-white/55 md:hover:!bg-white/[0.04] md:hover:!text-white/85`} onClick={onAnalytics}>
+            <span className="md:hidden">Analytics ↑</span><span className="hidden md:inline"><span aria-hidden="true">↑</span> Analytics</span>
           </button>
           {userId && (
             <button
@@ -137,9 +137,9 @@ export default function Goals({
             </p>
           )}
           {!snapshot.goals.length && !error && (
-            <p className="rounded-xl border border-white/10 p-5 text-sm text-white/45">
-              No goals yet. Create one to start tracking milestones or a
-              measurable target.
+            <p className="rounded-xl border border-white/10 p-5 text-sm text-white/45 md:text-white/60">
+              <span className="md:hidden">No goals yet. Create one to start tracking milestones or a measurable target.</span>
+              <span className="hidden md:inline">No goals yet. Create one to track an outcome.</span>
             </p>
           )}
           {snapshot.goals.map((goal) => {
@@ -164,7 +164,7 @@ export default function Goals({
                     <h3 className="break-words text-lg font-medium">
                       {goal.title}
                     </h3>
-                    <p className="mt-1 text-xs text-white/40">
+                    <p className="mt-1 text-xs text-white/40 md:text-white/55">
                       {goal.kind === "milestone"
                         ? "Milestone-based"
                         : "Measurable"}
@@ -220,30 +220,50 @@ export default function Goals({
                     }
                   />
                 )}
-                <details className="mt-4 border-t border-white/[0.07] pt-3">
-                  <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/55 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF]">
+                <details className="group mt-4 border-t border-white/[0.07] pt-3">
+                  <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/55 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:list-none md:px-2 md:text-white/65 md:hover:bg-white/[0.04] md:hover:text-white/90 md:[&::-webkit-details-marker]:hidden">
                     Details{" "}
-                    <span className="ml-2 text-xs text-white/30">
+                    <span className="ml-2 text-xs text-white/30 md:ml-1 md:text-white/45">
                       {goal.kind === "milestone"
                         ? `${milestones.length} milestones · `
                         : ""}
                       {linkedTasks.length + linkedHabits.length} linked
                       activities
                     </span>
+                    <span aria-hidden="true" className="ml-2 hidden text-white/45 transition-transform group-open:rotate-180 md:inline-block">⌄</span>
                   </summary>
                   <div className="mt-3 space-y-5">
                     <div className="flex items-start justify-between gap-4">
-                      <p className="min-w-0 whitespace-pre-wrap break-words text-sm text-white/55">
-                        {goal.description || "No description added."}
-                      </p>
-                      <button
-                        type="button"
-                        className={`${buttonClass} shrink-0`}
-                        onClick={() => begin(goal)}
-                        disabled={busy}
-                      >
-                        Edit goal
-                      </button>
+                      <p className="min-w-0 whitespace-pre-wrap break-words text-sm text-white/55 md:hidden">{goal.description || "No description added."}</p>
+                      {goal.description && <p className="hidden min-w-0 whitespace-pre-wrap break-words text-sm text-white/65 md:block">{goal.description}</p>}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          className={`${buttonClass} shrink-0`}
+                          onClick={() => begin(goal)}
+                          disabled={busy}
+                        >
+                          Edit goal
+                        </button>
+                        <details className="relative hidden w-fit md:block">
+                          <summary aria-label={`More actions for ${goal.title}`} className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg text-white/55 hover:bg-white/[0.06] hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] [&::-webkit-details-marker]:hidden">
+                            <span aria-hidden="true" className="text-xl leading-none">⋯</span>
+                          </summary>
+                          <div className="absolute right-0 top-full z-10 mt-1 min-w-40 rounded-lg border border-white/10 bg-[#1B2033] p-1 shadow-xl">
+                            <button
+                              type="button"
+                              className="w-full rounded-md px-3 py-2 text-left text-sm text-red-200/85 hover:bg-red-400/10 focus-visible:outline-2 focus-visible:outline-[#7892FF]"
+                              disabled={busy}
+                              onClick={() => {
+                                if (window.confirm(`Delete ${goal.title}?`))
+                                  void perform(() => removeGoal(client, userId, goal));
+                              }}
+                            >
+                              Delete goal
+                            </button>
+                          </div>
+                        </details>
+                      </div>
                     </div>
                     {goal.kind === "milestone" && (
                       <div className="space-y-2">
@@ -314,7 +334,7 @@ export default function Goals({
                       <p className="text-xs uppercase tracking-wide text-white/35">
                         Linked activity
                       </p>
-                      <p className="mt-1 text-xs text-white/40">
+                      <p className="mt-1 text-xs text-white/40 md:text-white/55">
                         Tasks and habits provide context. Only{" "}
                         {goal.kind === "milestone"
                           ? "completed milestones change"
@@ -344,7 +364,7 @@ export default function Goals({
                         )}
                       </div>
                     </div>
-                    <div className="border-t border-white/[0.07] pt-3">
+                    <div className="border-t border-white/[0.07] pt-3 md:hidden">
                       <button
                         type="button"
                         className="min-h-10 rounded-lg px-2 text-xs text-red-200/65 hover:bg-red-400/5 focus-visible:outline-2 focus-visible:outline-[#7892FF]"
@@ -398,24 +418,25 @@ export default function Goals({
     );
     return (
       <div className="min-w-0">
-        <p className="mb-2 text-sm text-white/65">
+        <p className="mb-2 text-sm text-white/65 md:text-white/75">
           {type === "task" ? "Tasks" : "Habits"}
         </p>
+        {!linked.length && <p className="mb-2 hidden text-xs text-white/45 md:block">None linked</p>}
         {linked.map((option) => (
           <div
             key={option.id}
             className="flex min-w-0 items-center justify-between gap-2 py-1 text-sm"
           >
             <span
-              className="min-w-0 truncate text-white/60"
+              className="min-w-0 truncate text-white/60 md:text-white/75"
               title={option.label}
             >
               {option.label}{" "}
-              <span className="text-xs text-white/30">· {option.detail}</span>
+              <span className="text-xs text-white/30 md:text-white/50">· {option.detail}</span>
             </span>
             <button
               type="button"
-              className="min-h-11 shrink-0 px-2 text-xs text-white/40 hover:text-white"
+              className="min-h-11 shrink-0 px-2 text-xs text-white/40 hover:text-white md:text-white/55"
               aria-label={`Unlink ${option.label}`}
               disabled={busy}
               onClick={() =>
@@ -435,9 +456,18 @@ export default function Goals({
             </button>
           </div>
         ))}
+        <div className="hidden md:block">
+          <ActivityPicker
+            type={type}
+            goalTitle={goal.title}
+            options={available}
+            busy={busy}
+            onPick={(id) => void perform(() => setGoalLink(client, userId!, goal.id, type, id))}
+          />
+        </div>
         <select
           aria-label={`Link an existing ${type} to ${goal.title}`}
-          className={`${inputClass} mt-1`}
+          className={`${inputClass} mt-1 md:hidden`}
           value=""
           disabled={busy || !available.length}
           onChange={(event) => {
@@ -459,6 +489,51 @@ export default function Goals({
       </div>
     );
   }
+}
+
+function ActivityPicker({
+  type,
+  goalTitle,
+  options,
+  busy,
+  onPick,
+}: {
+  type: "task" | "habit";
+  goalTitle: string;
+  options: { id: string; label: string; detail: string }[];
+  busy: boolean;
+  onPick: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const matches = options.filter((option) => option.label.toLowerCase().includes(query.trim().toLowerCase()));
+  if (!options.length) return null;
+  return (
+    <details ref={detailsRef} className="relative w-fit max-w-full">
+      <summary className="flex min-h-9 max-w-full cursor-pointer list-none items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs text-white/70 hover:bg-white/[0.05] hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true">+</span> Link {type}
+      </summary>
+      <div className="absolute left-0 top-full z-20 mt-1 w-64 max-w-[min(16rem,80vw)] rounded-xl border border-white/10 bg-[#1B2033] p-2 shadow-xl">
+        <input
+          type="search"
+          aria-label={`Search ${type}s to link to ${goalTitle}`}
+          placeholder={`Find a ${type}`}
+          className={`${inputClass} mb-1 w-full`}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <div className="max-h-48 overflow-y-auto">
+          {matches.map((option) => (
+            <button key={option.id} type="button" disabled={busy} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-white/80 hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-[#7892FF] disabled:opacity-50" onClick={() => { onPick(option.id); detailsRef.current?.removeAttribute("open"); setQuery(""); }}>
+              <span className="block truncate">{option.label}</span>
+              <span className="block truncate text-xs text-white/50">{option.detail}</span>
+            </button>
+          ))}
+          {!matches.length && <p className="px-2 py-3 text-xs text-white/55">No matching {type}s</p>}
+        </div>
+      </div>
+    </details>
+  );
 }
 function MilestoneRow({
   item,
@@ -559,9 +634,9 @@ function MeasurableUpdate({
 }) {
   const [value, setValue] = useState(goal.current_value.toString());
   return (
-    <details className="mt-3">
-      <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/60 hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF]">
-        Update value
+    <details className="group mt-3">
+      <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/60 hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] md:list-none md:rounded-lg md:px-2 md:text-white/65 md:hover:bg-white/[0.04] md:[&::-webkit-details-marker]:hidden">
+        Update value <span aria-hidden="true" className="ml-1 hidden text-white/45 transition-transform group-open:rotate-180 md:inline-block">⌄</span>
       </summary>
       <form
         className="mt-2 flex flex-wrap items-end gap-2"

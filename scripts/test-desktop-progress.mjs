@@ -257,12 +257,12 @@ try {
         .querySelector('[aria-label="Milestone outcome progress"]')
         .getAttribute("aria-valuenow") === "100",
   );
-  await milestoneCard
-    .getByLabel("Link an existing task to Milestone outcome")
-    .selectOption(tables.tasks[0].id);
-  await milestoneCard
-    .getByLabel("Link an existing habit to Milestone outcome")
-    .selectOption(tables.habits[0].id);
+  await milestoneCard.locator("summary").filter({ hasText: "Link task" }).click();
+  await milestoneCard.getByLabel("Search tasks to link to Milestone outcome").fill("Existing");
+  await milestoneCard.getByRole("button", { name: /Existing task/ }).click();
+  await milestoneCard.locator("summary").filter({ hasText: "Link habit" }).click();
+  await milestoneCard.getByLabel("Search habits to link to Milestone outcome").fill("Existing");
+  await milestoneCard.getByRole("button", { name: /Existing habit/ }).click();
   await milestoneCard
     .getByRole("button", { name: "Unlink Existing habit", exact: true })
     .waitFor();
@@ -437,7 +437,7 @@ try {
   ]) {
     await page.setViewportSize({ width, height });
     await page
-      .getByRole("button", { name: "Analytics ↑", exact: true })
+      .getByRole("button", { name: "Analytics", exact: true })
       .click();
     await pause(150);
     const before = await bounds();
@@ -474,6 +474,18 @@ try {
         `${label}: overflowing Analytics must not snap`,
       );
     await scroller.hover();
+    const consistency = page.locator("[data-consistency-card]");
+    let consistencyVisible = false;
+    for (let step = 0; step < 40; step++) {
+      const rect = await consistency.boundingBox();
+      if (rect.y >= 0 && rect.y + rect.height <= height) {
+        consistencyVisible = true;
+        break;
+      }
+      await page.mouse.wheel(0, 70);
+      await pause(50);
+    }
+    assert.ok(consistencyVisible, `${label}: entire Consistency card is reachable`);
     // Small deltas model progressive wheel/trackpad scrolling through Analytics,
     // rather than one large jump that could hide a skipped Insight card.
     let insightVisible = false;
@@ -545,7 +557,7 @@ try {
     await page.keyboard.press("Escape");
     console.log(`PASS: ${label}`);
   }
-  await page.getByRole("button", { name: "Analytics ↑", exact: true }).click();
+  await page.getByRole("button", { name: "Analytics", exact: true }).click();
   for (const [name, text] of [
     ["Week", "Last 7 days"],
     ["Month", "Last 30 days"],
@@ -559,6 +571,18 @@ try {
       `${name}: graph period changes`,
     );
   }
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  const editedMilestoneCard = page.getByRole("article", { name: "Edited milestone outcome", exact: true });
+  await editedMilestoneCard.locator("summary").filter({ hasText: "Details" }).click();
+  await editedMilestoneCard.getByLabel("More actions for Edited milestone outcome").click();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await editedMilestoneCard.getByRole("button", { name: "Delete goal", exact: true }).last().click();
+  assert.equal(tables.goals[0].deleted_at, null, "cancel keeps the goal");
+  page.once("dialog", (dialog) => dialog.accept());
+  await editedMilestoneCard.getByRole("button", { name: "Delete goal", exact: true }).last().click();
+  await editedMilestoneCard.waitFor({ state: "hidden" });
+  assert.ok(tables.goals[0].deleted_at, "confirmed deletion persists");
+  console.log("PASS: overflow deletion menu, cancel and confirmed delete");
   // Clear the cookie session before opening a fresh callback page. Reuse the
   // browser context so this also runs in constrained single-process Chromium.
   const callbackContext = context;
