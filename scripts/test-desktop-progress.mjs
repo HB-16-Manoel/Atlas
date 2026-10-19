@@ -429,6 +429,7 @@ try {
     }));
   for (const [width, height, label] of [
     [1920, 1080, "1080p"],
+    [1536, 864, "1536x864"],
     [1440, 900, "900p"],
     [1366, 768, "768p"],
     [1280, 720, "720p"],
@@ -464,6 +465,18 @@ try {
     const analyticsHeight = await analytics.evaluate(
       (element) => element.scrollHeight,
     );
+    if (width === 1536) {
+      assert.ok(
+        analyticsHeight <= height,
+        `1536x864: complete Analytics section must fit the viewport (was ${analyticsHeight}px)`,
+      );
+      const consistencyRect = await page.locator("[data-consistency-card]").boundingBox();
+      const insightRect = await page.locator("[data-atlas-insight]").boundingBox();
+      assert.ok(consistencyRect.y + consistencyRect.height <= insightRect.y, "Consistency and Atlas Insight must not overlap");
+      assert.ok(insightRect.y + insightRect.height <= height, "Atlas Insight must be fully visible without scrolling");
+      if (process.env.ATLAS_TEST_SCREENSHOTS)
+        await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-1536x864.png` });
+    }
     const snapType = await scroller.evaluate(
       (element) => getComputedStyle(element).scrollSnapType,
     );
@@ -574,15 +587,14 @@ try {
   await page.getByRole("button", { name: "Goals", exact: true }).click();
   const editedMilestoneCard = page.getByRole("article", { name: "Edited milestone outcome", exact: true });
   await editedMilestoneCard.locator("summary").filter({ hasText: "Details" }).click();
-  await editedMilestoneCard.getByLabel("More actions for Edited milestone outcome").click();
   page.once("dialog", (dialog) => dialog.dismiss());
-  await editedMilestoneCard.getByRole("button", { name: "Delete goal", exact: true }).last().click();
+  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).first().click();
   assert.equal(tables.goals[0].deleted_at, null, "cancel keeps the goal");
   page.once("dialog", (dialog) => dialog.accept());
-  await editedMilestoneCard.getByRole("button", { name: "Delete goal", exact: true }).last().click();
+  await editedMilestoneCard.getByRole("button", { name: "Delete", exact: true }).first().click();
   await editedMilestoneCard.waitFor({ state: "hidden" });
   assert.ok(tables.goals[0].deleted_at, "confirmed deletion persists");
-  console.log("PASS: overflow deletion menu, cancel and confirmed delete");
+  console.log("PASS: visible deletion control, cancel and confirmed delete");
   // Clear the cookie session before opening a fresh callback page. Reuse the
   // browser context so this also runs in constrained single-process Chromium.
   const callbackContext = context;
@@ -619,7 +631,7 @@ try {
     "edits retain revision checks",
   );
   console.log(
-    "PASS: goal creation/editing (both types), validation/server errors, status/selects, milestones, linking, persistence, modal focus/Escape/Cancel, section controls/wheel, six desktop viewport sizes, chart filters.",
+    "PASS: goal creation/editing (both types), validation/server errors, status/selects, milestones, linking, persistence, modal focus/Escape/Cancel, section controls/wheel, seven desktop viewport sizes, chart filters.",
   );
 } catch (error) {
   console.error(

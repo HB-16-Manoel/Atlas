@@ -91,8 +91,11 @@ export default function Goals({
           </h2>
         </div>
         <div className="flex gap-2 md:items-center">
-          <button type="button" className={`${buttonClass} md:!min-h-8 md:!border-transparent md:!bg-transparent md:!px-2 md:!text-xs md:!text-white/55 md:hover:!bg-white/[0.04] md:hover:!text-white/85`} onClick={onAnalytics}>
-            <span className="md:hidden">Analytics ↑</span><span className="hidden md:inline"><span aria-hidden="true">↑</span> Analytics</span>
+          <button type="button" className={`${buttonClass} md:hidden`} onClick={onAnalytics}>
+            Analytics ↑
+          </button>
+          <button type="button" className="hidden rounded-md px-1.5 py-1 text-xs text-white/50 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex md:items-center md:gap-1" onClick={onAnalytics}>
+            <span aria-hidden="true">↑</span> Analytics
           </button>
           {userId && (
             <button
@@ -245,24 +248,18 @@ export default function Goals({
                         >
                           Edit goal
                         </button>
-                        <details className="relative hidden w-fit md:block">
-                          <summary aria-label={`More actions for ${goal.title}`} className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg text-white/55 hover:bg-white/[0.06] hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] [&::-webkit-details-marker]:hidden">
-                            <span aria-hidden="true" className="text-xl leading-none">⋯</span>
-                          </summary>
-                          <div className="absolute right-0 top-full z-10 mt-1 min-w-40 rounded-lg border border-white/10 bg-[#1B2033] p-1 shadow-xl">
-                            <button
-                              type="button"
-                              className="w-full rounded-md px-3 py-2 text-left text-sm text-red-200/85 hover:bg-red-400/10 focus-visible:outline-2 focus-visible:outline-[#7892FF]"
-                              disabled={busy}
-                              onClick={() => {
-                                if (window.confirm(`Delete ${goal.title}?`))
-                                  void perform(() => removeGoal(client, userId, goal));
-                              }}
-                            >
-                              Delete goal
-                            </button>
-                          </div>
-                        </details>
+                        <button
+                          type="button"
+                          className="hidden min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-white/50 hover:bg-red-400/10 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(`Delete ${goal.title}?`))
+                              void perform(() => removeGoal(client, userId, goal));
+                          }}
+                        >
+                          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v6m4-6v6" /></svg>
+                          Delete
+                        </button>
                       </div>
                     </div>
                     {goal.kind === "milestone" && (

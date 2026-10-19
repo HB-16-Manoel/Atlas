@@ -2722,17 +2722,17 @@ export default function Progress({
           md:min-h-full
           md:snap-start
           md:px-10
-          md:pt-5
-          md:pb-8
+          md:pt-3
+          md:pb-4
         "
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-0">
           <div>
-            <p className="text-sm text-white/35">
+            <p className="text-sm text-white/35 md:text-xs">
               Your performance over time
             </p>
 
-            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:text-3xl">
+            <h2 className="mt-1 text-[1.75rem] font-semibold tracking-[-0.025em] md:mt-0 md:text-[1.75rem]">
               Analytics
             </h2>
           </div>
@@ -2785,7 +2785,7 @@ export default function Progress({
 
         {/* OVERALL PROGRESS */}
 
-        <div className="mt-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 pb-4 pt-4 md:px-6">
+        <div className="mt-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 pb-4 pt-4 md:mt-2 md:px-5 md:pb-3 md:pt-3">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
@@ -2793,7 +2793,7 @@ export default function Progress({
               </p>
 
               <div className="mt-2.5 flex items-end gap-3">
-                <span className="text-4xl font-semibold tracking-[-0.045em] md:text-5xl">
+                <span className="text-4xl font-semibold tracking-[-0.045em] md:text-4xl">
                   {
                     overallScore ??
                     "—"
@@ -2821,7 +2821,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-4 h-[165px] md:h-[180px]">
+          <div className="relative mt-4 h-[165px] md:mt-2 md:h-[100px]">
             <div className="absolute inset-0 flex flex-col justify-between">
               {[
                 "100",
@@ -3040,8 +3040,8 @@ export default function Progress({
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-4">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:mt-2 md:grid-cols-2 md:gap-2">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.16em] text-white/30">
@@ -3083,7 +3083,7 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 md:gap-x-8 md:gap-y-4">
+            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 md:mt-3 md:gap-x-8 md:gap-y-2">
               <div>
                 <p className="text-sm text-white/35">
                   Strongest day
@@ -3175,7 +3175,7 @@ export default function Progress({
 
           {/* COMPLETION */}
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:p-4">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30 md:text-white/45">
               Completion
             </p>
@@ -3184,7 +3184,7 @@ export default function Progress({
               This week
             </h3>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-4 md:mt-3 md:space-y-3">
               <div>
                 <div className="flex items-end justify-between">
                   <div>
@@ -3256,26 +3256,26 @@ export default function Progress({
               </div>
             </div>
 
-            <div className="mt-5 border-t border-white/[0.06] pt-4">
+            <div className="mt-5 border-t border-white/[0.06] pt-4 md:hidden">
               <p className="text-xs text-white/30 md:text-white/45">
                 Current calendar week
               </p>
             </div>
           </div>
-          <div data-consistency-card className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 md:block md:col-span-2">
+          <div data-consistency-card className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3 md:col-span-2 md:block">
             <div className="flex items-start gap-6">
             <div className="w-36 shrink-0">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/45">Consistency</p>
               <h3 className="mt-1 text-lg font-medium">Showing up</h3>
             </div>
             <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
-              <div><dt className="text-xs text-white/55">On track · this week</dt><dd className="mt-2 text-xl font-semibold">{onTrackDays}<span className="ml-1 text-xs font-normal text-white/50">/ {plannedDayCount}</span></dd></div>
-              <div><dt className="text-xs text-white/55">Last 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{last28OnTrack}<span className="ml-1 text-xs font-normal text-white/50">/ {last28PlannedDays.length}</span></dd></div>
-              <div><dt className="text-xs text-white/55">Current streak</dt><dd className="mt-2 text-xl font-semibold">{currentStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
-              <div><dt className="text-xs text-white/55">Best · 4 weeks</dt><dd className="mt-2 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
+              <div><dt className="text-xs text-white/55">On track · this week</dt><dd className="mt-1 text-xl font-semibold">{onTrackDays}<span className="ml-1 text-xs font-normal text-white/50">/ {plannedDayCount}</span></dd></div>
+              <div><dt className="text-xs text-white/55">Last 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{last28OnTrack}<span className="ml-1 text-xs font-normal text-white/50">/ {last28PlannedDays.length}</span></dd></div>
+              <div><dt className="text-xs text-white/55">Current streak</dt><dd className="mt-1 text-xl font-semibold">{currentStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
+              <div><dt className="text-xs text-white/55">Best · 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
             </dl>
             </div>
-            <p className="mt-3 border-t border-white/[0.06] pt-3 text-xs text-white/45">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+            <p className="mt-1 border-t border-white/[0.06] pt-1 text-xs text-white/45">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
           </div>
         </div>
 
@@ -3290,7 +3290,7 @@ export default function Progress({
          * REAL ATLAS INSIGHT V1
          * ====================================================== */}
 
-        <div data-atlas-insight className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-4 py-4 md:mt-4 md:px-5 md:py-4">
+        <div data-atlas-insight className="mt-4 rounded-2xl border border-[#5B7CFF]/12 bg-[#5B7CFF]/[0.025] px-4 py-4 md:mt-1 md:px-5 md:py-2">
           <div className="flex items-start gap-3 md:gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#5B7CFF]/15 bg-[#5B7CFF]/10 text-[#8EA4FF]">
               <svg
@@ -3328,13 +3328,13 @@ export default function Progress({
                 </span>
               </div>
 
-              <p className="mt-2 text-sm font-medium text-white/80">
+              <p className="mt-2 text-sm font-medium text-white/80 md:mt-1">
                 {
                   atlasInsight.title
                 }
               </p>
 
-              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-white/35 md:text-white/50">
+              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-white/35 md:mt-1 md:text-white/50">
                 {
                   atlasInsight.body
                 }
@@ -3350,7 +3350,7 @@ export default function Progress({
             )
           }
 
-          className="mx-auto mt-5 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/35 transition hover:bg-white/[0.03] hover:text-white/45 md:mt-4 md:min-h-0 md:py-1.5 md:text-white/25"
+          className="mx-auto mt-5 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/35 transition hover:bg-white/[0.03] hover:text-white/45 md:mt-1 md:min-h-0 md:py-1 md:text-white/35"
         >
           <span>
             Goals
