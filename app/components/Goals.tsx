@@ -94,9 +94,6 @@ export default function Goals({
           <button type="button" className={`${buttonClass} md:hidden`} onClick={onAnalytics}>
             Analytics ↑
           </button>
-          <button type="button" className="hidden rounded-md px-1.5 py-1 text-xs text-white/50 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex md:items-center md:gap-1" onClick={onAnalytics}>
-            <span aria-hidden="true">↑</span> Analytics
-          </button>
           {userId && (
             <button
               type="button"
@@ -224,7 +221,7 @@ export default function Goals({
                   />
                 )}
                 <details className="group mt-4 border-t border-white/[0.07] pt-3">
-                  <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/55 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:list-none md:px-2 md:text-white/65 md:hover:bg-white/[0.04] md:hover:text-white/90 md:[&::-webkit-details-marker]:hidden">
+                  <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/55 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex md:min-h-9 md:items-center md:gap-2 md:rounded-lg md:border md:border-white/[0.08] md:bg-white/[0.035] md:px-3 md:text-white/70 md:transition-colors md:hover:border-white/[0.16] md:hover:bg-white/[0.07] md:hover:text-white/95 md:group-open:border-[#7892FF]/25 md:group-open:text-white/90 md:[&::-webkit-details-marker]:hidden">
                     Details{" "}
                     <span className="ml-2 text-xs text-white/30 md:ml-1 md:text-white/45">
                       {goal.kind === "milestone"
@@ -233,9 +230,9 @@ export default function Goals({
                       {linkedTasks.length + linkedHabits.length} linked
                       activities
                     </span>
-                    <span aria-hidden="true" className="ml-2 hidden text-white/45 transition-transform group-open:rotate-180 md:inline-block">⌄</span>
+                    <svg aria-hidden="true" className="ml-1 hidden text-white/45 transition-transform group-open:rotate-180 md:block" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </summary>
-                  <div className="mt-3 space-y-5">
+                  <div className="mt-3 space-y-5 md:mt-5 md:space-y-6">
                     <div className="flex items-start justify-between gap-4">
                       <p className="min-w-0 whitespace-pre-wrap break-words text-sm text-white/55 md:hidden">{goal.description || "No description added."}</p>
                       {goal.description && <p className="hidden min-w-0 whitespace-pre-wrap break-words text-sm text-white/65 md:block">{goal.description}</p>}
@@ -247,18 +244,6 @@ export default function Goals({
                           disabled={busy}
                         >
                           Edit goal
-                        </button>
-                        <button
-                          type="button"
-                          className="hidden min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-white/50 hover:bg-red-400/10 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex"
-                          disabled={busy}
-                          onClick={() => {
-                            if (window.confirm(`Delete ${goal.title}?`))
-                              void perform(() => removeGoal(client, userId, goal));
-                          }}
-                        >
-                          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v6m4-6v6" /></svg>
-                          Delete
                         </button>
                       </div>
                     </div>
@@ -374,6 +359,20 @@ export default function Goals({
                         }}
                       >
                         Delete goal
+                      </button>
+                    </div>
+                    <div className="hidden border-t border-white/[0.08] pt-4 md:block">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-red-300/25 px-3 text-xs text-red-200/75 transition-colors hover:border-red-300/55 hover:bg-red-400/[0.08] hover:text-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300/70"
+                        disabled={busy}
+                        onClick={() => {
+                          if (window.confirm(`Delete ${goal.title}?`))
+                            void perform(() => removeGoal(client, userId, goal));
+                        }}
+                      >
+                        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v6m4-6v6" /></svg>
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -632,11 +631,11 @@ function MeasurableUpdate({
   const [value, setValue] = useState(goal.current_value.toString());
   return (
     <details className="group mt-3">
-      <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/60 hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] md:list-none md:rounded-lg md:px-2 md:text-white/65 md:hover:bg-white/[0.04] md:[&::-webkit-details-marker]:hidden">
-        Update value <span aria-hidden="true" className="ml-1 hidden text-white/45 transition-transform group-open:rotate-180 md:inline-block">⌄</span>
+      <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/60 hover:text-white focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex md:min-h-9 md:items-center md:gap-2 md:rounded-lg md:border md:border-white/[0.08] md:bg-white/[0.035] md:px-3 md:text-white/75 md:transition-colors md:hover:border-white/[0.16] md:hover:bg-white/[0.07] md:hover:text-white md:group-open:border-[#7892FF]/25 md:group-open:text-white/90 md:[&::-webkit-details-marker]:hidden">
+        Update value <svg aria-hidden="true" className="hidden text-white/45 transition-transform group-open:rotate-180 md:block" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </summary>
       <form
-        className="mt-2 flex flex-wrap items-end gap-2"
+        className="mt-2 flex flex-wrap items-end gap-2 md:mt-4 md:gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           const parsed = Number(value);
