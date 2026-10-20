@@ -85,7 +85,7 @@ export default function Goals({
     <div className="space-y-5 pb-24 md:pb-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-white/35">Your outcomes and next steps</p>
+          <p className="text-sm text-white/35 md:text-white/55">Your outcomes and next steps</p>
           <h2 className="mt-1 text-[1.75rem] font-semibold tracking-tight md:text-3xl">
             Goals
           </h2>
@@ -173,13 +173,13 @@ export default function Goals({
                         : " · No deadline"}
                     </p>
                   </div>
-                  <span className="rounded-md bg-white/[0.05] px-2 py-1 text-xs text-white/60">
+                  <span className="rounded-md bg-white/[0.05] px-2 py-1 text-xs text-white/60 md:text-white/75">
                     {goal.status[0].toUpperCase() + goal.status.slice(1)}
                   </span>
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-3 text-xs text-white/55">
+                <div className="mt-4 flex items-center justify-between gap-3 text-xs text-white/55 md:text-white/70">
                   <span>{progress.label}</span>
-                  <span>{progress.percent}%</span>
+                  <span className="md:font-medium md:text-white/85">{progress.percent}%</span>
                 </div>
                 <div
                   role="progressbar"
@@ -223,12 +223,12 @@ export default function Goals({
                 <details className="group mt-4 border-t border-white/[0.07] pt-3">
                   <summary className="w-fit cursor-pointer rounded-md py-2 text-sm text-white/55 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-[#7892FF] md:inline-flex md:min-h-9 md:items-center md:gap-2 md:rounded-lg md:border md:border-white/[0.08] md:bg-white/[0.035] md:px-3 md:text-white/70 md:transition-colors md:hover:border-white/[0.16] md:hover:bg-white/[0.07] md:hover:text-white/95 md:group-open:border-[#7892FF]/25 md:group-open:text-white/90 md:[&::-webkit-details-marker]:hidden">
                     Details{" "}
-                    <span className="ml-2 text-xs text-white/30 md:ml-1 md:text-white/45">
+                    <span className="ml-2 text-xs text-white/30 md:ml-1 md:text-white/60">
                       {goal.kind === "milestone"
-                        ? `${milestones.length} milestones · `
+                        ? `${milestones.length} ${milestones.length === 1 ? "milestone" : "milestones"} · `
                         : ""}
-                      {linkedTasks.length + linkedHabits.length} linked
-                      activities
+                      {linkedTasks.length + linkedHabits.length} linked{" "}
+                      {linkedTasks.length + linkedHabits.length === 1 ? "activity" : "activities"}
                     </span>
                     <svg aria-hidden="true" className="ml-1 hidden text-white/45 transition-transform group-open:rotate-180 md:block" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </summary>
@@ -249,7 +249,7 @@ export default function Goals({
                     </div>
                     {goal.kind === "milestone" && (
                       <div className="space-y-2">
-                        <p className="text-xs uppercase tracking-wide text-white/35">
+                        <p className="text-xs uppercase tracking-wide text-white/35 md:text-white/55">
                           Milestones
                         </p>
                         {!milestones.length && (
@@ -313,7 +313,7 @@ export default function Goals({
                       </div>
                     )}
                     <div className="border-t border-white/[0.07] pt-4">
-                      <p className="text-xs uppercase tracking-wide text-white/35">
+                      <p className="text-xs uppercase tracking-wide text-white/35 md:text-white/55">
                         Linked activity
                       </p>
                       <p className="mt-1 text-xs text-white/40 md:text-white/55">
@@ -593,7 +593,7 @@ function MilestoneRow({
       )}
       <button
         type="button"
-        className="min-h-11 px-1 text-xs text-white/40"
+        className="min-h-11 px-1 text-xs text-white/40 md:text-white/60 md:hover:text-white md:focus-visible:outline-2 md:focus-visible:outline-[#7892FF]"
         disabled={busy}
         onClick={() => {
           if (editing) {
@@ -606,7 +606,7 @@ function MilestoneRow({
       </button>
       <button
         type="button"
-        className="min-h-11 px-1 text-xs text-white/40"
+        className="min-h-11 px-1 text-xs text-white/40 md:text-red-200/65 md:hover:text-red-100 md:focus-visible:outline-2 md:focus-visible:outline-red-300/70"
         disabled={busy}
         onClick={() => {
           if (window.confirm(`Delete milestone ${item.title}?`))

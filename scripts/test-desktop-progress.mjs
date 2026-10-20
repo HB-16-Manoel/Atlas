@@ -407,6 +407,20 @@ try {
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
 
+  // Populate the isolated cloud fixture after verifying that linking did not
+  // change task completion. Analytics now exercises a scored multi-day trend.
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  tables.tasks[0].completed_at = now;
+  tables.tasks.push(
+    { ...tables.tasks[0], id: "44444444-4444-4444-8444-444444444444", title: "Yesterday's completed task", task_date: yesterday, completed_at: now },
+    { ...tables.tasks[0], id: "55555555-5555-4555-8555-555555555555", title: "Yesterday's unfinished task", task_date: yesterday, completed_at: null, position: 1 },
+  );
+  tables.habits[0].started_on = yesterday;
+  tables.habit_completions.push(
+    { id: "66666666-6666-4666-8666-666666666666", user_id: userId, habit_id: tables.habits[0].id, completion_date: today, revision: 1, deleted_at: null },
+    { id: "77777777-7777-4777-8777-777777777777", user_id: userId, habit_id: tables.habits[0].id, completion_date: yesterday, revision: 1, deleted_at: null },
+  );
+
   if (process.env.ATLAS_TEST_SCREENSHOTS)
     await page.screenshot({
       path: `${process.env.ATLAS_TEST_SCREENSHOTS}/goals-desktop.png`,
@@ -417,6 +431,22 @@ try {
     .getByRole("article", { name: "Edited milestone outcome", exact: true })
     .waitFor();
   assert.equal(tables.goal_task_links.length, 1, "reload retains links");
+  await page.setViewportSize({ width: 1535, height: 825 });
+  await page.getByRole("button", { name: "Goals ↓", exact: true }).click();
+  const polishedMilestone = page.getByRole("article", { name: "Edited milestone outcome", exact: true });
+  const polishedMeasurable = page.getByRole("article", { name: "Read books", exact: true });
+  assert.equal(await polishedMilestone.getByText("1 milestone · 2 linked activities").count(), 1);
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/goals-collapsed-1535x825.png` });
+  await polishedMilestone.locator("summary").filter({ hasText: "Details" }).click();
+  await polishedMeasurable.locator("summary").filter({ hasText: "Update value" }).click();
+  const deleteRect = await polishedMilestone.getByRole("button", { name: "Delete", exact: true }).last().boundingBox();
+  const linksRect = await polishedMilestone.getByText("Linked activity", { exact: true }).boundingBox();
+  assert.ok(deleteRect.y > linksRect.y, "goal deletion follows expanded details");
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/goals-expanded-1535x825.png` });
+  await polishedMilestone.locator("summary").filter({ hasText: "Details" }).click();
+  await polishedMeasurable.locator("summary").filter({ hasText: "Update value" }).click();
   const bounds = async () =>
     scroller.evaluate((element) => ({
       height: element.clientHeight,
@@ -430,8 +460,8 @@ try {
   for (const [width, height, label] of [
     [1920, 1280, "tall desktop"],
     [1920, 1080, "1080p"],
-    // Reserve 139 px from the 1535×959 screen for Chrome tabs/toolbars and the Windows taskbar.
-    [1535, 820, "1535x959 screen with browser chrome and taskbar"],
+    // Reserve 134 px from the 1535×959 screen for Chrome tabs/toolbars and the Windows taskbar.
+    [1535, 825, "1535x959 screen with browser chrome and taskbar"],
     [1535, 760, "1535x959 screen with extra browser chrome"],
     [1536, 864, "1536x864"],
     [1440, 900, "900p"],
@@ -467,7 +497,7 @@ try {
       const analyticsRect = await page.locator('[data-progress-section="analytics"]').boundingBox();
       const insightRect = await insight.boundingBox();
       const consistencyRect = await page.locator("[data-consistency-card]").boundingBox();
-      if (height === 820) {
+      if (height === 825) {
         assert.ok(insightRect.y + insightRect.height <= height - 4,
           "1535x959 screen: Atlas Insight must fit above the browser viewport bottom");
         assert.ok(analyticsRect.height <= height, "target screen: entire Analytics section must fit without scrolling");
@@ -475,8 +505,12 @@ try {
           "Consistency and Atlas Insight do not overlap");
         const chart = await page.locator('[data-progress-section="analytics"] > div:nth-child(2)').boundingBox();
         assert.ok(chart.height <= 248, "Overall Progress card is roughly a quarter shorter");
+        const chartDots = page.locator('[data-progress-section="analytics"] span[aria-hidden="true"][style*="left:"]');
+        assert.ok(await chartDots.count() >= 2, "populated Daily Score trend renders its points");
+        const dot = await chartDots.first().boundingBox();
+        assert.ok(dot.width <= 12 && dot.height <= 12, "desktop trend markers are circular and restrained");
         if (process.env.ATLAS_TEST_SCREENSHOTS)
-          await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-target-1535x820.png` });
+          await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-target-1535x825.png` });
       }
     }
     if (width === 1536) {

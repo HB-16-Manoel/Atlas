@@ -2702,7 +2702,7 @@ export default function Progress({
           md:min-h-full
           md:snap-start
           md:px-10
-          md:pt-3
+          md:pt-2.5
           md:pb-2.5
         "
       >
@@ -2774,7 +2774,7 @@ export default function Progress({
 
         {/* OVERALL PROGRESS */}
 
-        <div className="mt-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 pb-4 pt-4 md:mt-3 md:px-6 md:pb-3 md:pt-3">
+        <div className="mt-4 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 pb-4 pt-4 md:mt-2 md:px-6 md:pb-3 md:pt-3">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
@@ -2810,7 +2810,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-4 h-[165px] md:mt-2 md:h-[122px]">
+          <div className="relative mt-4 h-[165px] md:mt-1 md:h-[122px]">
             <div className="absolute inset-0 flex flex-col justify-between">
               {[
                 "100",
@@ -2829,7 +2829,7 @@ export default function Progress({
 
                     className="flex items-center gap-4"
                   >
-                    <span className="w-5 text-[10px] text-white/20">
+                    <span className="w-5 text-[10px] text-white/20 md:text-white/45">
                       {
                         label
                       }
@@ -2886,6 +2886,7 @@ export default function Progress({
                         key={
                           point.key
                         }
+                        className="md:hidden"
 
                         cx={
                           position.x
@@ -2911,6 +2912,21 @@ export default function Progress({
                   }
                 )}
               </svg>
+
+              <div className="pointer-events-none absolute inset-0 hidden md:block">
+                {trendData.map((point, index) => {
+                  const position = getTrendPointPosition(point, index, trendData.length);
+                  if (position.y === null) return null;
+                  return (
+                    <span
+                      key={point.key}
+                      aria-hidden="true"
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#8199FF] bg-[#11131D] transition-[width,height] ${hoveredTrendKey === point.key ? "h-3 w-3" : "h-2 w-2"}`}
+                      style={{ left: `${position.x}%`, top: `${(position.y / 40) * 100}%` }}
+                    />
+                  );
+                })}
+              </div>
 
               <div className="absolute inset-0 flex">
                 {trendData.map(
@@ -2999,7 +3015,7 @@ export default function Progress({
                   className="min-w-0 text-center"
                 >
                   {point.showLabel ? (
-                    <p className="truncate px-0.5 text-[10px] text-white/25">
+                    <p className="truncate px-0.5 text-[10px] text-white/25 md:text-white/45">
                       {
                         point.label
                       }
@@ -3029,19 +3045,19 @@ export default function Progress({
 
         {/* PATTERNS + COMPLETION */}
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:mt-3 md:grid-cols-2 md:gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:mt-3 md:grid-cols-2 md:gap-x-3 md:gap-y-2">
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 md:px-4 md:py-2.5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium uppercase tracking-[0.16em] text-white/30">
+                <p className="text-sm font-medium uppercase tracking-[0.16em] text-white/30 md:text-white/50">
                   Patterns
                 </p>
 
-                <div className="min-[1280px]:flex min-[1280px]:items-baseline min-[1280px]:gap-3">
+                <div>
                   <h3 className="mt-1 text-lg font-medium md:text-xl">
                     What&apos;s shaping your week
                   </h3>
-                  <p className="mt-1 text-xs text-white/25 min-[1280px]:mt-0 min-[1280px]:whitespace-nowrap">
+                  <p className="mt-1 text-xs text-white/25 md:mt-0.5 md:text-white/55">
                     Based on the last 4 weeks
                   </p>
                 </div>
@@ -3075,7 +3091,7 @@ export default function Progress({
 
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 md:mt-1 md:gap-x-8 md:gap-y-2">
               <div>
-                <p className="text-sm text-white/35">
+                <p className="text-sm text-white/35 md:text-white/60">
                   Strongest day
                 </p>
 
@@ -3086,7 +3102,7 @@ export default function Progress({
                   }
                 </p>
 
-                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5">
+                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5 md:text-white/55">
                   {strongestDay
                     ? `Avg. Daily Score ${strongestDay.average}`
                     : "Not enough data yet"}
@@ -3094,7 +3110,7 @@ export default function Progress({
               </div>
 
               <div>
-                <p className="text-sm text-white/35">
+                <p className="text-sm text-white/35 md:text-white/60">
                   Most reliable habit
                 </p>
 
@@ -3105,7 +3121,7 @@ export default function Progress({
                   }
                 </p>
 
-                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5">
+                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5 md:text-white/55">
                   {mostReliableHabit
                     ? `${mostReliableHabit.completed} of ${mostReliableHabit.expected} check-ins · ${mostReliableHabit.completionRate}%`
                     : "Not enough habit data yet"}
@@ -3113,7 +3129,7 @@ export default function Progress({
               </div>
 
               <div>
-                <p className="text-sm text-white/35">
+                <p className="text-sm text-white/35 md:text-white/60">
                   Biggest improvement
                 </p>
 
@@ -3129,7 +3145,7 @@ export default function Progress({
                     biggestImprovement.difference >
                     0
                       ? "text-[#8199FF]"
-                      : "text-white/35"
+                      : "text-white/35 md:text-white/55"
                   }`}
                 >
                   {biggestImprovement.category ===
@@ -3143,7 +3159,7 @@ export default function Progress({
               </div>
 
               <div>
-                <p className="text-sm text-white/35">
+                <p className="text-sm text-white/35 md:text-white/60">
                   Weakest day
                 </p>
 
@@ -3154,7 +3170,7 @@ export default function Progress({
                   }
                 </p>
 
-                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5">
+                <p className="mt-1.5 text-sm text-white/35 md:mt-0.5 md:text-white/55">
                   {weakestDay
                     ? `Avg. Daily Score ${weakestDay.average}`
                     : "Not enough data yet"}
@@ -3253,9 +3269,9 @@ export default function Progress({
             </div>
           </div>
           <div data-consistency-card className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 md:col-span-2 md:block md:px-4 md:py-2.5">
-            <div className="flex items-start gap-6">
+            <div className="flex items-start gap-6 md:gap-7">
             <div className="w-36 shrink-0">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/45">Consistency</p>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/55">Consistency</p>
               <h3 className="mt-1 text-lg font-medium">Showing up</h3>
             </div>
             <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-4 md:gap-y-2 lg:grid-cols-4">
@@ -3265,7 +3281,7 @@ export default function Progress({
               <div><dt className="text-xs text-white/55">Best · 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
             </dl>
             </div>
-            <p className="mt-1 border-t border-white/[0.06] pt-1 text-xs text-white/45">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+            <p className="mt-1 border-t border-white/[0.08] pt-1 text-xs text-white/60 md:mt-1.5 md:pt-1.5">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
           </div>
         </div>
 
@@ -3311,7 +3327,7 @@ export default function Progress({
                   Atlas insight
                 </p>
 
-                <span className="text-[10px] text-white/20 md:text-white/45">
+                <span className="text-[10px] text-white/20 md:text-white/55">
                   {
                     atlasInsight.period
                   }
@@ -3324,7 +3340,7 @@ export default function Progress({
                 }
               </p>
 
-              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-white/35 md:max-w-none md:text-white/50">
+              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-white/35 md:max-w-none md:text-white/60">
                 {
                   atlasInsight.body
                 }
