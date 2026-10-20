@@ -430,6 +430,9 @@ try {
   for (const [width, height, label] of [
     [1920, 1280, "tall desktop"],
     [1920, 1080, "1080p"],
+    // Reserve 139 px from the 1535×959 screen for Chrome tabs/toolbars and the Windows taskbar.
+    [1535, 820, "1535x959 screen with browser chrome and taskbar"],
+    [1535, 760, "1535x959 screen with extra browser chrome"],
     [1536, 864, "1536x864"],
     [1440, 900, "900p"],
     [1366, 768, "768p"],
@@ -460,6 +463,22 @@ try {
     );
     assert.ok(before.top <= 1, `${label}: Analytics begins at top`);
     const insight = page.locator("[data-atlas-insight]");
+    if (width === 1535) {
+      const analyticsRect = await page.locator('[data-progress-section="analytics"]').boundingBox();
+      const insightRect = await insight.boundingBox();
+      const consistencyRect = await page.locator("[data-consistency-card]").boundingBox();
+      if (height === 820) {
+        assert.ok(insightRect.y + insightRect.height <= height - 4,
+          "1535x959 screen: Atlas Insight must fit above the browser viewport bottom");
+        assert.ok(analyticsRect.height <= height, "target screen: entire Analytics section must fit without scrolling");
+        assert.ok(consistencyRect.y + consistencyRect.height <= insightRect.y,
+          "Consistency and Atlas Insight do not overlap");
+        const chart = await page.locator('[data-progress-section="analytics"] > div:nth-child(2)').boundingBox();
+        assert.ok(chart.height <= 248, "Overall Progress card is roughly a quarter shorter");
+        if (process.env.ATLAS_TEST_SCREENSHOTS)
+          await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-target-1535x820.png` });
+      }
+    }
     if (width === 1536) {
       const consistencyRect = await page.locator("[data-consistency-card]").boundingBox();
       const insightRect = await page.locator("[data-atlas-insight]").boundingBox();
@@ -526,7 +545,7 @@ try {
       await page.screenshot({
         path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-insight-reachable.png`,
       });
-    await page.getByRole("button", { name: "Goals", exact: true }).click();
+    await page.getByRole("button", { name: "Goals ↓", exact: true }).click();
     await pause(150);
     const after = await bounds();
     assert.ok(after.top > 0, `${label}: Goals control scrolls down`);
@@ -583,7 +602,7 @@ try {
       `${name}: graph period changes`,
     );
   }
-  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  await page.getByRole("button", { name: "Goals ↓", exact: true }).click();
   const editedMilestoneCard = page.getByRole("article", { name: "Edited milestone outcome", exact: true });
   await editedMilestoneCard.locator("summary").filter({ hasText: "Details" }).click();
   page.once("dialog", (dialog) => dialog.dismiss());
@@ -630,7 +649,7 @@ try {
     "edits retain revision checks",
   );
   console.log(
-    "PASS: goal creation/editing (both types), validation/server errors, status/selects, milestones, linking, persistence, modal focus/Escape/Cancel, section controls/wheel, seven desktop viewport sizes, chart filters.",
+    "PASS: goal creation/editing (both types), validation/server errors, status/selects, milestones, linking, persistence, modal focus/Escape/Cancel, section controls/wheel, ten desktop viewport sizes, chart filters.",
   );
 } catch (error) {
   console.error(
