@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { atlasAuthOrigin, atlasGoogleOAuthCallback } from "../lib/auth/urls";
 import { createClient } from "../lib/supabase/client";
 
@@ -56,9 +56,52 @@ function FloatingLoginField({
 }) {
   const id = useId();
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, labelWidth: 0 });
+  const boxRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLLabelElement>(null);
+  const lifted = focused || value.length > 0;
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const text = labelRef.current;
+    if (!box || !text) return;
+    const observer = new ResizeObserver(() => {
+      setDimensions({ width: box.clientWidth, labelWidth: text.offsetWidth });
+    });
+    observer.observe(box);
+    observer.observe(text);
+    return () => observer.disconnect();
+  }, []);
+
+  // Bencho's two outline halves make room for the lifted label.
+  const width = dimensions.width;
+  const height = 52;
+  const inset = 0.75;
+  const radius = 12;
+  const labelX = 16;
+  const start = labelX - 5;
+  const end = labelX + dimensions.labelWidth * 0.78 + 5;
+  const middle = (start + end) / 2;
+  const right = `M${end},${inset} L${width - radius},${inset} A${radius - inset},${radius - inset} 0 0 1 ${width - inset},${radius} L${width - inset},${height - radius} A${radius - inset},${radius - inset} 0 0 1 ${width - radius},${height - inset} L${width / 2},${height - inset}`;
+  const left = `M${start},${inset} L${radius},${inset} A${radius - inset},${radius - inset} 0 0 0 ${inset},${radius} L${inset},${height - radius} A${radius - inset},${radius - inset} 0 0 0 ${radius},${height - inset} L${width / 2},${height - inset}`;
 
   return (
-    <div className="relative">
+    <div className="atlas-bencho-field" data-up={lifted} data-focus={focused} data-filled={value.length > 0}>
+      <div ref={boxRef} className="atlas-bencho-box" data-measured={width > 0}>
+        {width > 0 && (
+          <svg className="atlas-bencho-ring" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+            <path d={right} />
+            <path d={left} />
+            <path className="atlas-bencho-gap" d={`M${middle},${inset} L${start},${inset}`} pathLength={1} />
+            <path className="atlas-bencho-gap" d={`M${middle},${inset} L${end},${inset}`} pathLength={1} />
+          </svg>
+        )}
+        <label ref={labelRef} htmlFor={id} className="atlas-bencho-label">
+          {[...label].map((letter, index) => (
+            <span key={index} style={{ "--i": index } as React.CSSProperties}>{letter}</span>
+          ))}
+        </label>
       <input
         id={id}
         required
@@ -67,30 +110,25 @@ function FloatingLoginField({
         autoComplete={password ? "current-password" : "email"}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder=" "
-        className={`atlas-login-floating-input min-h-13 w-full rounded-xl border border-white/15 bg-[#10121B] px-4 text-white outline-none transition-colors focus:border-[#5B7CFF]/70 ${password ? "pr-14" : ""}`}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        className={`atlas-bencho-input ${password ? "atlas-bencho-password" : ""}`}
       />
-      <label htmlFor={id} className="atlas-login-floating-label">{label}</label>
       {password && (
         <button
           type="button"
+          onPointerDown={(event) => event.preventDefault()}
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex min-w-12 items-center justify-center rounded-r-xl px-3 text-white/45 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#5B7CFF]"
+          data-show={visible}
+          className="atlas-bencho-eye focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B7CFF]"
         >
-          {visible ? (
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.3A10.8 10.8 0 0 1 12 4c5.5 0 9 5.5 9 5.5a15 15 0 0 1-2.2 2.7M6.5 6.5C4.3 8 3 9.5 3 9.5S6.5 15 12 15c.8 0 1.6-.1 2.3-.3" />
-            </svg>
-          ) : (
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-5.5 9-5.5 9 5.5 9 5.5-3.5 5.5-9 5.5S3 12 3 12Z" />
-              <circle cx="12" cy="12" r="2.5" />
-            </svg>
-          )}
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-5.5 9-5.5 9 5.5 9 5.5-3.5 5.5-9 5.5S3 12 3 12Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.3A10.8 10.8 0 0 1 12 4c5.5 0 9 5.5 9 5.5a15 15 0 0 1-2.2 2.7M6.5 6.5C4.3 8 3 9.5 3 9.5S6.5 15 12 15c.8 0 1.6-.1 2.3-.3" /></svg>
         </button>
       )}
+      </div>
     </div>
   );
 }
