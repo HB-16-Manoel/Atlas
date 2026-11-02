@@ -34,6 +34,33 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.atlas-login-floating-label {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  padding: 0 5px;
+  transform: translateY(-50%);
+  color: rgb(255 255 255 / 0.48);
+  pointer-events: none;
+  transition: top 160ms ease, color 160ms ease, font-size 160ms ease;
+}
+
+.atlas-login-floating-input:focus + .atlas-login-floating-label,
+.atlas-login-floating-input:not(:placeholder-shown) + .atlas-login-floating-label {
+  top: 0;
+  background: #171a26;
+  color: rgb(255 255 255 / 0.68);
+  font-size: 11px;
+}
+
+.atlas-login-floating-input:focus + .atlas-login-floating-label {
+  color: #91a5ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-login-floating-label { transition: none; }
+}
+
 .atlas-carry-switch {
   position: relative;
   display: inline-block;

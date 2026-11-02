@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import { atlasAuthOrigin, atlasGoogleOAuthCallback } from "../lib/auth/urls";
 import { createClient } from "../lib/supabase/client";
 
@@ -40,6 +40,58 @@ function GoogleLogo() {
       <path fill="#FBBC05" d="M6.39 13.87A6 6 0 0 1 6.08 12c0-.65.11-1.28.31-1.87V7.52H3.04A10 10 0 0 0 2 12c0 1.61.39 3.14 1.04 4.48l3.35-2.61Z" />
       <path fill="#EA4335" d="M12 6c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.52l3.35 2.61C7.18 7.76 9.39 6 12 6Z" />
     </svg>
+  );
+}
+
+function FloatingLoginField({
+  label,
+  value,
+  onChange,
+  password = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  password?: boolean;
+}) {
+  const id = useId();
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="relative">
+      <input
+        id={id}
+        required
+        minLength={password ? 8 : undefined}
+        type={password ? (visible ? "text" : "password") : "email"}
+        autoComplete={password ? "current-password" : "email"}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder=" "
+        className={`atlas-login-floating-input min-h-13 w-full rounded-xl border border-white/15 bg-[#10121B] px-4 text-white outline-none transition-colors focus:border-[#5B7CFF]/70 ${password ? "pr-14" : ""}`}
+      />
+      <label htmlFor={id} className="atlas-login-floating-label">{label}</label>
+      {password && (
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+          className="absolute inset-y-0 right-0 flex min-w-12 items-center justify-center rounded-r-xl px-3 text-white/45 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#5B7CFF]"
+        >
+          {visible ? (
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.3A10.8 10.8 0 0 1 12 4c5.5 0 9 5.5 9 5.5a15 15 0 0 1-2.2 2.7M6.5 6.5C4.3 8 3 9.5 3 9.5S6.5 15 12 15c.8 0 1.6-.1 2.3-.3" />
+            </svg>
+          ) : (
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-5.5 9-5.5 9 5.5 9 5.5-3.5 5.5-9 5.5S3 12 3 12Z" />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+          )}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -200,13 +252,17 @@ export default function AuthShell({ mode }: { mode: Mode }) {
         )}
 
         <form onSubmit={submit} className="space-y-4">
-          {mode !== "update" && (
+          {mode === "login" ? (
+            <FloatingLoginField label="Email" value={email} onChange={setEmail} />
+          ) : mode !== "update" && (
             <label className="block text-sm text-white/65">Email
               <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-[#10121B] px-4 text-white outline-none transition-colors placeholder:text-white/20 focus:border-[#5B7CFF]/60" />
             </label>
           )}
-          {needsPassword && (
-            <PasswordField label={mode === "update" ? "New password" : "Password"} value={password} onChange={setPassword} autoComplete={mode === "login" ? "current-password" : "new-password"} />
+          {mode === "login" ? (
+            <FloatingLoginField label="Password" value={password} onChange={setPassword} password />
+          ) : needsPassword && (
+            <PasswordField label={mode === "update" ? "New password" : "Password"} value={password} onChange={setPassword} autoComplete="new-password" />
           )}
           {mode === "sign-up" && (
             <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
