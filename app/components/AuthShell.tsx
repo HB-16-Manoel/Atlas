@@ -43,6 +43,14 @@ function GoogleLogo() {
   );
 }
 
+function ForwardArrow() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+      <path d="M16.175 13H4v-2h12.175l-5.6-5.6L12 4l8 8-8 8-1.425-1.4z" />
+    </svg>
+  );
+}
+
 function FloatingLoginField({
   label,
   value,
@@ -282,9 +290,10 @@ export default function AuthShell({ mode }: { mode: Mode }) {
 
         {(mode === "login" || mode === "sign-up") && (
           <>
-            <button type="button" disabled={busy} onClick={continueWithGoogle} className="mt-6 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] text-sm font-medium text-white/80 hover:bg-white/[0.07] disabled:opacity-50">
-              <GoogleLogo />
-              Continue with Google
+            <button type="button" disabled={busy} onClick={continueWithGoogle} className="atlas-google-button mt-6 flex min-h-12 w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-sm font-medium text-white/80 hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B7CFF] disabled:opacity-50">
+              <span className="atlas-google-icon"><GoogleLogo /></span>
+              <span className="atlas-google-label">Continue with Google</span>
+              <span className="atlas-google-arrow"><ForwardArrow /></span>
             </button>
             <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-white/25"><span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" /></div>
           </>
