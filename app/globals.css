@@ -34,31 +34,31 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.atlas-login-floating-label {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  padding: 0 5px;
-  transform: translateY(-50%);
-  color: rgb(255 255 255 / 0.48);
-  pointer-events: none;
-  transition: top 160ms ease, color 160ms ease, font-size 160ms ease;
-}
-
-.atlas-login-floating-input:focus + .atlas-login-floating-label,
-.atlas-login-floating-input:not(:placeholder-shown) + .atlas-login-floating-label {
-  top: 0;
-  background: #171a26;
-  color: rgb(255 255 255 / 0.68);
-  font-size: 11px;
-}
-
-.atlas-login-floating-input:focus + .atlas-login-floating-label {
-  color: #91a5ff;
-}
-
+/* Adapted from Bencho's Label Input: moving letterforms and an opening outline. */
+.atlas-bencho-field { position: relative; padding-top: 12px; }
+.atlas-bencho-box { position: relative; width: 100%; height: 52px; border-radius: 12px; background: #171a26; }
+.atlas-bencho-box:not([data-measured="true"]) { border: 1px solid rgb(255 255 255 / 0.16); }
+.atlas-bencho-ring { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.atlas-bencho-ring path { fill: none; stroke: rgb(255 255 255 / 0.16); stroke-width: 1; transition: stroke 220ms ease, stroke-width 220ms ease; }
+.atlas-bencho-field[data-focus="true"] .atlas-bencho-ring path { stroke: #91a5ff; stroke-width: 1.5; }
+.atlas-bencho-ring .atlas-bencho-gap { stroke-dasharray: 1 2; stroke-dashoffset: 0; transition: stroke-dashoffset 420ms cubic-bezier(.22,1,.36,1), stroke 220ms ease; }
+.atlas-bencho-field[data-up="true"] .atlas-bencho-gap { stroke-dashoffset: -1; }
+.atlas-bencho-label { position: absolute; left: 16px; top: 50%; z-index: 1; transform: translateY(-50%); transform-origin: left center; color: rgb(255 255 255 / 0.5); font-size: 16px; line-height: 1; white-space: pre; cursor: text; user-select: none; transition: transform 420ms cubic-bezier(.22,1,.36,1), color 220ms ease; }
+.atlas-bencho-field[data-up="true"] .atlas-bencho-label { transform: translateY(-50%) translateY(-26px) scale(.78); color: rgb(255 255 255 / 0.7); }
+.atlas-bencho-field[data-focus="true"] .atlas-bencho-label { color: #91a5ff; }
+.atlas-bencho-label span { display: inline-block; }
+.atlas-bencho-field[data-focus="true"] .atlas-bencho-label span { animation: atlas-bencho-hop 460ms cubic-bezier(.3,.7,.3,1) both; animation-delay: calc(var(--i) * 24ms); }
+.atlas-bencho-input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0 16px; border: 0; border-radius: inherit; outline: none; background: transparent; color: white; font-size: 16px; }
+.atlas-bencho-password { padding-right: 52px; }
+.atlas-bencho-eye { position: absolute; right: 6px; top: 50%; display: grid; place-items: center; width: 42px; height: 42px; transform: translateY(-50%); border: 0; border-radius: 50%; color: rgb(255 255 255 / 0.5); cursor: pointer; }
+.atlas-bencho-eye:hover, .atlas-bencho-eye:focus-visible { color: white; }
+.atlas-bencho-eye svg { grid-area: 1 / 1; transition: opacity 220ms ease, scale 220ms ease; }
+.atlas-bencho-eye svg:last-child { opacity: 0; scale: .8; }
+.atlas-bencho-eye[data-show="true"] svg:first-child { opacity: 0; scale: .8; }
+.atlas-bencho-eye[data-show="true"] svg:last-child { opacity: 1; scale: 1; }
+@keyframes atlas-bencho-hop { 0%, 100% { transform: translateY(0); } 38% { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) {
-  .atlas-login-floating-label { transition: none; }
+  .atlas-bencho-field *, .atlas-bencho-field *::before, .atlas-bencho-field *::after { transition-duration: 0ms !important; animation: none !important; }
 }
 
 .atlas-carry-switch {
