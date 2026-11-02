@@ -63,7 +63,7 @@ body {
 
 .atlas-google-button { position: relative; cursor: pointer; }
 .atlas-google-button:disabled { cursor: not-allowed; }
-.atlas-google-icon, .atlas-google-label, .atlas-google-arrow { transition: transform 190ms ease, opacity 190ms ease; }
+.atlas-google-icon, .atlas-google-label, .atlas-google-arrow { transition: transform 360ms cubic-bezier(.22,1,.36,1), opacity 360ms ease; }
 .atlas-google-arrow { position: absolute; right: 10%; opacity: 0; transform: translateX(12px); pointer-events: none; }
 @media (hover: hover) and (pointer: fine) {
   .atlas-google-button:not(:disabled):hover .atlas-google-icon { opacity: 0; transform: translateX(-80px); }
