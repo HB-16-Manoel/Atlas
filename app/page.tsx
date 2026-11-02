@@ -15,6 +15,7 @@ import Planning from "./components/Planning";
 import Progress from "./components/Progress";
 import Settings from "./components/Settings";
 import { useAtlasData } from "./hooks/useAtlasData";
+import { version } from "../package.json";
 
 function AtlasLogo({
   compact = false,
@@ -371,6 +372,9 @@ function DesktopSidebar({
               />
             </div>
           </div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium tracking-wide text-white/65">
+          Atlas <span className="text-white/85">v{version}</span>
         </div>
       </div>
     </aside>
