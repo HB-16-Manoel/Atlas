@@ -61,6 +61,22 @@ body {
   .atlas-bencho-field *, .atlas-bencho-field *::before, .atlas-bencho-field *::after { transition-duration: 0ms !important; animation: none !important; }
 }
 
+.atlas-google-button { position: relative; cursor: pointer; }
+.atlas-google-button:disabled { cursor: not-allowed; }
+.atlas-google-icon, .atlas-google-label, .atlas-google-arrow { transition: transform 190ms ease, opacity 190ms ease; }
+.atlas-google-arrow { position: absolute; right: 10%; opacity: 0; transform: translateX(12px); pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  .atlas-google-button:not(:disabled):hover .atlas-google-icon { opacity: 0; transform: translateX(-80px); }
+  .atlas-google-button:not(:disabled):hover .atlas-google-label { transform: translateX(-10px); }
+  .atlas-google-button:not(:disabled):hover .atlas-google-arrow { opacity: 1; transform: translateX(0); }
+}
+.atlas-google-button:not(:disabled):focus-visible .atlas-google-icon { opacity: 0; transform: translateX(-80px); }
+.atlas-google-button:not(:disabled):focus-visible .atlas-google-label { transform: translateX(-10px); }
+.atlas-google-button:not(:disabled):focus-visible .atlas-google-arrow { opacity: 1; transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) {
+  .atlas-google-icon, .atlas-google-label, .atlas-google-arrow { transition: none; }
+}
+
 .atlas-carry-switch {
   position: relative;
   display: inline-block;
