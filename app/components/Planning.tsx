@@ -331,6 +331,8 @@ export default function Planning({
     setAddingTask,
   ] = useState(false);
 
+  const [carrySwitchAnimated, setCarrySwitchAnimated] = useState(false);
+
   const [
     newTask,
     setNewTask,
@@ -339,7 +341,7 @@ export default function Planning({
   const [
     newTaskCarryOver,
     setNewTaskCarryOver,
-  ] = useState(true);
+  ] = useState(false);
 
   const [
     openTaskMenuId,
@@ -1545,7 +1547,7 @@ export default function Planning({
       );
 
       setNewTaskCarryOver(
-        true
+        false
       );
 
       setAddingTask(
@@ -5433,7 +5435,8 @@ export default function Planning({
                     onClick={() => {
                       setTaskReorderMode(false);
                       resetEventForm();
-                      setNewTaskCarryOver(true);
+                      setNewTaskCarryOver(false);
+                      setCarrySwitchAnimated(false);
                       setAddingTask(true);
                     }}
                     className="min-h-11 cursor-pointer rounded-lg bg-[#5B7CFF] px-2.5 py-2 text-xs font-medium transition hover:opacity-90 active:opacity-80 md:px-3 md:text-sm"
@@ -5480,31 +5483,25 @@ export default function Planning({
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setCarrySwitchAnimated(true);
                       setNewTaskCarryOver(
                         (current) => !current
-                      )
-                    }
-                    aria-pressed={newTaskCarryOver}
+                      );
+                    }}
+                    role="switch"
+                    aria-checked={newTaskCarryOver}
+                    aria-label="Carry over unfinished task"
                     title={
                       newTaskCarryOver
                         ? "Unfinished task will move to the next day"
                         : "Task stays only on this date"
                     }
-                    className="w-fit cursor-pointer py-1 text-xs text-white/30 transition hover:text-white/55"
+                    className="flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-lg text-xs text-white/55 transition hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B7CFF]"
                   >
                     Carry over
-                    <span
-                      className={
-                        newTaskCarryOver
-                          ? "text-[#8295E8]/75"
-                          : "text-white/25"
-                      }
-                    >
-                      {" · "}
-                      {newTaskCarryOver
-                        ? "On"
-                        : "Off"}
+                    <span aria-hidden="true" className={`atlas-carry-switch ${newTaskCarryOver ? "atlas-carry-switch-on" : ""} ${carrySwitchAnimated ? "atlas-carry-switch-animated" : ""}`}>
+                      <span className="atlas-carry-switch-thumb" />
                     </span>
                   </button>
 
@@ -5514,7 +5511,7 @@ export default function Planning({
                       onClick={() => {
                         setAddingTask(false);
                         setNewTask("");
-                        setNewTaskCarryOver(true);
+                        setNewTaskCarryOver(false);
                       }}
                       className="min-h-11 cursor-pointer rounded-lg px-4 py-2 text-sm text-white/50 transition hover:bg-white/5 hover:text-white sm:min-h-0"
                     >

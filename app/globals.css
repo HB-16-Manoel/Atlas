@@ -33,3 +33,59 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.atlas-carry-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex: none;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.atlas-carry-switch-on {
+  background: #5b7cff;
+  border-color: #5b7cff;
+}
+
+.atlas-carry-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #f7f8ff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+}
+
+.atlas-carry-switch-on .atlas-carry-switch-thumb { left: 20px; }
+
+.atlas-carry-switch-animated .atlas-carry-switch-thumb {
+  animation: atlas-carry-off 180ms ease both;
+}
+
+.atlas-carry-switch-animated.atlas-carry-switch-on .atlas-carry-switch-thumb {
+  animation-name: atlas-carry-on;
+}
+
+@keyframes atlas-carry-on {
+  0% { left: 2px; width: 18px; }
+  50% { left: 12px; width: 24px; }
+  100% { left: 20px; width: 18px; }
+}
+
+@keyframes atlas-carry-off {
+  0% { left: 20px; width: 18px; }
+  50% { left: 4px; width: 24px; }
+  100% { left: 2px; width: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-carry-switch { transition: none; }
+  .atlas-carry-switch-thumb { animation: none; }
+  .atlas-carry-switch-on .atlas-carry-switch-thumb { left: 20px; }
+}
