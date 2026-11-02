@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
 import type { AtlasSyncStatus } from "../hooks/useAtlasData";
 import { createClient } from "../lib/supabase/client";
-import { version } from "../../package.json";
 
 type SettingsProps = {
   dataSource: "cloud" | "legacy-local" | null;
@@ -135,9 +134,6 @@ export default function Settings({
           </div>
         )}
       </section>
-      <p className="mt-6 pb-6 text-center text-xs tracking-wide text-white/30">
-        Atlas v{version}
-      </p>
       {showLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !signingOut) setShowLogout(false); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-describedby="logout-description" className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#171A26] p-5 shadow-2xl shadow-black/40">
