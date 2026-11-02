@@ -104,6 +104,7 @@ function FloatingLoginField({
         </label>
       <input
         id={id}
+        aria-label={label}
         required
         minLength={password ? 8 : undefined}
         type={password ? (visible ? "text" : "password") : "email"}
