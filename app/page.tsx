@@ -373,7 +373,7 @@ function DesktopSidebar({
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium tracking-wide text-white/65">
+        <div className="rounded-lg border border-white/[0.09] bg-[#151823] px-3 py-2 text-center text-xs font-medium tracking-wide text-white/65 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.04),inset_-2px_-2px_4px_rgba(0,0,0,0.35),2px_2px_6px_rgba(0,0,0,0.22)]">
           Atlas <span className="text-white/85">v{version}</span>
         </div>
       </div>
