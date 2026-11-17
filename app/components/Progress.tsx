@@ -2584,6 +2584,10 @@ export default function Progress({
         "strong"
     ).length;
 
+  const last28WithProgress = last28PlannedDays.filter(
+    (day) => (day.completionPercent ?? 0) > 0
+  ).length;
+
   const previous28OnTrack =
     previous28PlannedDays.filter(
       (
@@ -3277,20 +3281,20 @@ export default function Progress({
             <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-4 md:gap-y-2 lg:grid-cols-4">
               <div><dt className="text-xs text-white/55">On track · this week</dt><dd className="mt-1 text-xl font-semibold">{onTrackDays}<span className="ml-1 text-xs font-normal text-white/50">/ {plannedDayCount}</span></dd></div>
               <div><dt className="text-xs text-white/55">Last 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{last28OnTrack}<span className="ml-1 text-xs font-normal text-white/50">/ {last28PlannedDays.length}</span></dd></div>
-              <div><dt className="text-xs text-white/55">Current streak</dt><dd className="mt-1 text-xl font-semibold">{currentStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
+              <div><dt className="text-xs text-white/55">Days with progress · 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{last28WithProgress}<span className="ml-1 text-xs font-normal text-white/50">/ {last28PlannedDays.length}</span></dd></div>
               <div><dt className="text-xs text-white/55">Best · 4 weeks</dt><dd className="mt-1 text-xl font-semibold">{bestStreak}<span className="ml-1 text-xs font-normal text-white/50">days</span></dd></div>
             </dl>
             </div>
-            <p className="mt-1 border-t border-white/[0.08] pt-1 text-xs text-white/60 md:mt-1.5 md:pt-1.5">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+            <p className="mt-1 border-t border-white/[0.08] pt-1 text-xs text-white/60 md:mt-1.5 md:pt-1.5">Current on-track streak: {currentStreak} days · {previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} on-track days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} on-track days vs previous 4 weeks` : "Same on-track days as previous 4 weeks") : "No earlier comparison yet"}</p>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 md:hidden gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm md:grid-cols-4 md:gap-4">
           <div><p className="text-xs text-white/35">Days on track · this week</p><p className="mt-1 text-lg font-semibold">{onTrackDays} <span className="text-xs font-normal text-white/35">/ {plannedDayCount}</span></p></div>
           <div><p className="text-xs text-white/35">Last 4 weeks</p><p className="mt-1 text-lg font-semibold">{last28OnTrack} <span className="text-xs font-normal text-white/35">/ {last28PlannedDays.length} planned</span></p></div>
-          <div><p className="text-xs text-white/35">Current streak</p><p className="mt-1 text-lg font-semibold">{currentStreak} <span className="text-xs font-normal text-white/35">days</span></p></div>
+          <div><p className="text-xs text-white/35">Days with progress · 4 weeks</p><p className="mt-1 text-lg font-semibold">{last28WithProgress} <span className="text-xs font-normal text-white/35">/ {last28PlannedDays.length}</span></p></div>
           <div><p className="text-xs text-white/35">Best streak · 4 weeks</p><p className="mt-1 text-lg font-semibold">{bestStreak} <span className="text-xs font-normal text-white/35">days</span></p></div>
-          <p className="col-span-2 text-xs text-white/30 md:col-span-4">{previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} days vs previous 4 weeks` : "Same as previous 4 weeks") : "No earlier comparison yet"}</p>
+          <p className="col-span-2 text-xs text-white/30 md:col-span-4">Current on-track streak: {currentStreak} days · {previous28PlannedDays.length ? (consistencyDifference > 0 ? `↑ ${consistencyDifference} on-track days vs previous 4 weeks` : consistencyDifference < 0 ? `↓ ${Math.abs(consistencyDifference)} on-track days vs previous 4 weeks` : "Same on-track days as previous 4 weeks") : "No earlier comparison yet"}</p>
         </div>
         {/* ======================================================
          * REAL ATLAS INSIGHT V1

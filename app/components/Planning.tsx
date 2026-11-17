@@ -2288,11 +2288,6 @@ export default function Planning({
   const toggleTask = (
     id: number
   ) => {
-    if (
-      selectedDateIsPast
-    ) {
-      return;
-    }
     const task =
       tasks.find(
         (
@@ -2303,8 +2298,17 @@ export default function Planning({
       );
 
     if (
-      !task
+      !task || task.date !== selectedDateKey
     ) {
+      return;
+    }
+
+    // Historical corrections change the existing task in place. The task
+    // history effect records the correction and the cloud snapshot syncs it.
+    if (selectedDateIsPast) {
+      setTasks((current) => current.map((item) =>
+        item.id === id ? { ...item, completed: !item.completed } : item
+      ));
       return;
     }
 
@@ -2391,7 +2395,7 @@ export default function Planning({
               1050
             );
           },
-          420
+          0
         );
 
       const cleanupTimer =
@@ -5951,6 +5955,10 @@ export default function Planning({
                             ? "md:cursor-grab md:active:cursor-grabbing"
                             : ""
                         } ${
+                          visuallyCompleted
+                            ? "border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.055]"
+                            : ""
+                        } ${
                           isDragged
                             ? "invisible"
                             : ""
@@ -6003,15 +6011,7 @@ export default function Planning({
                             );
                           }}
 
-                          disabled={
-                            selectedDateIsPast
-                          }
-
-                          className={`relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${taskReorderMode ? "pointer-events-none opacity-40 md:pointer-events-auto md:opacity-100" : ""} ${
-                            selectedDateIsPast
-                              ? "cursor-default"
-                              : "cursor-pointer"
-                          }`}
+                          className={`relative z-20 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${taskReorderMode ? "pointer-events-none opacity-40 md:pointer-events-auto md:opacity-100" : ""}`}
 
                           aria-label={
                             task.completed
@@ -6020,14 +6020,14 @@ export default function Planning({
                           }
                         >
                           <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-500 ease-out ${
+                            className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-200 ease-out ${
                               visuallyCompleted
                                 ? "border-[#5B7CFF] bg-[#5B7CFF]"
                                 : "border-white/20 hover:border-white/40"
                             }`}
                           >
                             <span
-                              className={`text-xs text-white transition-all duration-500 ${
+                              className={`text-xs text-white transition-all duration-200 ${
                                 visuallyCompleted
                                   ? "scale-100 opacity-100"
                                   : "scale-50 opacity-0"
@@ -6737,6 +6737,10 @@ export default function Planning({
                             ? "border-[#5B7CFF]/15 bg-[#5B7CFF]/[0.035] md:cursor-grab md:active:cursor-grabbing"
                             : "border-white/10"
                         } ${
+                          completed
+                            ? "border-[#5B7CFF]/20 bg-[#5B7CFF]/[0.055]"
+                            : ""
+                        } ${
                           isEditing
                             ? "border-[#5B7CFF]/25 bg-white/[0.04]"
                             : ""
@@ -6855,14 +6859,14 @@ export default function Planning({
                               }`}
                             >
                               <span
-                                className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-300 ease-out ${
+                                className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-200 ease-out ${
                                   completed
                                     ? "border-[#5B7CFF] bg-[#5B7CFF]"
                                     : "border-white/20 hover:border-white/40"
                                 }`}
                               >
                                 <span
-                                  className={`text-xs text-white transition-all duration-300 ${
+                                  className={`text-xs text-white transition-all duration-200 ${
                                     completed
                                       ? "scale-100 opacity-100"
                                       : "scale-50 opacity-0"

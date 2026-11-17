@@ -63,6 +63,7 @@ type HomeProps = {
 type DayStatus = {
   planned: boolean;
   onTrack: boolean;
+  madeProgress: boolean;
 };
 
 /* ============================================================
@@ -164,6 +165,7 @@ function getDayStatus(
 
       onTrack:
         false,
+      madeProgress: false,
     };
   }
 
@@ -197,6 +199,7 @@ function getDayStatus(
       completed /
         planned >=
       0.8,
+    madeProgress: completed > 0,
   };
 }
 
@@ -530,6 +533,10 @@ export default function Home({
         status.planned &&
         status.onTrack
     ).length;
+
+  const recentProgressDays = recentStatuses.filter(
+    (status) => status.planned && status.madeProgress
+  ).length;
 
   const currentStreak =
     getCurrentStreak(
@@ -895,12 +902,12 @@ export default function Home({
           <div className="mt-2.5 flex items-end gap-2 xl:mt-3">
             <p className="text-4xl font-semibold leading-none tracking-[-0.045em]">
               {
-                currentStreak
+                recentProgressDays
               }
             </p>
 
             <p className="mb-0.5 text-xs text-white/25 xl:mb-1">
-              day streak
+              days with progress · last 7
             </p>
           </div>
 
@@ -922,7 +929,9 @@ export default function Home({
                         ? "bg-white/[0.055]"
                         : status.onTrack
                           ? "bg-[#5B7CFF]"
-                          : "bg-white/15"
+                          : status.madeProgress
+                            ? "bg-[#5B7CFF]/40"
+                            : "bg-white/15"
                     }`}
                   />
                 </div>
@@ -939,6 +948,7 @@ export default function Home({
               recentPlannedDays
             }{" "}
             planned days on track
+            {" · "}{currentStreak} day current on-track streak
           </p>
         </section>
 
