@@ -909,6 +909,20 @@ export default function Planning({
    * ============================================================
    */
 
+  const upcomingStartDate =
+    selectedDate > today
+      ? selectedDate
+      : today;
+  const upcomingStartKey =
+    formatDateKey(upcomingStartDate);
+  const upcomingEndDate =
+    new Date(upcomingStartDate);
+  upcomingEndDate.setDate(
+    upcomingEndDate.getDate() + 60
+  );
+  const upcomingEndKey =
+    formatDateKey(upcomingEndDate);
+
   const upcomingEvents =
     events
       .map(
@@ -925,14 +939,14 @@ export default function Planning({
           const monthDay =
             event.date.slice(5);
           const year =
-            selectedDate.getFullYear();
+            upcomingStartDate.getFullYear();
           const thisYear =
             `${year}-${monthDay}`;
 
           return {
             event,
             date:
-              thisYear >= selectedDateKey
+              thisYear >= upcomingStartKey
                 ? thisYear
                 : `${year + 1}-${monthDay}`,
           };
@@ -942,8 +956,8 @@ export default function Planning({
         (
           occurrence
         ) =>
-          occurrence.date >=
-          selectedDateKey
+          occurrence.date >= upcomingStartKey &&
+          occurrence.date <= upcomingEndKey
       )
       .sort(
         (
@@ -7157,7 +7171,7 @@ export default function Planning({
             {upcomingEvents.length === 0 ? (
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-sm text-white/35">
-                  No upcoming events.
+                  No events in the next 60 days.
                 </p>
               </div>
             ) : (
@@ -7590,7 +7604,7 @@ export default function Planning({
             {upcomingEvents.length === 0 ? (
               <div className="mt-5">
                 <p className="text-sm text-white/35">
-                  No upcoming events.
+                  No events in the next 60 days.
                 </p>
 
                 <p className="mt-1 text-xs text-white/20">
