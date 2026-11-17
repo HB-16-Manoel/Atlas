@@ -213,6 +213,14 @@ try {
   );
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await page.getByRole("button", { name: "New goal", exact: true }).waitFor();
+  const weekChart = page.getByLabel("Daily Scores for the last seven days");
+  assert.equal(await weekChart.isVisible(), true, "desktop Week chart is visible");
+  assert.equal(await weekChart.getByRole("button", { name: /Daily Score 0/ }).count(), 1,
+    "a planned day with no completions displays a real zero");
+  assert.equal(await weekChart.getByRole("button", { name: /no planned activity/ }).count(), 6,
+    "unplanned days remain distinct from scored zero days");
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-sparse-week.png` });
   const scroller = page.locator("[data-progress-scroll]");
   const openGoal = async () => {
     await page.getByRole("button", { name: "New goal", exact: true }).click();
@@ -430,6 +438,13 @@ try {
   await page
     .getByRole("article", { name: "Edited milestone outcome", exact: true })
     .waitFor();
+  assert.equal(await weekChart.getByRole("button", { name: /Daily Score 100/ }).count(), 1,
+    "all of today's planned work scores 100");
+  assert.equal(await weekChart.getByRole("button", { name: /Daily Score 67/ }).count(), 1,
+    "a mixed day uses the equal-weight 2-of-3 score");
+  await weekChart.getByRole("button", { name: /Daily Score 67/ }).hover();
+  assert.equal(await weekChart.getByText(/Daily Score 67/).last().isVisible(), true,
+    "Week tooltip remains available");
   assert.equal(tables.goal_task_links.length, 1, "reload retains links");
   await page.setViewportSize({ width: 1535, height: 825 });
   await page.getByRole("button", { name: "Goals ↓", exact: true }).click();
@@ -505,10 +520,10 @@ try {
           "Consistency and Atlas Insight do not overlap");
         const chart = await page.locator('[data-progress-section="analytics"] > div:nth-child(2)').boundingBox();
         assert.ok(chart.height <= 248, "Overall Progress card is roughly a quarter shorter");
-        const chartDots = page.locator('[data-progress-section="analytics"] span[aria-hidden="true"][style*="left:"]');
-        assert.ok(await chartDots.count() >= 2, "populated Daily Score trend renders its points");
-        const dot = await chartDots.first().boundingBox();
-        assert.ok(dot.width <= 12 && dot.height <= 12, "desktop trend markers are circular and restrained");
+        const scoreBars = weekChart.locator('span[style*="height:"]');
+        assert.equal(await scoreBars.count(), 2, "scored days render two desktop bars");
+        const barHeights = await scoreBars.evaluateAll((bars) => bars.map((bar) => bar.getBoundingClientRect().height));
+        assert.ok(barHeights[1] > barHeights[0], "100 is taller than 67 on the shared 0–100 scale");
         if (process.env.ATLAS_TEST_SCREENSHOTS)
           await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/analytics-target-1535x825.png` });
       }

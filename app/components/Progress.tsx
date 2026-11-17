@@ -2814,7 +2814,7 @@ export default function Progress({
             </div>
           </div>
 
-          <div className="relative mt-4 h-[165px] md:mt-1 md:h-[122px]">
+          <div className={`relative mt-4 h-[165px] md:mt-1 md:h-[122px] ${activePeriod === "Week" ? "md:hidden" : ""}`}>
             <div className="absolute inset-0 flex flex-col justify-between">
               {[
                 "100",
@@ -3001,7 +3001,7 @@ export default function Progress({
           </div>
 
           <div
-            className="ml-9 mt-1 grid"
+            className={`ml-9 mt-1 grid ${activePeriod === "Week" ? "md:hidden" : ""}`}
             style={{
               gridTemplateColumns:
                 `repeat(${trendData.length}, minmax(0, 1fr))`,
@@ -3031,6 +3031,60 @@ export default function Progress({
               )
             )}
           </div>
+
+          {activePeriod === "Week" && (
+            <div className="mt-1 hidden md:block" aria-label="Daily Scores for the last seven days">
+              <div className="grid grid-cols-[24px_1fr] gap-3">
+                <div aria-hidden="true" className="flex h-[84px] flex-col justify-between pb-1 text-right text-[10px] text-white/40">
+                  <span>100</span><span>50</span><span>0</span>
+                </div>
+                <div className="relative grid h-[84px] grid-cols-7 gap-2 border-b border-white/15">
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 border-t border-white/[0.06]" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-white/[0.06]" />
+                  {trendData.map((point) => (
+                    <button
+                      type="button"
+                      key={point.key}
+                      aria-label={point.score === null
+                        ? `${point.fullLabel}: no planned activity`
+                        : `${point.fullLabel}: Daily Score ${point.score}`}
+                      onMouseEnter={() => setHoveredTrendKey(point.key)}
+                      onMouseLeave={() => setHoveredTrendKey(null)}
+                      onFocus={() => setHoveredTrendKey(point.key)}
+                      onBlur={() => setHoveredTrendKey(null)}
+                      onClick={() => setHoveredTrendKey(hoveredTrendKey === point.key ? null : point.key)}
+                      className="group relative min-w-0 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-[#8199FF]"
+                    >
+                      {point.score === null ? (
+                        <span aria-hidden="true" className="absolute bottom-1 left-1/2 -translate-x-1/2 text-base leading-none text-white/25">—</span>
+                      ) : (
+                        <>
+                          <span className="absolute left-1/2 z-10 -translate-x-1/2 text-xs font-semibold tabular-nums text-white/85" style={{ bottom: point.score === 0 ? 12 : `min(calc(100% - 16px), calc(${point.score}% + 4px))` }}>{point.score}</span>
+                          {point.score === 0 ? (
+                            <span aria-hidden="true" className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-[#8199FF] bg-[#11131D]" />
+                          ) : (
+                            <span aria-hidden="true" className="absolute bottom-0 left-1/2 w-5 max-w-full -translate-x-1/2 rounded-t-sm bg-[#5B7CFF] transition-colors duration-150 group-hover:bg-[#8199FF]" style={{ height: `${point.score}%` }} />
+                          )}
+                        </>
+                      )}
+                      {hoveredTrendKey === point.key && (
+                        <span className="pointer-events-none absolute bottom-full z-20 mb-2 whitespace-nowrap rounded-lg border border-white/[0.1] bg-[#171A26] px-3 py-2 text-xs text-white shadow-xl shadow-black/30">
+                          {point.fullLabel} · {point.score === null ? "No planned activity" : `Daily Score ${point.score}`}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div aria-hidden="true" />
+                <div className="grid grid-cols-7 gap-2">
+                  {trendData.map((point) => (
+                    <span key={point.key} className="min-w-0 pt-1 text-center text-[11px] text-white/55">{point.label}</span>
+                  ))}
+                </div>
+              </div>
+              <p className="text-right text-[10px] leading-4 text-white/35">— No plan · 0 = planned, none completed</p>
+            </div>
+          )}
 
           {selectedTrendPoint && (
             <div className="mt-3 flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 md:hidden">
