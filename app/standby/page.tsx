@@ -14,9 +14,9 @@ import styles from "./standby.module.css";
 
 type Section = "Dashboard" | "Focus" | "Studio" | "Settings";
 const navigation = [
-  { name: "Dashboard", icon: "▦" },
-  { name: "Focus", icon: "◷" },
-  { name: "Studio", icon: "⌘" },
+  { name: "Dashboard", icon: styles.dashboardIcon },
+  { name: "Focus", icon: styles.focusIcon },
+  { name: "Studio", icon: styles.studioIcon },
 ] as const;
 
 type View = "Standard" | "Immersive";
@@ -118,53 +118,53 @@ function Focus({ timer, save, tasks, linked, link }: {
         }}>{option}</button>)}
     </div>}
     <div className={styles.focusGrid}>
-      <div className={styles.panel}>
+      <div className={styles.timerDisplay}>
         <p className={styles.eyebrow}>
           {timer.mode === "pomodoro" ? `Pomodoro · ${timer.phase === "work" ? "Work" : "Break"}` : timer.mode}
         </p>
         <TimerFace timer={timer} />
-        <p role="status" className={styles.muted}>
+        <p role="status" className={styles.timerStatus} data-running={running}>
           {timer.finished
             ? timer.mode === "pomodoro" ? "Previous phase finished. Start when ready." : "Countdown finished."
             : running ? "Running" : timer.elapsed ? "Paused" : "Ready"}
         </p>
         {linkedTask && <p className={styles.linked}>{linkedTask.text}</p>}
-        <div id="standby-timer-controls" hidden={immersive && !revealed}>
-          <div className={styles.actions}>
-            <button className={styles.primary} onClick={() => save(toggleTimer(timer, Date.now()))}>
-              {running ? "Pause" : timer.elapsed && !timer.finished ? "Resume" : "Start"}
-            </button>
-            <button onClick={() => save(reset)}>Reset</button>
-          </div>
-          {!immersive && <details className={styles.timerSettings}><summary>Timer setup</summary>
-            <div className={styles.actions} aria-label="Timer mode">
-              {(["countdown", "stopwatch", "pomodoro"] as const).map((mode: Mode) =>
-                <button key={mode} aria-pressed={timer.mode === mode}
-                  onClick={() => { if (mode !== timer.mode) save({ ...reset, mode }); }}>
-                  {mode[0].toUpperCase() + mode.slice(1)}
-                </button>)}
-            </div>
-            {timer.mode === "countdown" && <div className={styles.actions}>
-              <Minutes label="Minutes" value={timer.countdown} disabled={running}
-                onChange={(countdown) => save({ ...reset, countdown })} />
-              {[5, 15, 25, 50].map((countdown) => <button key={countdown} disabled={running}
-                onClick={() => save({ ...reset, countdown })}>{countdown} min</button>)}
-            </div>}
-            {timer.mode === "pomodoro" && <div className={styles.actions}>
-              <Minutes label="Work minutes" value={timer.work} disabled={running}
-                onChange={(work) => save({ ...reset, work })} />
-              <Minutes label="Break minutes" value={timer.break} disabled={running}
-                onChange={(breakMinutes) => save({ ...reset, break: breakMinutes })} />
-            </div>}
-            <label className={styles.field}>Linked task
-              <select value={linkedTask ? linked : ""} onChange={(event) => link(event.target.value)}>
-                <option value="">No linked task</option>
-                {taskOptions.filter((task) => task.cloudId).map((task) =>
-                  <option key={task.cloudId} value={task.cloudId}>{task.text}</option>)}
-              </select>
-            </label>
-          </details>}
+      </div>
+      <div id="standby-timer-controls" className={styles.timerControls} hidden={immersive && !revealed}>
+        <div className={styles.actions}>
+          <button className={styles.primary} onClick={() => save(toggleTimer(timer, Date.now()))}>
+            {running ? "Pause" : timer.elapsed && !timer.finished ? "Resume" : "Start"}
+          </button>
+          <button onClick={() => save(reset)}>Reset</button>
         </div>
+        {!immersive && <details className={styles.timerSettings}><summary>Timer setup</summary>
+          <div className={styles.actions} aria-label="Timer mode">
+            {(["countdown", "stopwatch", "pomodoro"] as const).map((mode: Mode) =>
+              <button key={mode} aria-pressed={timer.mode === mode}
+                onClick={() => { if (mode !== timer.mode) save({ ...reset, mode }); }}>
+                {mode[0].toUpperCase() + mode.slice(1)}
+              </button>)}
+          </div>
+          {timer.mode === "countdown" && <div className={styles.actions}>
+            <Minutes label="Minutes" value={timer.countdown} disabled={running}
+              onChange={(countdown) => save({ ...reset, countdown })} />
+            {[5, 15, 25, 50].map((countdown) => <button key={countdown} disabled={running}
+              onClick={() => save({ ...reset, countdown })}>{countdown} min</button>)}
+          </div>}
+          {timer.mode === "pomodoro" && <div className={styles.actions}>
+            <Minutes label="Work minutes" value={timer.work} disabled={running}
+              onChange={(work) => save({ ...reset, work })} />
+            <Minutes label="Break minutes" value={timer.break} disabled={running}
+              onChange={(breakMinutes) => save({ ...reset, break: breakMinutes })} />
+          </div>}
+          <label className={styles.field}>Linked task
+            <select value={linkedTask ? linked : ""} onChange={(event) => link(event.target.value)}>
+              <option value="">No linked task</option>
+              {taskOptions.filter((task) => task.cloudId).map((task) =>
+                <option key={task.cloudId} value={task.cloudId}>{task.text}</option>)}
+            </select>
+          </label>
+        </details>}
       </div>
     </div>
   </>;
@@ -226,8 +226,17 @@ function Studio({ storageKey, onStorageError }: { storageKey: string; onStorageE
 
   return <section aria-label="Studio">
     <div className={styles.studioBanner}>
-      <div><h2>{project.name}</h2><p className={styles.muted}>{project.description}</p>
-        {id === "Atlas" && commit && commit !== "error" && <p className={styles.eyebrow}>{commit.branch}</p>}
+      <div className={styles.projectIdentity}>
+        <span className={styles.projectIcon} aria-hidden="true">
+          {id === "Atlas" ? <Image src="/atlas-icon-512.png" alt="" width={46} height={46} /> : project.name[0]}
+        </span>
+        <div>
+          <div className={styles.projectTitle}>
+            <h2>{project.name}</h2>
+            {id === "Atlas" && commit && commit !== "error" && <span className={styles.counter}>{commit.branch}</span>}
+          </div>
+          <p className={styles.muted}>{project.description}</p>
+        </div>
       </div>
       <label className={styles.field}>Project
         <select value={id} onChange={(event) => select(event.target.value)}>
@@ -237,7 +246,7 @@ function Studio({ storageKey, onStorageError }: { storageKey: string; onStorageE
     </div>
     <div className={styles.studioGrid}>
       <article className={styles.panel}>
-        <h2>Latest commit</h2>
+        <div className={styles.widgetHeading}><h2>Latest commit</h2></div>
         {id !== "Atlas" ? <p className={styles.muted}>Commit details are available to repository members on GitHub.</p>
           : commit === "error" ? <p role="status">GitHub is temporarily unavailable.</p>
           : !commit ? <p role="status">Loading latest commit…</p>
@@ -265,7 +274,7 @@ function ProjectNotes({ noteKey, legacyKey, onStorageError }: {
   const [notes, setNotes] = useState(() =>
     readLocal(noteKey, legacyKey ? readLocal(legacyKey, "") : ""));
   return <label className={styles.panel}>
-    <strong>Development notes</strong>
+    <span className={styles.editorHeading}>Development notes</span>
     <textarea className={styles.notes} value={notes} maxLength={20000}
       placeholder="Ideas, bugs, and next steps"
       onChange={(event) => {
@@ -340,7 +349,7 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
       <div className={styles.modes}>{navigation.map(({ name, icon }) =>
         <button key={name} aria-current={section === name ? "page" : undefined}
           onClick={() => setSection(name)}>
-          <span className={styles.navIcon} aria-hidden="true">{icon}</span><span>{name}</span>
+          <span className={`${styles.navIcon} ${icon}`} aria-hidden="true" /><span>{name}</span>
         </button>)}</div>
       <button className={styles.gear} aria-label="Settings" aria-current={section === "Settings" ? "page" : undefined}
         onClick={() => setSection("Settings")}>⚙</button>
@@ -358,23 +367,28 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
         </div>}
       {section === "Dashboard" && <>
         <div className={styles.summary}>
-          <div className={`${styles.panel} ${styles.overview}`}><p className={styles.eyebrow}>Today</p>
-            <h2>Your day, at a glance</h2>
-            <span className={styles.muted}>Daily Score </span>
-            <strong className={styles.score}>{score ?? "—"}</strong><span className={styles.muted}> / 100</span>
-            {score !== null && <progress className={styles.progress} max={100} value={score} aria-label="Daily Score" />}
+          <div className={`${styles.panel} ${styles.overview}`}>
+            <div>
+              <p className={styles.eyebrow}>Today</p>
+              <h2>Your day, at a glance</h2>
+            </div>
+            <div className={styles.scoreReadout}>
+              <p className={styles.muted}>Daily Score</p>
+              <div><strong className={styles.score}>{score ?? "—"}</strong><span className={styles.muted}> / 100</span></div>
+              {score !== null && <progress className={styles.progress} max={100} value={score} aria-label="Daily Score" />}
+            </div>
           </div>
           <button className={styles.timerCard} onClick={() => setSection("Focus")} aria-label="Open Focus">
             <span className={styles.eyebrow}>Focus · {timer.mode === "pomodoro" ? timer.phase : timer.mode}</span>
             <TimerFace timer={timer} />
-            <span className={styles.muted}>{timer.finished ? "Finished" : timer.started !== null ? "Running" : timer.elapsed ? "Paused" : "Ready"}</span>
+            <span className={styles.timerStatus} data-running={timer.started !== null}>{timer.finished ? "Finished" : timer.started !== null ? "Running" : timer.elapsed ? "Paused" : "Ready"}</span>
             <span aria-hidden="true" className={styles.timerArrow}>↗</span>
           </button>
         </div>
         {ready && <div className={styles.dashboard}>
           <section className={styles.panel}>
             <div className={styles.widgetHeading}><h2>Today’s tasks</h2>
-              <span className={styles.muted}>{tasks.filter((task) => !task.completed).length} remaining</span>
+              <span className={styles.counter}>{tasks.filter((task) => !task.completed).length} remaining</span>
             </div><div className={styles.taskList} tabIndex={tasks.length > 4 ? 0 : undefined} aria-label="Today’s task list">
             {tasks.length === 0 && <p className={styles.muted}>No tasks planned.</p>}
             {tasks.map((task) => <label key={task.id} className={styles.check}>
@@ -383,7 +397,8 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
               <span>{task.text}</span>
             </label>)}
           </div></section>
-            <section className={styles.panel}><h2>Upcoming events</h2>
+            <section className={styles.panel}>
+              <div className={styles.widgetHeading}><h2>Upcoming events</h2></div>
               {events.length === 0 && <p className={styles.muted}>No events in the next 60 days.</p>}
               {events.map(({ date, event }) => <div key={event.id} className={styles.event}>
                 <span>{event.title}</span>
@@ -395,7 +410,7 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
             </section>
             <section className={`${styles.panel} ${styles.habits}`}>
               <div className={styles.widgetHeading}><h2>Today’s habits</h2>
-                <span className={styles.muted}>{habits.filter((habit) => habit.completedDates.includes(todayKey)).length} / {habits.length} complete</span>
+                <span className={styles.counter}>{habits.filter((habit) => habit.completedDates.includes(todayKey)).length} / {habits.length} complete</span>
               </div><div className={styles.habitGrid}>
               {habits.length === 0 && <p className={styles.muted}>No active habits.</p>}
               {habits.map((habit) => <label key={habit.id} className={styles.check}>
