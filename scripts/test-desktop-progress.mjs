@@ -7,6 +7,8 @@ import { chromium } from "playwright";
 
 const origin = "http://127.0.0.1:3010";
 const api = "http://127.0.0.1:3011";
+const otherId = "99999999-9999-4999-8999-999999999999";
+let activeUserId;
 const userId = "11111111-1111-4111-8111-111111111111";
 const today = new Date().toISOString().slice(0, 10);
 const now = new Date().toISOString();
@@ -90,11 +92,13 @@ const server = createServer(async (req, res) => {
   }
   const url = new URL(req.url, api);
   if (url.pathname === "/auth/v1/user") {
-    res.end(JSON.stringify(user));
+    res.end(JSON.stringify({ ...user, id: activeUserId ?? userId }));
     return;
   }
   if (url.pathname === "/auth/v1/token") {
-    res.end(JSON.stringify(session));
+    const id = activeUserId ?? userId;
+    const token = jwt.replace(jwt.split(".")[1], Buffer.from(JSON.stringify({ sub: id, aud: "authenticated", exp: session.expires_at })).toString("base64url"));
+    res.end(JSON.stringify({ ...session, access_token: token, user: { ...user, id } }));
     return;
   }
   const name = url.pathname.split("/").at(-1);
@@ -198,7 +202,10 @@ try {
   });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.goto(`${origin}/auth/login`);
+  await page.goto(`${origin}/standby`);
+  await page.getByRole("heading", { name: "Atlas Standby" }).waitFor();
+  assert.equal(await page.getByRole("checkbox").count(), 0);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.locator('input[type="password"]').fill("Isolated-test-password");
   await page.getByRole("button", { name: "Log in", exact: true }).click();
@@ -211,6 +218,56 @@ try {
   console.log(
     "PASS: email/password login and authenticated data initialization",
   );
+  const annualDate = new Date();
+  annualDate.setDate(annualDate.getDate() + 3);
+  const oldEventDate = `2020-${String(annualDate.getMonth() + 1).padStart(2, "0")}-${String(annualDate.getDate()).padStart(2, "0")}`;
+  tables.events.push({ id: "88888888-8888-4888-8888-888888888888", user_id: userId,
+    title: "Annual Standby test", event_date: oldEventDate, repeat_yearly: true, revision: 1, deleted_at: null });
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`${origin}/standby`);
+  const task = page.getByRole("checkbox", { name: "Existing task" });
+  const habit = page.getByRole("checkbox", { name: "Existing habit" });
+  const score = page.getByRole("progressbar", { name: "Daily Score" });
+  await task.waitFor();
+  await page.getByText("Annual Standby test", { exact: true }).waitFor();
+  assert.equal(await score.getAttribute("value"), "0");
+  await task.check();
+  assert.equal(await score.getAttribute("value"), "50");
+  await habit.check();
+  assert.equal(await score.getAttribute("value"), "100");
+  await page.waitForFunction(() => document.querySelector('progress')?.value === 100);
+  for (let attempt = 0; attempt < 50 && (!tables.tasks[0].completed_at || tables.habit_completions.length === 0); attempt++) await pause(100);
+  assert.ok(tables.tasks[0].completed_at, "Standby task persisted through cloud repository");
+  assert.ok(tables.habit_completions.length, "Standby habit persisted through cloud repository");
+  await task.uncheck();
+  await habit.uncheck();
+  for (let attempt = 0; attempt < 50 && (tables.tasks[0].completed_at || tables.habit_completions.some((row) => !row.deleted_at)); attempt++) await pause(100);
+  assert.equal(tables.tasks[0].completed_at, null);
+  assert.ok(!tables.habit_completions.some((row) => !row.deleted_at));
+  await page.getByRole("button", { name: "Open Focus" }).press("Enter");
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  await page.getByRole("textbox", { name: /Workspace notes/ }).fill("Standby draft");
+  await page.getByRole("combobox", { name: "Linked task" }).selectOption(tables.tasks[0].id);
+  await page.getByRole("button", { name: "Stopwatch", exact: true }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "Open Focus" }).click();
+  await page.getByRole("button", { name: "Pause", exact: true }).waitFor();
+  assert.equal(await page.getByRole("combobox", { name: "Linked task" }).inputValue(), tables.tasks[0].id);
+  await page.setViewportSize({ width: 1366, height: 520 });
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: /Workspace notes/ }).inputValue(), "Standby draft");
+  await page.getByRole("button", { name: "Immersive", exact: true }).click();
+  await page.getByRole("button", { name: "Show controls", exact: true }).click();
+  await page.getByRole("button", { name: "Pause", exact: true }).press("Enter");
+  await page.getByRole("button", { name: "Exit immersive", exact: true }).click();
+  await page.getByRole("navigation", { name: "Standby" }).getByRole("button", { name: "Settings" }).click();
+  const standbySwitch = page.getByRole("switch", { name: "Standby mode" });
+  assert.equal(await standbySwitch.getAttribute("aria-checked"), "true");
+  await standbySwitch.press("Space");
+  await page.waitForURL(`${origin}/`);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  console.log("PASS: Standby route, task/habit writes, score, timer recovery and notes");
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await page.getByRole("button", { name: "New goal", exact: true }).waitFor();
   const scroller = page.locator("[data-progress-scroll]");
@@ -669,6 +726,22 @@ try {
     .waitFor();
   assert.equal(new URL(callbackPage.url()).origin, origin);
   await callbackPage.close();
+  // A second signed-in account on the same browser must never restore the first account's draft.
+  await context.clearCookies();
+  await page.goto(`${origin}/standby`);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  activeUserId = otherId;
+  await page.getByLabel("Email", { exact: true }).fill("other@example.invalid");
+  await page.locator('input[type="password"]').fill("Isolated-test-password");
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.waitForURL(`${origin}/`);
+  await page.goto(`${origin}/standby`);
+  await page.getByRole("button", { name: "Open Focus" }).click();
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: /Workspace notes/ }).inputValue(), "");
+  assert.equal(await page.getByRole("combobox", { name: "Linked task" }).inputValue(), "");
+  assert.equal(await page.getByRole("timer").innerText(), "25:00");
+  console.log("PASS: second account cannot see the first account's draft, link, or timer");
   console.log(
     "PASS: callback exchange, session cookies, AuthProvider and cloud Goals initialization",
   );

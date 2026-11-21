@@ -12,6 +12,7 @@ import {
 
 import { flushSync } from "react-dom";
 
+import { getUpcomingEvents } from "../lib/upcomingEvents";
 import { calculateDailyScore } from "../lib/dailyScore";
 
 /* ============================================================
@@ -913,89 +914,7 @@ export default function Planning({
     selectedDate > today
       ? selectedDate
       : today;
-  const upcomingStartKey =
-    formatDateKey(upcomingStartDate);
-  const upcomingEndDate =
-    new Date(upcomingStartDate);
-  upcomingEndDate.setDate(
-    upcomingEndDate.getDate() + 60
-  );
-  const upcomingEndKey =
-    formatDateKey(upcomingEndDate);
-
-  const upcomingEvents =
-    events
-      .map(
-        (
-          event
-        ) => {
-          if (!event.repeatYearly) {
-            return {
-              event,
-              date: event.date,
-            };
-          }
-
-          const monthDay =
-            event.date.slice(5);
-          const year =
-            upcomingStartDate.getFullYear();
-          const thisYear =
-            `${year}-${monthDay}`;
-
-          return {
-            event,
-            date:
-              thisYear >= upcomingStartKey
-                ? thisYear
-                : `${year + 1}-${monthDay}`,
-          };
-        }
-      )
-      .filter(
-        (
-          occurrence
-        ) =>
-          occurrence.date >= upcomingStartKey &&
-          occurrence.date <= upcomingEndKey
-      )
-      .sort(
-        (
-          a,
-          b
-        ) => {
-          const dateOrder =
-            a.date.localeCompare(
-              b.date
-            );
-
-          if (dateOrder !== 0) {
-            return dateOrder;
-          }
-
-          const aTime =
-            a.event.time;
-          const bTime =
-            b.event.time;
-
-          if (!aTime && !bTime) {
-            return 0;
-          }
-
-          if (!aTime) {
-            return -1;
-          }
-
-          if (!bTime) {
-            return 1;
-          }
-
-          return aTime.localeCompare(
-            bTime
-          );
-        }
-      )
-      .slice(0, 3);
+  const upcomingEvents = getUpcomingEvents(events, upcomingStartDate);
 
   /* ============================================================
    * EDIT HELPERS
