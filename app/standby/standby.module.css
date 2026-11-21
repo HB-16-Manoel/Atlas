@@ -114,3 +114,37 @@
   .rail { padding: 8px 10px; }
   .dashboard { grid-template-columns: minmax(0, 1fr); }
 }
+
+.rail button { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 550; }
+.navIcon { display: grid; width: 22px; flex: none; place-items: center; color: #929ab3; font-size: 1.15rem; line-height: 1; }
+.rail [aria-current] .navIcon { color: #a7baff; }
+.brand { border-bottom: 1px solid #242736; margin-bottom: 10px; }
+.brand img { width: 40px; height: 40px; object-fit: contain; }
+.projects { gap: 16px; }
+.projects .panel {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  align-content: start; align-items: center; gap: 14px; min-height: 116px;
+  padding: 18px;
+}
+.projects h2 { margin-bottom: 3px; }
+.projectMark {
+  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px;
+  background: #222a43; color: #b7c6ff; font-weight: 650;
+}
+.projectMark img { border-radius: 8px; }
+.projectLink { grid-column: 2; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; width: fit-content; font-size: .875rem; }
+.settings { max-width: 760px; }
+@media (max-width: 780px) {
+  .rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .brand { grid-column: 1 / -1; margin: 0; padding-bottom: 6px; }
+  .rail button { justify-content: center; gap: 5px; padding-inline: 3px; font-size: clamp(.7rem, 2.4vw, .9rem); }
+  .navIcon { width: auto; font-size: .95rem; }
+}
+@media (max-width: 540px) {
+  .projects { grid-template-columns: minmax(0, 1fr); }
+  .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 400px) {
+  .rail button { flex-direction: column; gap: 3px; }
+}

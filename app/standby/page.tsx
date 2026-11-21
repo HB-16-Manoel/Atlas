@@ -13,6 +13,13 @@ import { duration, elapsedAt, initialTimer, recover, toggleTimer, type Mode, typ
 import styles from "./standby.module.css";
 
 type Section = "Dashboard" | "Focus" | "Developer" | "Settings";
+const navigation = [
+  { name: "Dashboard", icon: "▦" },
+  { name: "Focus", icon: "◷" },
+  { name: "Developer", icon: "⌘" },
+  { name: "Settings", icon: "⚙" },
+] as const;
+
 type View = "Standard" | "Immersive" | "Workspace";
 
 function readLocal<T,>(key: string, fallback: T): T {
@@ -241,12 +248,14 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
   return <div className={styles.shell}>
     <nav className={styles.rail} aria-label="Standby">
       <div className={styles.brand}>
-        <Image src="/atlas-icon-512.png" alt="" width={32} height={32} />
+        <Image src="/atlas-icon-512.png" alt="" width={40} height={40} />
         <div><strong>ATLAS</strong><span>Standby</span></div>
       </div>
-      {(["Dashboard", "Focus", "Developer", "Settings"] as const).map((item) =>
-        <button key={item} aria-current={section === item ? "page" : undefined}
-          onClick={() => setSection(item)}>{item}</button>)}
+      {navigation.map(({ name, icon }) =>
+        <button key={name} aria-current={section === name ? "page" : undefined}
+          onClick={() => setSection(name)}>
+          <span className={styles.navIcon} aria-hidden="true">{icon}</span><span>{name}</span>
+        </button>)}
     </nav>
     <main className={styles.main}>
       <header className={styles.header}><h1>{section}</h1>
@@ -324,12 +333,19 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
         }} />}
       {section === "Developer" && <div className={styles.projects}>
         {projects.map((project) => <article className={styles.panel} key={project.name}>
-          <h2>{project.name}</h2><p className={styles.muted}>{project.description}</p>
-          {project.href && <Link href={project.href}>Open Atlas</Link>}
+          <div className={styles.projectMark} aria-hidden="true">
+            {project.name === "Atlas"
+              ? <Image src="/atlas-icon-512.png" alt="" width={36} height={36} />
+              : project.name.charAt(0)}
+          </div>
+          <div><h2>{project.name}</h2><p className={styles.muted}>{project.description}</p></div>
+          {project.href && <Link className={styles.projectLink} href={project.href}>Open Atlas <span aria-hidden="true">↗</span></Link>}
         </article>)}
       </div>}
-      {section === "Settings" && <Settings dataSource={data.dataSource} syncStatus={data.syncStatus}
-        syncMessage={data.syncMessage} standby />}
+      {section === "Settings" && <div className={styles.settings}>
+        <Settings dataSource={data.dataSource} syncStatus={data.syncStatus}
+          syncMessage={data.syncMessage} standby />
+      </div>}
     </main>
   </div>;
 }

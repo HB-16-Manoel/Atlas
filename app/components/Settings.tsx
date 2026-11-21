@@ -81,8 +81,8 @@ export default function Settings({
   }
 
   return (
-    <div className="mx-auto mt-4 max-w-2xl md:mt-8">
-      <h2 className="text-2xl font-semibold md:text-3xl">Settings</h2>
+    <div className={standby ? "w-full [&>section]:mt-3 [&>div:first-child]:mt-0" : "mx-auto mt-4 max-w-2xl md:mt-8"}>
+      {!standby && <h2 className="text-2xl font-semibold md:text-3xl">Settings</h2>}
       <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-3">
         <div>
           <p id="standby-setting" className="text-sm font-semibold">Standby mode</p>
