@@ -1794,7 +1794,6 @@ export default function Planning({
       id: number
     ) => {
       if (
-        selectedDateIsPast ||
         habitReorderMode
       ) {
         return;
@@ -1810,7 +1809,8 @@ export default function Planning({
             ) => {
               if (
                 habit.id !==
-                id
+                id ||
+                habit.createdAt > selectedDateKey
               ) {
                 return habit;
               }
@@ -6846,13 +6846,15 @@ export default function Planning({
                                 )
                               }
 
-                              disabled={
-                                selectedDateIsPast ||
-                                habitReorderMode
+                              disabled={habitReorderMode}
+
+                              aria-label={
+                                completed
+                                  ? `Mark ${habit.name} incomplete for ${selectedDateKey}`
+                                  : `Mark ${habit.name} complete for ${selectedDateKey}`
                               }
 
                               className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition active:bg-white/[0.04] md:h-5 md:w-5 md:rounded-none md:active:bg-transparent ${
-                                selectedDateIsPast ||
                                 habitReorderMode
                                   ? "cursor-default"
                                   : "cursor-pointer"
