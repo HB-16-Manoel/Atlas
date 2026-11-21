@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
 import type { AtlasSyncStatus } from "../hooks/useAtlasData";
@@ -19,6 +20,7 @@ export default function Settings({
   syncMessage,
   standby = false,
 }: SettingsProps) {
+  const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const [signingOut, setSigningOut] = useState(false);
@@ -81,7 +83,20 @@ export default function Settings({
   return (
     <div className="mx-auto mt-4 max-w-2xl md:mt-8">
       <h2 className="text-2xl font-semibold md:text-3xl">Settings</h2>
-      {!standby && <Link href="/standby" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-[#9aafff]">Open Standby</Link>}
+      <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-3">
+        <div>
+          <p id="standby-setting" className="text-sm font-semibold">Standby mode</p>
+          <p id="standby-description" className="mt-1 text-xs text-white/55">A workspace for today’s plan and focus timer.</p>
+        </div>
+        <button type="button" role="switch" aria-checked={standby}
+          aria-labelledby="standby-setting" aria-describedby="standby-description"
+          onClick={() => router.push(standby ? "/" : "/standby")}
+          className="group grid min-h-11 min-w-14 shrink-0 cursor-pointer place-items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8EA4FF]">
+          <span className={`relative block h-7 w-12 rounded-full transition-colors motion-reduce:transition-none ${standby ? "bg-[#5B7CFF]" : "bg-[#383D50]"}`}>
+            <span className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${standby ? "translate-x-5" : ""}`} />
+          </span>
+        </button>
+      </div>
       <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/40">Account</p>
 

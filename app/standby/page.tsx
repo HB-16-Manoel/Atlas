@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import Settings from "../components/Settings";
@@ -239,11 +240,13 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
 
   return <div className={styles.shell}>
     <nav className={styles.rail} aria-label="Standby">
-      <strong>Atlas <span>Standby</span></strong>
+      <div className={styles.brand}>
+        <Image src="/atlas-icon-512.png" alt="" width={32} height={32} />
+        <div><strong>ATLAS</strong><span>Standby</span></div>
+      </div>
       {(["Dashboard", "Focus", "Developer", "Settings"] as const).map((item) =>
         <button key={item} aria-current={section === item ? "page" : undefined}
           onClick={() => setSection(item)}>{item}</button>)}
-      <Link href="/">Exit Standby</Link>
     </nav>
     <main className={styles.main}>
       <header className={styles.header}><h1>{section}</h1>
@@ -267,9 +270,11 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
           <button className={styles.timerCard} onClick={() => setSection("Focus")} aria-label="Open Focus">
             <span className={styles.eyebrow}>Focus · {timer.mode === "pomodoro" ? timer.phase : timer.mode}</span>
             <TimerFace timer={timer} />
+            <span aria-hidden="true" className={styles.timerArrow}>↗</span>
           </button>
         </div>
         {ready && <div className={styles.dashboard}>
+          <div className={styles.stack}>
           <section className={styles.panel}><h2>Today’s tasks</h2>
             {tasks.length === 0 && <p className={styles.muted}>No tasks planned.</p>}
             {tasks.map((task) => <label key={task.id} className={styles.check}>
@@ -278,6 +283,17 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
               <span>{task.text}</span>
             </label>)}
           </section>
+            <section className={styles.panel}><h2>Upcoming events</h2>
+              {events.length === 0 && <p className={styles.muted}>No events in the next 60 days.</p>}
+              {events.map(({ date, event }) => <div key={event.id} className={styles.event}>
+                <span>{event.title}</span>
+                <time dateTime={event.time ? `${date}T${event.time}` : date}>
+                  {new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {event.time && ` · ${event.time}`}
+                </time>
+              </div>)}
+            </section>
+          </div>
           <div className={styles.stack}>
             <section className={styles.panel}><h2>Today’s habits</h2>
               {habits.length === 0 && <p className={styles.muted}>No active habits.</p>}
@@ -292,16 +308,7 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
                 <span>{habit.name}</span>
               </label>)}
             </section>
-            <section className={styles.panel}><h2>Upcoming events</h2>
-              {events.length === 0 && <p className={styles.muted}>No events in the next 60 days.</p>}
-              {events.map(({ date, event }) => <div key={event.id} className={styles.event}>
-                <span>{event.title}</span>
-                <time dateTime={event.time ? `${date}T${event.time}` : date}>
-                  {new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  {event.time && ` · ${event.time}`}
-                </time>
-              </div>)}
-            </section>
+
           </div>
         </div>}
       </>}

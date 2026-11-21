@@ -261,7 +261,10 @@ try {
   await page.getByRole("button", { name: "Show controls", exact: true }).click();
   await page.getByRole("button", { name: "Pause", exact: true }).press("Enter");
   await page.getByRole("button", { name: "Exit immersive", exact: true }).click();
-  await page.getByRole("link", { name: "Exit Standby" }).click();
+  await page.getByRole("navigation", { name: "Standby" }).getByRole("button", { name: "Settings" }).click();
+  const standbySwitch = page.getByRole("switch", { name: "Standby mode" });
+  assert.equal(await standbySwitch.getAttribute("aria-checked"), "true");
+  await standbySwitch.press("Space");
   await page.waitForURL(`${origin}/`);
   await page.setViewportSize({ width: 1440, height: 900 });
   console.log("PASS: Standby route, task/habit writes, score, timer recovery and notes");

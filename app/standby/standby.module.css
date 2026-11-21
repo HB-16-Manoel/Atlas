@@ -71,3 +71,46 @@
 @media (hover: hover) {
   .shell button:hover:not(:disabled), .rail a:hover { box-shadow: inset 0 0 0 1px #65749b; }
 }
+
+/* Match the Atlas shell and keep the work area comfortably readable on wide screens. */
+.shell, .gate { background: #11131c; color-scheme: dark; }
+.shell { grid-template-columns: 190px minmax(0, 1fr); }
+.rail { background: #0e1018; border-color: #242736; padding: 20px 14px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
+.brand img { border-radius: 8px; }
+.rail .brand strong { display: block; padding: 0; font-size: .8rem; letter-spacing: .18em; }
+.rail .brand span { display: block; color: #a2a8bd; font-size: .72rem; }
+.rail button { color: #aeb4c8; }
+.rail [aria-current] { background: #1d2540; color: #dce5ff; box-shadow: inset 2px 0 #6785ff; }
+.main { width: 100%; max-width: 1260px; margin-inline: auto; }
+.header { padding-bottom: 12px; border-bottom: 1px solid #292d3c; }
+.header h1 { letter-spacing: -.035em; }
+.summary { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.dashboard { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.panel, .timerCard { border-color: #2b3042; border-radius: 16px; background: #181b27; }
+.timerCard { position: relative; background: #1b2135; }
+.timerArrow { position: absolute; right: 16px; top: 13px; color: #a7b7ff; }
+.progress { appearance: none; overflow: hidden; border: 0; border-radius: 999px; background: #30364b; }
+.progress::-webkit-progress-bar { background: #30364b; }
+.progress::-webkit-progress-value { background: #6886ff; border-radius: 999px; }
+.progress::-moz-progress-bar { background: #6886ff; border-radius: 999px; }
+.check { gap: 12px; }
+.check input {
+  appearance: none; display: grid; place-content: center; margin: 0;
+  border: 1px solid #626b86; border-radius: 50%; background: #11141f;
+}
+.check input:checked { border-color: #7891ff; background: #5b7cff; color: #101528; }
+.check input:checked::before { content: "✓"; font-weight: 750; font-size: .8rem; }
+.check input:checked + span { color: #aeb6cc; }
+.focus { max-width: 960px; margin-inline: auto; }
+.focus > .actions, .focusGrid > .panel:first-child > div > .actions { justify-content: center; }
+.focusGrid > .panel:first-child { text-align: center; padding-block: clamp(16px, 3vh, 30px); }
+.focusGrid .digital { letter-spacing: -.055em; }
+.focusGrid > .panel:first-child > .muted { margin-block: 6px 12px; }
+.focusGrid > .panel:first-child > div > .actions + .actions { margin-top: 16px; }
+.focusGrid > .panel:first-child > div > .field { margin-top: 4px; }
+@media (max-width: 780px) {
+  .brand { padding: 0 6px 0 0; }
+  .rail { padding: 8px 10px; }
+  .dashboard { grid-template-columns: minmax(0, 1fr); }
+}
