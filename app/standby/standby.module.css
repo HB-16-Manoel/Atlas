@@ -1,0 +1,73 @@
+.shell, .gate {
+  background: #10121a;
+  color: #f2f4ff;
+  min-height: 100dvh;
+}
+.shell { display: grid; grid-template-columns: 172px minmax(0, 1fr); height: 100dvh; }
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 20px 12px;
+  overflow: auto;
+  border-right: 1px solid #282c3b;
+  background: #0c0e15;
+}
+.rail strong { padding: 8px 12px 14px; white-space: nowrap; }
+.rail strong span, .main a, .gate a { color: #a7b7ff; }
+.rail a { margin-top: auto; }
+.main { min-width: 0; overflow: auto; padding: 22px clamp(16px, 3vw, 44px); }
+.header, .event { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.header { margin-bottom: 16px; }
+.header h1, .gate h1 { font-size: 1.75rem; font-weight: 650; }
+.header time, .event time, .muted { color: #adb2c6; font-size: .875rem; }
+.summary, .dashboard, .projects, .focusGrid, .stack { display: grid; gap: 12px; }
+.summary { grid-template-columns: 1fr 1fr; margin-bottom: 12px; }
+.dashboard { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+.projects, .focusGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.focusGrid:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.panel, .timerCard { border: 1px solid #303447; border-radius: 13px; background: #181b26; padding: 14px 16px; }
+.panel h2 { font-weight: 650; margin-bottom: 6px; }
+.eyebrow { color: #a7b7ff; font-size: .75rem; text-transform: uppercase; letter-spacing: .09em; }
+.score { font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+.progress { display: block; width: min(100%, 230px); height: 5px; accent-color: #738fff; }
+.shell button, .rail a, .gate a, .field input, .field select {
+  min-height: 44px; padding: 7px 12px; border-radius: 8px; color: inherit;
+}
+.shell button, .rail a, .gate a { cursor: pointer; }
+.shell button:disabled { cursor: default; opacity: .55; }
+.rail button, .rail a { text-align: left; }
+.rail [aria-current], .actions [aria-pressed="true"] { background: #26335b; color: #e1e8ff; }
+.actions button, .field input, .field select, .gate a { border: 1px solid #363e56; background: #151925; }
+.shell .primary { background: #4562d2; }
+.shell :focus-visible, .gate :focus-visible { outline: 2px solid #a4b7ff; outline-offset: 2px; }
+.check, .event { border-top: 1px solid #303447; padding: 8px 0; min-height: 44px; }
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.check input { width: 19px; height: 19px; flex: none; accent-color: #738fff; }
+.event time { flex: none; }
+.digital { font-size: clamp(2rem, 8vw, 6rem); line-height: 1.1; font-weight: 650; font-variant-numeric: tabular-nums; }
+.timerCard { text-align: left; }
+.timerCard .digital { font-size: 1.85rem; }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.field { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.field input { width: 75px; }
+.field select { max-width: min(100%, 360px); }
+.notes { display: block; width: 100%; min-height: 220px; margin-top: 10px; padding: 12px; resize: vertical; background: #10121a; border: 1px solid #363e56; border-radius: 8px; }
+.linked { margin-top: 8px; overflow-wrap: anywhere; }
+.immersive { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; color: #f2f4ff; background: #10121a; overflow: auto; padding: 16px clamp(16px, 5vw, 68px); }
+.immersive .panel { text-align: center; margin-top: 3vh; }
+.immersive .digital { font-size: clamp(3rem, 19vw, 15rem); }
+.immersive .panel .actions { justify-content: center; }
+.gate { display: grid; align-content: center; justify-items: center; text-align: center; gap: 12px; padding: 24px; }
+@media (max-width: 780px) {
+  .shell { display: flex; flex-direction: column; }
+  .rail { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 6px 10px; border-right: 0; border-bottom: 1px solid #282c3b; }
+  .rail strong { padding: 0 5px; }
+  .rail a { margin-top: 0; }
+  .main { flex: 1; }
+  .dashboard, .focusGrid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (hover: hover) {
+  .shell button:hover:not(:disabled), .rail a:hover { box-shadow: inset 0 0 0 1px #65749b; }
+}

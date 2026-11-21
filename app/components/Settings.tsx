@@ -10,12 +10,14 @@ type SettingsProps = {
   dataSource: "cloud" | "legacy-local" | null;
   syncStatus: AtlasSyncStatus;
   syncMessage: string;
+  standby?: boolean;
 };
 
 export default function Settings({
   dataSource,
   syncStatus,
   syncMessage,
+  standby = false,
 }: SettingsProps) {
   const { user, loading, signOut } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -79,6 +81,7 @@ export default function Settings({
   return (
     <div className="mx-auto mt-4 max-w-2xl md:mt-8">
       <h2 className="text-2xl font-semibold md:text-3xl">Settings</h2>
+      {!standby && <Link href="/standby" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-white/15 px-4 text-sm text-[#9aafff]">Open Standby</Link>}
       <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/40">Account</p>
 
