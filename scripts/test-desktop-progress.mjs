@@ -194,6 +194,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     reducedMotion: "reduce",
+    hasTouch: true,
   });
   page = await context.newPage();
   page.setDefaultTimeout(10000);
@@ -244,19 +245,50 @@ try {
   for (let attempt = 0; attempt < 50 && (tables.tasks[0].completed_at || tables.habit_completions.some((row) => !row.deleted_at)); attempt++) await pause(100);
   assert.equal(tables.tasks[0].completed_at, null);
   assert.ok(!tables.habit_completions.some((row) => !row.deleted_at));
+  const clock = page.locator('header time');
+  assert.ok(Number.isFinite(Date.parse(await clock.getAttribute("datetime"))));
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/standby-dashboard.png` });
+  await page.evaluate((id) => localStorage.setItem(`atlas-standby-v1:${id}:notes`, JSON.stringify("Standby draft")), userId);
+  await page.route("**/standby/commit", (route) => route.fulfill({ json: {
+    sha: "b".repeat(40), message: "Isolated commit fixture", date: now, branch: "main",
+  } }));
+  const station = page.getByRole("navigation", { name: "Standby" });
+  const project = page.getByRole("combobox", { name: "Project" });
+  const notes = page.getByRole("textbox", { name: /Development notes/ });
+  await station.getByRole("button", { name: "Studio" }).tap();
+  await page.getByText("Isolated commit fixture", { exact: true }).waitFor();
+  assert.equal(await notes.inputValue(), "Standby draft");
+  await notes.fill("Atlas follow-up");
+  await project.selectOption("Monte");
+  assert.equal(await notes.inputValue(), "");
+  await notes.fill("Monte follow-up");
+  await project.selectOption("Atlas");
+  assert.equal(await notes.inputValue(), "Atlas follow-up");
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/standby-studio.png` });
+  await station.getByRole("button", { name: "Dashboard" }).click();
   await page.getByRole("button", { name: "Open Focus" }).press("Enter");
-  await page.getByRole("button", { name: "Workspace", exact: true }).click();
-  await page.getByRole("textbox", { name: /Workspace notes/ }).fill("Standby draft");
+  await page.getByText("Timer setup", { exact: true }).click();
   await page.getByRole("combobox", { name: "Linked task" }).selectOption(tables.tasks[0].id);
   await page.getByRole("button", { name: "Stopwatch", exact: true }).click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.reload();
+  await station.getByRole("button", { name: "Studio" }).click();
+  assert.equal(await notes.inputValue(), "Atlas follow-up");
+  await project.selectOption("Monte");
+  assert.equal(await notes.inputValue(), "Monte follow-up");
+  await station.getByRole("button", { name: "Dashboard" }).click();
+  const dashboardTimer = await page.getByRole("timer").innerText();
   await page.getByRole("button", { name: "Open Focus" }).click();
   await page.getByRole("button", { name: "Pause", exact: true }).waitFor();
+  const toSeconds = (value) => value.split(":").map(Number).reduce((total, part) => total * 60 + part, 0);
+  assert.ok(Math.abs(toSeconds(await page.getByRole("timer").innerText()) - toSeconds(dashboardTimer)) <= 2);
+  if (process.env.ATLAS_TEST_SCREENSHOTS)
+    await page.screenshot({ path: `${process.env.ATLAS_TEST_SCREENSHOTS}/standby-focus.png` });
+  await page.getByText("Timer setup", { exact: true }).click();
   assert.equal(await page.getByRole("combobox", { name: "Linked task" }).inputValue(), tables.tasks[0].id);
   await page.setViewportSize({ width: 1366, height: 520 });
-  await page.getByRole("button", { name: "Workspace", exact: true }).click();
-  assert.equal(await page.getByRole("textbox", { name: /Workspace notes/ }).inputValue(), "Standby draft");
   await page.getByRole("button", { name: "Immersive", exact: true }).click();
   await page.getByRole("button", { name: "Show controls", exact: true }).click();
   await page.getByRole("button", { name: "Pause", exact: true }).press("Enter");
@@ -737,10 +769,11 @@ try {
   await page.waitForURL(`${origin}/`);
   await page.goto(`${origin}/standby`);
   await page.getByRole("button", { name: "Open Focus" }).click();
-  await page.getByRole("button", { name: "Workspace", exact: true }).click();
-  assert.equal(await page.getByRole("textbox", { name: /Workspace notes/ }).inputValue(), "");
+  await page.getByText("Timer setup", { exact: true }).click();
   assert.equal(await page.getByRole("combobox", { name: "Linked task" }).inputValue(), "");
   assert.equal(await page.getByRole("timer").innerText(), "25:00");
+  await page.getByRole("navigation", { name: "Standby" }).getByRole("button", { name: "Studio" }).click();
+  assert.equal(await page.getByRole("textbox", { name: /Development notes/ }).inputValue(), "");
   console.log("PASS: second account cannot see the first account's draft, link, or timer");
   console.log(
     "PASS: callback exchange, session cookies, AuthProvider and cloud Goals initialization",

@@ -12,15 +12,14 @@ import { getUpcomingEvents, localDateKey } from "../lib/upcomingEvents";
 import { duration, elapsedAt, initialTimer, recover, toggleTimer, type Mode, type Timer } from "./timer";
 import styles from "./standby.module.css";
 
-type Section = "Dashboard" | "Focus" | "Developer" | "Settings";
+type Section = "Dashboard" | "Focus" | "Studio" | "Settings";
 const navigation = [
   { name: "Dashboard", icon: "▦" },
   { name: "Focus", icon: "◷" },
-  { name: "Developer", icon: "⌘" },
-  { name: "Settings", icon: "⚙" },
+  { name: "Studio", icon: "⌘" },
 ] as const;
 
-type View = "Standard" | "Immersive" | "Workspace";
+type View = "Standard" | "Immersive";
 
 function readLocal<T,>(key: string, fallback: T): T {
   try {
@@ -87,14 +86,12 @@ function Minutes({ label, value, disabled, onChange }: {
   </label>;
 }
 
-function Focus({ timer, save, tasks, linked, link, notes, saveNotes }: {
+function Focus({ timer, save, tasks, linked, link }: {
   timer: Timer;
   save: (timer: Timer) => void;
   tasks: Task[];
   linked: string;
   link: (id: string) => void;
-  notes: string;
-  saveNotes: (value: string) => void;
 }) {
   const [view, setView] = useState<View>("Standard");
   const [revealed, setRevealed] = useState(false);
@@ -114,7 +111,7 @@ function Focus({ timer, save, tasks, linked, link, notes, saveNotes }: {
       <button aria-expanded={revealed} aria-controls="standby-timer-controls"
         onClick={() => setRevealed(!revealed)}>{revealed ? "Hide controls" : "Show controls"}</button>
     </div> : <div className={styles.actions} aria-label="Timer view">
-      {(["Standard", "Immersive", "Workspace"] as const).map((option) =>
+      {(["Standard", "Immersive"] as const).map((option) =>
         <button key={option} aria-pressed={view === option} onClick={() => {
           setView(option);
           setRevealed(false);
@@ -139,7 +136,7 @@ function Focus({ timer, save, tasks, linked, link, notes, saveNotes }: {
             </button>
             <button onClick={() => save(reset)}>Reset</button>
           </div>
-          {!immersive && <>
+          {!immersive && <details className={styles.timerSettings}><summary>Timer setup</summary>
             <div className={styles.actions} aria-label="Timer mode">
               {(["countdown", "stopwatch", "pomodoro"] as const).map((mode: Mode) =>
                 <button key={mode} aria-pressed={timer.mode === mode}
@@ -166,15 +163,9 @@ function Focus({ timer, save, tasks, linked, link, notes, saveNotes }: {
                   <option key={task.cloudId} value={task.cloudId}>{task.text}</option>)}
               </select>
             </label>
-          </>}
+          </details>}
         </div>
       </div>
-      {view === "Workspace" && <label className={styles.panel}>
-        <strong>Workspace notes</strong>
-        <span className={styles.muted}> Temporary draft saved on this device.</span>
-        <textarea className={styles.notes} value={notes} maxLength={20000}
-          onChange={(event) => saveNotes(event.target.value)} />
-      </label>}
     </div>
   </>;
   return immersive
@@ -184,18 +175,113 @@ function Focus({ timer, save, tasks, linked, link, notes, saveNotes }: {
 }
 
 const projects = [
-  { name: "Atlas", description: "Plan tasks, track habits, and review personal progress.", href: "/" },
-  { name: "Monte", description: "A project in Henrique’s workspace." },
-  { name: "Scribble", description: "A project in Henrique’s workspace." },
-  { name: "School Portal", description: "Henrique’s school portal." },
+  { id: "Atlas", name: "Atlas", repo: "Atlas", description: "Plan tasks, track habits, and review personal progress.", href: "/" },
+  { id: "Monte", name: "Monte", repo: "Monte", description: "Development workspace for Monte." },
+  { id: "Scribble", name: "Scribble", repo: "Scribble", description: "Development workspace for Scribble." },
+  { id: "School-Portal", name: "School Portal", repo: "School-Portal", description: "Henrique’s school portal." },
 ];
+
+type Commit = { sha: string; message: string; date: string; branch: string };
+
+function StationClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    let timeout: number;
+    const update = () => {
+      window.clearTimeout(timeout);
+      const time = new Date();
+      setNow(time);
+      timeout = window.setTimeout(update, 60_000 - (time.getTime() % 60_000));
+    };
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      window.clearTimeout(timeout);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+  return <time className={styles.clock} dateTime={now.toISOString()}>
+    <span>{now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</span>
+    <strong>{now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</strong>
+  </time>;
+}
+
+function Studio({ storageKey, onStorageError }: { storageKey: string; onStorageError: () => void }) {
+  const [id, select] = useState("Atlas");
+  const [commit, setCommit] = useState<Commit | "error" | null>(null);
+  const project = projects.find((entry) => entry.id === id) ?? projects[0];
+  const repo = `https://github.com/HB-16-Manoel/${project.repo}`;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/standby/commit", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("GitHub unavailable");
+        const result = await response.json() as Commit;
+        if (!controller.signal.aborted) setCommit(result);
+      })
+      .catch(() => { if (!controller.signal.aborted) setCommit("error"); });
+    return () => controller.abort();
+  }, []);
+
+  return <section aria-label="Studio">
+    <div className={styles.studioBanner}>
+      <div><h2>{project.name}</h2><p className={styles.muted}>{project.description}</p>
+        {id === "Atlas" && commit && commit !== "error" && <p className={styles.eyebrow}>{commit.branch}</p>}
+      </div>
+      <label className={styles.field}>Project
+        <select value={id} onChange={(event) => select(event.target.value)}>
+          {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      </label>
+    </div>
+    <div className={styles.studioGrid}>
+      <article className={styles.panel}>
+        <h2>Latest commit</h2>
+        {id !== "Atlas" ? <p className={styles.muted}>Commit details are available to repository members on GitHub.</p>
+          : commit === "error" ? <p role="status">GitHub is temporarily unavailable.</p>
+          : !commit ? <p role="status">Loading latest commit…</p>
+          : <>
+            <p className={styles.commitMessage}>{commit.message.split("\n")[0]}</p>
+            <p className={styles.muted}>{commit.branch} · <time dateTime={commit.date}>{new Date(commit.date).toLocaleString()}</time></p>
+            <a className={styles.projectLink} href={`${repo}/commit/${commit.sha}`}>{commit.sha.slice(0, 7)} ↗</a>
+          </>}
+      </article>
+      <ProjectNotes key={id} noteKey={`${storageKey}:studio:${id}:notes`}
+        legacyKey={id === "Atlas" ? `${storageKey}:notes` : undefined} onStorageError={onStorageError} />
+    </div>
+    <div className={styles.studioLinks}>
+      <a href={repo}>GitHub ↗</a>
+      {project.href && <Link href={project.href}>Open project ↗</Link>}
+    </div>
+  </section>;
+}
+
+function ProjectNotes({ noteKey, legacyKey, onStorageError }: {
+  noteKey: string;
+  legacyKey?: string;
+  onStorageError: () => void;
+}) {
+  const [notes, setNotes] = useState(() =>
+    readLocal(noteKey, legacyKey ? readLocal(legacyKey, "") : ""));
+  return <label className={styles.panel}>
+    <strong>Development notes</strong>
+    <textarea className={styles.notes} value={notes} maxLength={20000}
+      placeholder="Ideas, bugs, and next steps"
+      onChange={(event) => {
+        const value = event.target.value;
+        setNotes(value);
+        if (!writeLocal(noteKey, value)) onStorageError();
+      }} />
+    <span className={styles.muted}>Saved on this device</span>
+  </label>;
+}
 
 function AccountWorkspace({ accountId }: { accountId: string }) {
   const data = useAtlasData();
   const key = `atlas-standby-v1:${accountId}`;
   const [section, setSection] = useState<Section>("Dashboard");
   const [timer, setTimer] = useState(() => recover(readLocal(`${key}:timer`, initialTimer) ?? initialTimer, Date.now()));
-  const [notes, setNotes] = useState(() => readLocal(`${key}:notes`, ""));
   const [linked, setLinked] = useState(() => readLocal(`${key}:task`, ""));
   const [storageError, setStorageError] = useState(false);
   const [todayKey, setTodayKey] = useState(() => localDateKey(new Date()));
@@ -251,17 +337,17 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
         <Image src="/atlas-icon-512.png" alt="" width={40} height={40} />
         <div><strong>ATLAS</strong><span>Standby</span></div>
       </div>
-      {navigation.map(({ name, icon }) =>
+      <div className={styles.modes}>{navigation.map(({ name, icon }) =>
         <button key={name} aria-current={section === name ? "page" : undefined}
           onClick={() => setSection(name)}>
           <span className={styles.navIcon} aria-hidden="true">{icon}</span><span>{name}</span>
-        </button>)}
+        </button>)}</div>
+      <button className={styles.gear} aria-label="Settings" aria-current={section === "Settings" ? "page" : undefined}
+        onClick={() => setSection("Settings")}>⚙</button>
     </nav>
     <main className={styles.main}>
       <header className={styles.header}><h1>{section}</h1>
-        <time dateTime={todayKey}>{new Date(`${todayKey}T00:00:00`).toLocaleDateString(undefined, {
-          weekday: "long", month: "short", day: "numeric",
-        })}</time>
+        {section === "Dashboard" && <StationClock />}
       </header>
       {storageError && <p role="alert">Device storage is unavailable. Recent timer or draft changes may be lost on reload.</p>}
       {data.dataLoading && <p role="status">Loading Atlas account data…</p>}
@@ -272,26 +358,31 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
         </div>}
       {section === "Dashboard" && <>
         <div className={styles.summary}>
-          <div className={styles.panel}><p className={styles.eyebrow}>Daily Score</p>
+          <div className={`${styles.panel} ${styles.overview}`}><p className={styles.eyebrow}>Today</p>
+            <h2>Your day, at a glance</h2>
+            <span className={styles.muted}>Daily Score </span>
             <strong className={styles.score}>{score ?? "—"}</strong><span className={styles.muted}> / 100</span>
             {score !== null && <progress className={styles.progress} max={100} value={score} aria-label="Daily Score" />}
           </div>
           <button className={styles.timerCard} onClick={() => setSection("Focus")} aria-label="Open Focus">
             <span className={styles.eyebrow}>Focus · {timer.mode === "pomodoro" ? timer.phase : timer.mode}</span>
             <TimerFace timer={timer} />
+            <span className={styles.muted}>{timer.finished ? "Finished" : timer.started !== null ? "Running" : timer.elapsed ? "Paused" : "Ready"}</span>
             <span aria-hidden="true" className={styles.timerArrow}>↗</span>
           </button>
         </div>
         {ready && <div className={styles.dashboard}>
-          <div className={styles.stack}>
-          <section className={styles.panel}><h2>Today’s tasks</h2>
+          <section className={styles.panel}>
+            <div className={styles.widgetHeading}><h2>Today’s tasks</h2>
+              <span className={styles.muted}>{tasks.filter((task) => !task.completed).length} remaining</span>
+            </div><div className={styles.taskList} tabIndex={tasks.length > 4 ? 0 : undefined} aria-label="Today’s task list">
             {tasks.length === 0 && <p className={styles.muted}>No tasks planned.</p>}
             {tasks.map((task) => <label key={task.id} className={styles.check}>
               <input type="checkbox" checked={task.completed} onChange={() => data.setTasks((items) =>
                 items.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item))} />
               <span>{task.text}</span>
             </label>)}
-          </section>
+          </div></section>
             <section className={styles.panel}><h2>Upcoming events</h2>
               {events.length === 0 && <p className={styles.muted}>No events in the next 60 days.</p>}
               {events.map(({ date, event }) => <div key={event.id} className={styles.event}>
@@ -302,9 +393,10 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
                 </time>
               </div>)}
             </section>
-          </div>
-          <div className={styles.stack}>
-            <section className={styles.panel}><h2>Today’s habits</h2>
+            <section className={`${styles.panel} ${styles.habits}`}>
+              <div className={styles.widgetHeading}><h2>Today’s habits</h2>
+                <span className={styles.muted}>{habits.filter((habit) => habit.completedDates.includes(todayKey)).length} / {habits.length} complete</span>
+              </div><div className={styles.habitGrid}>
               {habits.length === 0 && <p className={styles.muted}>No active habits.</p>}
               {habits.map((habit) => <label key={habit.id} className={styles.check}>
                 <input type="checkbox" checked={habit.completedDates.includes(todayKey)}
@@ -316,9 +408,7 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
                   }))} />
                 <span>{habit.name}</span>
               </label>)}
-            </section>
-
-          </div>
+            </div></section>
         </div>}
       </>}
       {section === "Focus" && <Focus timer={timer} save={saveTimer}
@@ -327,21 +417,9 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
           setLinked(value);
           if (!writeLocal(`${key}:task`, value)) setStorageError(true);
         }}
-        notes={notes} saveNotes={(value) => {
-          setNotes(value);
-          if (!writeLocal(`${key}:notes`, value)) setStorageError(true);
-        }} />}
-      {section === "Developer" && <div className={styles.projects}>
-        {projects.map((project) => <article className={styles.panel} key={project.name}>
-          <div className={styles.projectMark} aria-hidden="true">
-            {project.name === "Atlas"
-              ? <Image src="/atlas-icon-512.png" alt="" width={36} height={36} />
-              : project.name.charAt(0)}
-          </div>
-          <div><h2>{project.name}</h2><p className={styles.muted}>{project.description}</p></div>
-          {project.href && <Link className={styles.projectLink} href={project.href}>Open Atlas <span aria-hidden="true">↗</span></Link>}
-        </article>)}
-      </div>}
+        />
+      }
+      {section === "Studio" && <Studio storageKey={key} onStorageError={() => setStorageError(true)} />}
       {section === "Settings" && <div className={styles.settings}>
         <Settings dataSource={data.dataSource} syncStatus={data.syncStatus}
           syncMessage={data.syncMessage} standby />
