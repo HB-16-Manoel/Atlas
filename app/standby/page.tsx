@@ -224,7 +224,7 @@ function Studio({ storageKey, onStorageError }: { storageKey: string; onStorageE
     return () => controller.abort();
   }, []);
 
-  return <section aria-label="Studio">
+  return <section className={styles.studio} aria-label="Studio">
     <div className={styles.studioBanner}>
       <div className={styles.projectIdentity}>
         <span className={styles.projectIcon} aria-hidden="true">
@@ -273,7 +273,7 @@ function ProjectNotes({ noteKey, legacyKey, onStorageError }: {
 }) {
   const [notes, setNotes] = useState(() =>
     readLocal(noteKey, legacyKey ? readLocal(legacyKey, "") : ""));
-  return <label className={styles.panel}>
+  return <label className={`${styles.panel} ${styles.notesPanel}`}>
     <span className={styles.editorHeading}>Development notes</span>
     <textarea className={styles.notes} value={notes} maxLength={20000}
       placeholder="Ideas, bugs, and next steps"
@@ -386,7 +386,7 @@ function AccountWorkspace({ accountId }: { accountId: string }) {
           </button>
         </div>
         {ready && <div className={styles.dashboard}>
-          <section className={styles.panel}>
+          <section className={`${styles.panel} ${styles.tasksPanel}`}>
             <div className={styles.widgetHeading}><h2>Today’s tasks</h2>
               <span className={styles.counter}>{tasks.filter((task) => !task.completed).length} remaining</span>
             </div><div className={styles.taskList} tabIndex={tasks.length > 4 ? 0 : undefined} aria-label="Today’s task list">
